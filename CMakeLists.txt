@@ -16,18 +16,20 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 add_library(
     build_cxx
-        STATIC
-        EXCLUDE_FROM_ALL
+        SHARED
             "${CMAKE_CURRENT_LIST_DIR}/src/impl.cxx"
-    
 )
-
 target_include_directories(
     build_cxx
         PUBLIC
-            "${CMAKE_CURRENT_LIST_DIR}/include/public"
+            "${CMAKE_CURRENT_LIST_DIR}/include"
         PRIVATE
-            "${CMAKE_CURRENT_LIST_DIR}/include/private"
+            "${CMAKE_CURRENT_LIST_DIR}/src/include"
+)
+target_compile_definitions(
+    build_cxx
+        PRIVATE
+            BUILD_CXX_INTERNAL_IMPLEMENTATION
 )
 
 add_subdirectory(tests)

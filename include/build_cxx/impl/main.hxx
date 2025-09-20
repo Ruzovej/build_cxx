@@ -26,6 +26,8 @@
 
 #include "build_cxx/impl/target_builder.hxx"
 
+#ifndef BUILD_CXX_INTERNAL_IMPLEMENTATION
+
 int main(int const argc, char const *const argv[]) {
   try {
     auto &target_builders = ::build_cxx::impl::get_target_builders_vector();
@@ -49,3 +51,5 @@ int main(int const argc, char const *const argv[]) {
   }
   return EXIT_FAILURE;
 }
+
+#endif
