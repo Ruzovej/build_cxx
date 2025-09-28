@@ -19,6 +19,6 @@
 
 #pragma once
 
-#define BUILD_CXX_IMPL_IMPLICIT_NAME_JOIN(name, line) name##line
-#define BUILD_CXX_IMPL_IMPLICIT_NAME(name, line)                               \
-  BUILD_CXX_IMPL_IMPLICIT_NAME_JOIN(name, line)
+#define BUILD_CXX_IMPL_IMPLICIT_NAME_JOIN(begin, end) begin##end
+#define BUILD_CXX_IMPL_IMPLICIT_NAME(begin, end)                               \
+  BUILD_CXX_IMPL_IMPLICIT_NAME_JOIN(begin, end)
