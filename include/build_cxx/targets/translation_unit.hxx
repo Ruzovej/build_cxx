@@ -19,6 +19,30 @@
 
 #pragma once
 
-#define BUILD_CXX_IMPL_IMPLICIT_NAME_JOIN(begin, end) begin##end
-#define BUILD_CXX_IMPL_IMPLICIT_NAME(begin, end)                               \
-  BUILD_CXX_IMPL_IMPLICIT_NAME_JOIN(begin, end)
+#include <memory>
+#include <string>
+#include <type_traits>
+#include <vector>
+
+#include "build_cxx/targets/generic.hxx"
+
+namespace build_cxx::targets {
+
+class translation_unit : public generic {
+public:
+  explicit translation_unit(std::string &&name) : generic{std::move(name)} {}
+
+  virtual ~translation_unit() = default;
+
+  virtual bool up_to_date() const = 0;
+  virtual void build() const = 0;
+
+private:
+  std::string source_file_dir;
+  std::string source_file;
+  std::string object_file_dir;
+
+  std::vector<std::string> extra_compiler_flags;
+};
+
+} // namespace build_cxx::targets
