@@ -17,4 +17,11 @@
   with build_cxx. If not, see <https://www.gnu.org/licenses/>.
 */
 
-// TODO
+#pragma once
+
+namespace build_cxx::os_wrapper {
+
+using native_fd_t = int;
+static native_fd_t constexpr invalid_fd{-1};
+
+} // namespace build_cxx::os_wrapper
