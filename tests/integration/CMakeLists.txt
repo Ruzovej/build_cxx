@@ -14,14 +14,23 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-include_directories(SYSTEM "${CMAKE_CURRENT_LIST_DIR}/../include")
-
 add_executable(01 "${CMAKE_CURRENT_LIST_DIR}/01/build.cxx")
 target_include_directories(
     01
         PRIVATE
             "${CMAKE_CURRENT_LIST_DIR}/01"
 )
+target_link_libraries(
+    01
+        PRIVATE
+            build_cxx
+)
+#target_include_directories(
+#    01
+#        SYSTEM
+#        PRIVATE
+#            "${build_cxx_SOURCE_DIR}/include"
+#)
 
 #add_executable(02 "${CMAKE_CURRENT_LIST_DIR}/02/build.cxx")
 #target_include_directories(

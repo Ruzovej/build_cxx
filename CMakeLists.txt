@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.16)
 
-# just for compile_commands.json so `clangd` works properly ...
+# just for compile_commands.json so `clangd` works properly ... later should become obsolete
 
 project(
     build_cxx
@@ -14,17 +14,26 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
+# core library; source files:
+# https://cmake.org/cmake/help/latest/command/file.html#filesystem
+file(
+    GLOB_RECURSE
+        BUILD_CXX_SOURCES
+            CONFIGURE_DEPENDS
+            "${build_cxx_SOURCE_DIR}/src/*.cxx"
+)
+
 add_library(
     build_cxx
         SHARED
-            "${CMAKE_CURRENT_LIST_DIR}/src/impl.cxx"
+            ${BUILD_CXX_SOURCES}
 )
 target_include_directories(
     build_cxx
         PUBLIC
-            "${CMAKE_CURRENT_LIST_DIR}/include"
+            "${build_cxx_SOURCE_DIR}/include"
         PRIVATE
-            "${CMAKE_CURRENT_LIST_DIR}/src/include"
+            "${build_cxx_SOURCE_DIR}/src/include"
 )
 target_compile_definitions(
     build_cxx
@@ -32,4 +41,5 @@ target_compile_definitions(
             BUILD_CXX_INTERNAL_IMPLEMENTATION
 )
 
-add_subdirectory(tests)
+add_subdirectory(tests/integration)
+add_subdirectory(tests/unit)

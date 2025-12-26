@@ -24,8 +24,6 @@
 #include "build_cxx/impl/registrator.hxx"
 #include "build_cxx/impl/target_builder.hxx"
 
-// https://gcc.gnu.org/onlinedocs/cpp/Common-Predefined-Macros.html
-// I hope others support `__COUNTER__` too
 #define BUILD_CXX_GENERIC_TARGET_IMPL(name, index)                             \
   static BUILD_CXX_ADJUST_TARGET_FN(                                           \
       BUILD_CXX_IMPL_IMPLICIT_NAME(BUILD_CXX_ADJUST_TARGET_FN_, index));       \
@@ -36,5 +34,7 @@
   BUILD_CXX_ADJUST_TARGET_FN(                                                  \
       BUILD_CXX_IMPL_IMPLICIT_NAME(BUILD_CXX_ADJUST_TARGET_FN_, index))
 
+// https://gcc.gnu.org/onlinedocs/cpp/Common-Predefined-Macros.html
+// I hope others support `__COUNTER__` too
 #define BUILD_CXX_GENERIC_TARGET(name)                                         \
   BUILD_CXX_GENERIC_TARGET_IMPL(name, __COUNTER__)
