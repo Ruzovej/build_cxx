@@ -4,4 +4,5 @@
 
 set -e
 
+scripts/build.bash --target build_cxx_unit_tests
 build/tests/unit/build_cxx_unit_tests "$@"

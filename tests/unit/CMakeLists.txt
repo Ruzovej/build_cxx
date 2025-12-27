@@ -11,17 +11,17 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(doctest)
 
-#file(
-#    GLOB_RECURSE
-#        BUILD_CXX_UNIT_TEST_SOURCES
-#            CONFIGURE_DEPENDS
-#            "${CMAKE_CURRENT_LIST_DIR}/*_test.cxx"
-#)
+file(
+    GLOB_RECURSE
+        BUILD_CXX_UNIT_TEST_SOURCES
+            CONFIGURE_DEPENDS
+            "${CMAKE_CURRENT_LIST_DIR}/*.test.cxx"
+)
 
 add_executable(
     build_cxx_unit_tests
         "${CMAKE_CURRENT_LIST_DIR}/doctest_main.cxx"
-        #${BUILD_CXX_UNIT_TEST_SOURCES}
+        ${BUILD_CXX_UNIT_TEST_SOURCES}
         ${BUILD_CXX_SOURCES}
 )
 target_include_directories(
@@ -41,8 +41,6 @@ target_link_libraries(
 target_compile_definitions(
     build_cxx_unit_tests
         PRIVATE
-            CXXET_ENABLE
-            BUILD_CXX_WITH_UNIT_TESTS
             DOCTEST_CONFIG_SUPER_FAST_ASSERTS
             DOCTEST_CONFIG_NO_TRY_CATCH_IN_ASSERTS
 )

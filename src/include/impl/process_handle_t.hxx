@@ -21,7 +21,7 @@
 
 namespace build_cxx::os_wrapper {
 
-using process_handle_t = long long;
+using process_handle_t = int;
 static process_handle_t constexpr invalid_process_handle{-1};
 
 } // namespace build_cxx::os_wrapper

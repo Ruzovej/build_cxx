@@ -58,7 +58,7 @@ void close_fd(int &fd) noexcept {
 
 } // namespace
 
-pipe_helper::pipe_helper() { BUILD_CXX_SYSCALL_HELPER(pipe(fds)); }
+void pipe_helper::init() { BUILD_CXX_SYSCALL_HELPER(pipe(fds)); }
 
 pipe_helper::~pipe_helper() noexcept {
   close_out();

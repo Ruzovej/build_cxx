@@ -24,7 +24,10 @@
 namespace build_cxx::os_wrapper {
 
 struct pipe_helper {
-  pipe_helper();
+  pipe_helper() noexcept = default;
+
+  void init();
+
   ~pipe_helper() noexcept;
 
   pipe_helper(pipe_helper &&rhs) noexcept;
