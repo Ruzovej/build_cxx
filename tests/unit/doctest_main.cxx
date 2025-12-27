@@ -1,20 +1,20 @@
 /*
   Copyright 2025 Lukáš Růžička
 
-  This file is part of cxxet.
+  This file is part of build_cxx.
 
-  cxxet is free software: you can redistribute it and/or modify it under the
+  build_cxx is free software: you can redistribute it and/or modify it under the
   terms of the GNU Lesser General Public License as published by the Free
   Software Foundation, either version 3 of the License, or (at your option) any
   later version.
 
-  cxxet is distributed in the hope that it will be useful, but WITHOUT ANY
+  build_cxx is distributed in the hope that it will be useful, but WITHOUT ANY
   WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
   A PARTICULAR PURPOSE. See the GNU Lesser General Public License for more
   details.
 
   You should have received a copy of the GNU Lesser General Public License along
-  with cxxet. If not, see <https://www.gnu.org/licenses/>.
+  with build_cxx. If not, see <https://www.gnu.org/licenses/>.
 */
 
 #define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN

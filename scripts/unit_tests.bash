@@ -4,5 +4,11 @@
 
 set -e
 
-scripts/build.bash --target build_cxx_unit_tests
-build/tests/unit/build_cxx_unit_tests "$@"
+scripts/build.bash \
+    --target build_cxx_unit_tests \
+    --target some_cli_app
+
+build/tests/unit/build_cxx_unit_tests \
+    --no-intro=true \
+    --no-version=true \
+    "$@"

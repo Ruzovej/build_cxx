@@ -44,3 +44,8 @@ target_compile_definitions(
             DOCTEST_CONFIG_SUPER_FAST_ASSERTS
             DOCTEST_CONFIG_NO_TRY_CATCH_IN_ASSERTS
 )
+
+add_executable(
+    some_cli_app
+        "${CMAKE_CURRENT_LIST_DIR}/helper/some_cli_app.cxx"
+)
