@@ -29,15 +29,19 @@ namespace build_cxx::os_wrapper {
 
 int current_errno() noexcept { return errno; }
 
-int syscall_helper(std::string_view const file, int const line, int const ret) {
-  auto const errno_val{current_errno()};
-  if ((errno_val != 0) || (ret < 0)) {
-    throw std::runtime_error(
-        std::string{file} + ":" + std::to_string(line) +
-        ": syscall failed - return code " + std::to_string(ret) + ", errno " +
-        std::to_string(errno_val) + " ~ \"" + std::strerror(errno_val) + "\"");
+int syscall_helper(std::string_view const file, int const line,
+                   int const syscall_ret) {
+  // don't check the `errno` in advance (as was done in the past here) ... in
+  // case some syscalls (graciously) failed before this one
+  if (syscall_ret < 0) {
+    auto const errno_val{current_errno()};
+    throw std::runtime_error(std::string{file} + ":" + std::to_string(line) +
+                             ": syscall failed - return code " +
+                             std::to_string(syscall_ret) + ", errno " +
+                             std::to_string(errno_val) + " ~ \"" +
+                             std::strerror(errno_val) + "\"");
   }
-  return ret;
+  return syscall_ret;
 };
 
 } // namespace build_cxx::os_wrapper

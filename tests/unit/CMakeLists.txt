@@ -1,5 +1,7 @@
 cmake_minimum_required(VERSION 3.16)
 
+add_subdirectory(common/ips)
+
 include(FetchContent)
 #cmake_policy(SET CMP0135 NEW) # file timestamps of extracted data are updated to "now"
 FetchContent_Declare(
@@ -37,6 +39,7 @@ target_link_libraries(
     build_cxx_unit_tests
         PRIVATE
             doctest::doctest
+            ips
 )
 target_compile_definitions(
     build_cxx_unit_tests
@@ -48,4 +51,9 @@ target_compile_definitions(
 add_executable(
     some_cli_app
         "${CMAKE_CURRENT_LIST_DIR}/helper/some_cli_app.cxx"
+)
+target_link_libraries(
+    some_cli_app
+        PRIVATE
+            ips
 )

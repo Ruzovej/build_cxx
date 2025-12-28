@@ -23,9 +23,12 @@
 #include <chrono>
 #include <filesystem>
 #include <iostream>
+#include <optional>
 #include <thread>
 
 #include <doctest/doctest.h>
+
+#include <ips/ips.hxx>
 
 namespace build_cxx::os_wrapper {
 namespace {
@@ -42,14 +45,16 @@ TEST_CASE("exec_path_args") {
           bash_cmd("printf \"Hello stdout!\"; printf \"Hello stderr!\" 1>&2")};
 
       {
-        auto const state{cmd.update_and_get_state()};
+        exec_path_args::states state;
+        REQUIRE_NOTHROW(state = cmd.update_and_get_state());
         REQUIRE_EQ(state.previous, exec_path_args::state::ready);
         REQUIRE_EQ(state.current, exec_path_args::state::running);
       }
 
       { // potential for flakiness:
         {
-          auto const state{cmd.update_and_get_state()};
+          exec_path_args::states state;
+          REQUIRE_NOTHROW(state = cmd.update_and_get_state());
           REQUIRE_EQ(state.previous, exec_path_args::state::running);
           WARN_EQ(state.current, exec_path_args::state::running);
         }
@@ -58,13 +63,15 @@ TEST_CASE("exec_path_args") {
         std::this_thread::sleep_for(std::chrono::milliseconds{5});
 
         {
-          auto const state{cmd.update_and_get_state()};
+          exec_path_args::states state;
+          REQUIRE_NOTHROW(state = cmd.update_and_get_state());
           WARN_EQ(state.previous, exec_path_args::state::running);
           REQUIRE_EQ(state.current, exec_path_args::state::finished);
         }
 
         {
-          auto const state{cmd.update_and_get_state()};
+          exec_path_args::states state;
+          REQUIRE_NOTHROW(state = cmd.update_and_get_state());
           REQUIRE_EQ(state.previous, exec_path_args::state::finished);
           REQUIRE_EQ(state.current, exec_path_args::state::finished);
         }
@@ -81,7 +88,8 @@ TEST_CASE("exec_path_args") {
       exec_path_args cmd{bash_cmd("exit " + std::to_string(expected_val))};
 
       {
-        auto const state{cmd.update_and_get_state()};
+        exec_path_args::states state;
+        REQUIRE_NOTHROW(state = cmd.update_and_get_state());
         REQUIRE_EQ(state.previous, exec_path_args::state::ready);
         REQUIRE_EQ(state.current, exec_path_args::state::running);
       }
@@ -90,13 +98,15 @@ TEST_CASE("exec_path_args") {
       std::this_thread::sleep_for(std::chrono::milliseconds{5});
 
       {
-        auto const state{cmd.update_and_get_state()};
+        exec_path_args::states state;
+        REQUIRE_NOTHROW(state = cmd.update_and_get_state());
         REQUIRE_EQ(state.previous, exec_path_args::state::running);
         REQUIRE_EQ(state.current, exec_path_args::state::finished);
       }
 
       {
-        auto const state{cmd.update_and_get_state()};
+        exec_path_args::states state;
+        REQUIRE_NOTHROW(state = cmd.update_and_get_state());
         REQUIRE_EQ(state.previous, exec_path_args::state::finished);
         REQUIRE_EQ(state.current, exec_path_args::state::finished);
       }
@@ -110,7 +120,8 @@ TEST_CASE("exec_path_args") {
       exec_path_args cmd{bash_cmd("sleep 1; printf \"Done!\"")};
 
       {
-        auto const state{cmd.update_and_get_state()};
+        exec_path_args::states state;
+        REQUIRE_NOTHROW(state = cmd.update_and_get_state());
         REQUIRE_EQ(state.previous, exec_path_args::state::ready);
         REQUIRE_EQ(state.current, exec_path_args::state::running);
       }
@@ -121,7 +132,8 @@ TEST_CASE("exec_path_args") {
       cmd.do_kill();
 
       {
-        auto const state{cmd.update_and_get_state()};
+        exec_path_args::states state;
+        REQUIRE_NOTHROW(state = cmd.update_and_get_state());
         REQUIRE_EQ(state.previous, exec_path_args::state::finished);
         REQUIRE_EQ(state.current, exec_path_args::state::finished);
       }
@@ -139,15 +151,20 @@ TEST_CASE("exec_path_args") {
     REQUIRE(std::filesystem::exists(some_cli_app_path));
     REQUIRE(std::filesystem::is_regular_file(some_cli_app_path));
 
+    auto const sem_name{"/some_cli_app_shared_sem"};
+
     auto const some_cli_app = [&](auto &&...args) {
       // TODO fix this first version ...:
       // return exec_path_args{some_cli_app_path.string(),
       //                       {std::forward<decltype(args)>(args)...}};
       // and remove this one:
       return exec_path_args{"/usr/bin/env",
-                            {"bash", some_cli_app_path.string(),
-                             std::forward<decltype(args)>(args)...}};
+                            {"bash", some_cli_app_path.string(), "--sem-name",
+                             sem_name, std::forward<decltype(args)>(args)...}};
     };
+
+    std::optional<ips> my_sem;
+    REQUIRE_NOTHROW(my_sem.emplace(sem_name, true));
 
     SUBCASE("basic functionality & happy path") {
       auto const to_stderr{"How is it going?"};
@@ -157,24 +174,27 @@ TEST_CASE("exec_path_args") {
       exec_path_args cmd{some_cli_app("--stderr", to_stderr, // 1
                                       "--stdout", to_stdout, // 2
                                       "--sleep", "5",        // 3
+                                      "--sync",              // ...
                                       "--echo", "3",         // 4
+                                      "--sync",              // ...
                                       "--exit", exit_code    // 5
                                       )};
 
       {
-        auto const state{cmd.update_and_get_state()};
+        exec_path_args::states state;
+        REQUIRE_NOTHROW(state = cmd.update_and_get_state());
         REQUIRE_EQ(state.previous, exec_path_args::state::ready);
         REQUIRE_EQ(state.current, exec_path_args::state::running);
       }
 
-      // how dirty ... TODO some better way?
-      std::this_thread::sleep_for(std::chrono::milliseconds{10});
+      REQUIRE(my_sem->wait_and_notify(40));
 
       REQUIRE_EQ(cmd.get_stdout(true), std::string{to_stdout} + '\n');
       REQUIRE_EQ(cmd.get_stderr(true), std::string{to_stderr} + '\n');
 
       {
-        auto const state{cmd.update_and_get_state()};
+        exec_path_args::states state;
+        REQUIRE_NOTHROW(state = cmd.update_and_get_state());
         REQUIRE_EQ(state.previous, exec_path_args::state::running);
         REQUIRE_EQ(state.current, exec_path_args::state::running);
       }
@@ -184,8 +204,7 @@ TEST_CASE("exec_path_args") {
           "const std::string_view data "};
       REQUIRE_NOTHROW(cmd.send_to_stdin(expected_echo_input));
 
-      // how dirty ... TODO some better way?
-      std::this_thread::sleep_for(std::chrono::milliseconds{5});
+      REQUIRE(my_sem->wait_and_notify(40));
 
       std::string str{expected_echo_input};
       std::transform(str.begin(), str.end(), str.begin(),
@@ -194,7 +213,8 @@ TEST_CASE("exec_path_args") {
       REQUIRE_EQ(cmd.get_stderr(false), "");
 
       {
-        auto const state{cmd.update_and_get_state()};
+        exec_path_args::states state;
+        REQUIRE_NOTHROW(state = cmd.update_and_get_state());
         REQUIRE_EQ(state.previous, exec_path_args::state::running);
         REQUIRE_EQ(state.current, exec_path_args::state::finished);
       }

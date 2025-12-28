@@ -65,6 +65,9 @@ struct exec_path_args {
 
   int get_return_code() const;
 
+  // `pid` of the child process
+  process_handle_t get_process_handle() const { return handle; }
+
 private:
   exec_path_args(exec_path_args const &rhs) noexcept = delete;
   exec_path_args &operator=(exec_path_args const &rhs) noexcept = delete;

@@ -25,7 +25,11 @@ namespace build_cxx::os_wrapper {
 
 int current_errno() noexcept;
 
-int syscall_helper(std::string_view const file, int const line, int const ret);
+// returns: `syscall_ret` if successful (e.g. `0 <= syscall_ret`);
+// throws: std::runtime_error on failure with detailed message
+// NOTE: use the syscall directly, without this wrapper, if failure is allowed
+int syscall_helper(std::string_view const file, int const line,
+                   int const syscall_ret);
 
 } // namespace build_cxx::os_wrapper
 

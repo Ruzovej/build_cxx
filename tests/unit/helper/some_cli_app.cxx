@@ -21,6 +21,7 @@
 
 #include <chrono>
 #include <iostream>
+#include <optional>
 #include <stdexcept>
 #include <string>
 #include <string_view>
@@ -28,6 +29,8 @@
 #include <type_traits>
 #include <variant>
 #include <vector>
+
+#include <ips/ips.hxx>
 
 namespace {
 
@@ -46,9 +49,11 @@ struct to_stdout {
 struct to_stderr {
   std::string msg;
 };
+struct notify_and_wait {};
 
-using action_variant = std::variant<exit_with, sleep_for_ms,
-                                    echo_stdin_to_stdout, to_stdout, to_stderr>;
+using action_variant =
+    std::variant<exit_with, sleep_for_ms, echo_stdin_to_stdout, to_stdout,
+                 to_stderr, notify_and_wait>;
 
 } // namespace
 
@@ -70,6 +75,7 @@ int main(int const argc, char const **argv) {
   };
 
   std::vector<action_variant> actions;
+  std::optional<ips> my_ips;
 
   char const *arg;
   while ((arg = consume_arg(false)) != nullptr) {
@@ -89,6 +95,14 @@ int main(int const argc, char const **argv) {
     } else if (arg_sv == "--stderr") {
       actions.emplace_back(
           to_stderr{consume_arg(true, "missing stderr message")});
+    } else if (arg_sv == "--sync") {
+      actions.emplace_back(notify_and_wait{});
+    } else if (arg_sv == "--sem-name") {
+      if (my_ips.has_value()) {
+        throw std::runtime_error{"Semaphore name already specified"};
+      }
+      my_ips.emplace(consume_arg(true, "missing semaphore name"),
+                     false); // non-owning
     } else {
       throw std::runtime_error{std::string{"Unknown argument: "} +
                                std::string{arg_sv}};
@@ -97,9 +111,10 @@ int main(int const argc, char const **argv) {
 
   for (auto const &action : actions) {
     std::visit(
-        [](auto &&arg) {
+        [&my_ips](auto &&arg) {
           using T = std::decay_t<decltype(arg)>;
           if constexpr (std::is_same_v<T, exit_with>) {
+            my_ips.reset();
             std::exit(arg.code);
           } else if constexpr (std::is_same_v<T, sleep_for_ms>) {
             std::this_thread::sleep_for(std::chrono::milliseconds{arg.ms});
@@ -113,6 +128,12 @@ int main(int const argc, char const **argv) {
             std::cout << arg.msg << std::endl;
           } else if constexpr (std::is_same_v<T, to_stderr>) {
             std::cerr << arg.msg << '\n';
+          } else if constexpr (std::is_same_v<T, notify_and_wait>) {
+            if (!my_ips.has_value()) {
+              throw std::runtime_error{
+                  "Semaphore name not specified for sync operation"};
+            }
+            my_ips->notify_and_wait(1000); // 1 [s]
           } else {
             static_assert(!std::is_same_v<T, T>, "non-exhaustive visitor!");
           }
