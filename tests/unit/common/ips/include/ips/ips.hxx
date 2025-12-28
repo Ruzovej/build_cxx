@@ -29,16 +29,16 @@ struct ips {
   ~ips() noexcept;
 
   // Wait for notification. Returns true if notified, false on timeout.
-  bool wait(int const timeout_ms);
+  [[nodiscard]] bool wait(int const timeout_ms);
 
   void notify();
 
-  bool notify_and_wait(int const timeout_ms) {
+  [[nodiscard]] bool notify_and_wait(int const timeout_ms) {
     notify();
     return wait(timeout_ms);
   }
 
-  bool wait_and_notify(int const timeout_ms) {
+  [[nodiscard]] bool wait_and_notify(int const timeout_ms) {
     bool const res{wait(timeout_ms)};
     notify();
     return res;

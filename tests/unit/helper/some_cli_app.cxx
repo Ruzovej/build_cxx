@@ -133,7 +133,9 @@ int main(int const argc, char const **argv) {
               throw std::runtime_error{
                   "Semaphore name not specified for sync operation"};
             }
-            my_ips->notify_and_wait(1000); // 1 [s]
+            if (!my_ips->notify_and_wait(1000)) { // 1 [s]
+              throw std::runtime_error{"Timeout while waiting for sync"};
+            }
           } else {
             static_assert(!std::is_same_v<T, T>, "non-exhaustive visitor!");
           }

@@ -187,6 +187,8 @@ TEST_CASE("exec_path_args") {
         REQUIRE_EQ(state.current, exec_path_args::state::running);
       }
 
+      // TODO why does this fail? The output below is really written out (as can
+      // be seen if the checks are switched ...)
       REQUIRE(my_sem->wait_and_notify(40));
 
       REQUIRE_EQ(cmd.get_stdout(true), std::string{to_stdout} + '\n');
