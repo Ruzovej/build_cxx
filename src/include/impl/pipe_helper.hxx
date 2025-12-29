@@ -33,8 +33,8 @@ struct pipe_helper {
   pipe_helper(pipe_helper &&rhs) noexcept;
   pipe_helper &operator=(pipe_helper &&rhs) noexcept;
 
-  native_fd_t get_out() const noexcept { return fds[0]; }
-  native_fd_t get_in() const noexcept { return fds[1]; }
+  [[nodiscard]] native_fd_t get_out() const noexcept { return fds[0]; }
+  [[nodiscard]] native_fd_t get_in() const noexcept { return fds[1]; }
 
   void close_out() noexcept;
   void close_in() noexcept;
