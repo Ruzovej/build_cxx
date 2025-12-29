@@ -40,6 +40,24 @@
 
 namespace build_cxx::os_wrapper {
 
+namespace {
+
+std::string_view get_buffer(std::string const &buffer,
+                            std::size_t &consumed_bytes,
+                            bool const whole) noexcept {
+  if (whole) {
+    consumed_bytes = buffer.size();
+    return buffer;
+  } else {
+    std::string_view const ret{buffer.data() + consumed_bytes,
+                               buffer.size() - consumed_bytes};
+    consumed_bytes = buffer.size();
+    return ret;
+  }
+}
+
+} // namespace
+
 exec_path_args::exec_path_args(exec_path_args &&rhs) noexcept
     : path{std::move(rhs.path)}, args{std::move(rhs.args)},
       time_spawned_ms{rhs.time_spawned_ms},
@@ -56,7 +74,9 @@ exec_path_args::exec_path_args(exec_path_args &&rhs) noexcept
       stderr_consumed_bytes{rhs.stderr_consumed_bytes} {}
 
 exec_path_args::~exec_path_args() noexcept {
-  do_kill(); // if this throws ... just let the OS "abort us".
+  if (manages_process()) {
+    do_kill(); // if this throws ... just let the OS "abort us".
+  }
 }
 
 exec_path_args::states
@@ -73,41 +93,7 @@ exec_path_args::update_and_get_state(int const timeout_until_it_finishes_ms) {
     pid_t const pid{BUILD_CXX_SYSCALL_HELPER(fork())};
     if (pid == 0) // Child process
     {
-      try {
-        stdin_pipe.close_in();
-        BUILD_CXX_SYSCALL_HELPER(dup2(stdin_pipe.get_out(), STDIN_FILENO));
-
-        stdout_pipe.close_out();
-        BUILD_CXX_SYSCALL_HELPER(dup2(stdout_pipe.get_in(), STDOUT_FILENO));
-
-        stderr_pipe.close_out();
-        BUILD_CXX_SYSCALL_HELPER(dup2(stderr_pipe.get_in(), STDERR_FILENO));
-
-        auto const num_args{args.size()};
-        // auto const args_cstr{std::make_unique<char *[]>(num_args + 2)};
-        auto const args_cstr{std::make_unique<char *[]>(num_args + 1)};
-        // https://man7.org/linux/man-pages/man3/exec.3.html -> "The first
-        // argument, by convention, should point to the filename associated with
-        // the file being executed"
-        // TODO:
-        // 1. follow this convention, right off the bat it didin't work
-        // 2. remove/"prevent" this `const_cast`
-        // args_cstr[0] = const_cast<char *>(path.c_str());
-        for (std::size_t i{0}; i < num_args; ++i) {
-          // TODO ... remove/"prevent" this `const_cast`
-          // args_cstr[i + 1] = const_cast<char *>(args[i].c_str());
-          args_cstr[i] = const_cast<char *>(args[i].c_str());
-        }
-        // args_cstr[num_args + 1] = nullptr;
-        args_cstr[num_args] = nullptr;
-
-        // Execute the command
-        BUILD_CXX_SYSCALL_HELPER(execv(path.c_str(), args_cstr.get()));
-      } catch (std::exception const &e) {
-        std::cerr << "child process failed - caught exception: " << e.what()
-                  << '\n';
-      }
-      std::exit(EXIT_FAILURE);
+      exec_in_child();
     }
     // else ... parent process
     current_state = state::running;
@@ -127,6 +113,11 @@ exec_path_args::update_and_get_state(int const timeout_until_it_finishes_ms) {
     break;
   }
   case state::running: {
+    if (!manages_process()) {
+      throw std::runtime_error{
+          "cannot update state - process handle is invalid!"};
+    }
+
     // https://man7.org/linux/man-pages/man2/pidfd_open.2.html
     auto const pid_fd{BUILD_CXX_SYSCALL_HELPER(static_cast<int>(
         syscall(static_cast<long>(SYS_pidfd_open), handle, 0)))};
@@ -151,6 +142,10 @@ exec_path_args::update_and_get_state(int const timeout_until_it_finishes_ms) {
     break;
   }
   case state::finished: {
+    if (!manages_process()) {
+      throw std::runtime_error{
+          "cannot update state - process handle is invalid!"};
+    }
     // whatever ... nothing seems necessary here
     break;
   }
@@ -167,7 +162,13 @@ exec_path_args::update_and_get_state(int const timeout_until_it_finishes_ms) {
 }
 
 void exec_path_args::send_to_stdin(std::string_view const data) {
-  if (current_state != state::running) {
+  if (!manages_process()) {
+    throw std::runtime_error{
+        "cannot write to inferior stdin - process handle is invalid!"};
+  } else if (stdin_pipe.get_in() == invalid_fd) {
+    throw std::runtime_error{"cannot write to inferior stdin - stdin pipe is "
+                             "closed or not initialized!"};
+  } else if (current_state != state::running) {
     throw std::runtime_error{
         "cannot write to inferior stdin - process isn't running!"};
   }
@@ -185,22 +186,38 @@ void exec_path_args::send_to_stdin(std::string_view const data) {
 }
 
 void exec_path_args::close_stdin() {
-  if (current_state != state::running || stdin_pipe.get_in() == invalid_fd) {
+  if (!manages_process()) {
+    throw std::runtime_error{
+        "cannot close inferior stdin - process handle is invalid!"};
+  } else if ((current_state != state::running) ||
+             (stdin_pipe.get_in() == invalid_fd)) {
     throw std::runtime_error{
         "cannot close inferior stdin - process isn't running or invalid fd!"};
   }
   stdin_pipe.close_in();
 }
 
+std::string_view exec_path_args::get_stdout(bool const whole) {
+  update_buffer(true);
+  return get_buffer(stdout_buffer, stdout_consumed_bytes, whole);
+}
+
+std::string_view exec_path_args::get_stderr(bool const whole) {
+  update_buffer(false);
+  return get_buffer(stderr_buffer, stderr_consumed_bytes, whole);
+}
+
 void exec_path_args::do_kill() {
-  if (current_state == state::running) {
+  if (manages_process() && (current_state == state::running)) {
     BUILD_CXX_SYSCALL_HELPER(kill(handle, SIGKILL));
     query_status(true);
   }
 }
 
 long long exec_path_args::time_running_ms() const {
-  if (current_state == state::running) {
+  if (!manages_process()) {
+    throw std::runtime_error{"can't measure time - process handle is invalid!"};
+  } else if (current_state == state::running) {
     return 0; // TODO `"current time in ms" - time_spawned_ms`
 
   } else if (current_state == state::finished) {
@@ -212,15 +229,59 @@ long long exec_path_args::time_running_ms() const {
 }
 
 int exec_path_args::get_return_code() const {
-  if (current_state != state::finished) {
+  if (!manages_process()) {
     throw std::runtime_error{
-        "cannot get return code - process isn't finished!"};
+        "can't obtain return code - process handle is invalid!"};
+  } else if (current_state != state::finished) {
+    throw std::runtime_error{
+        "can't obtain return code - process isn't finished!"};
   }
   return return_code;
 }
 
+void exec_path_args::exec_in_child() {
+  try {
+    stdin_pipe.close_in();
+    BUILD_CXX_SYSCALL_HELPER(dup2(stdin_pipe.get_out(), STDIN_FILENO));
+
+    stdout_pipe.close_out();
+    BUILD_CXX_SYSCALL_HELPER(dup2(stdout_pipe.get_in(), STDOUT_FILENO));
+
+    stderr_pipe.close_out();
+    BUILD_CXX_SYSCALL_HELPER(dup2(stderr_pipe.get_in(), STDERR_FILENO));
+
+    auto const num_args{args.size()};
+    // auto const args_cstr{std::make_unique<char *[]>(num_args + 2)};
+    auto const args_cstr{std::make_unique<char *[]>(num_args + 1)};
+    // https://man7.org/linux/man-pages/man3/exec.3.html -> "The first
+    // argument, by convention, should point to the filename associated with
+    // the file being executed"
+    // TODO:
+    // 1. follow this convention, right off the bat it didin't work
+    // 2. remove/"prevent" this `const_cast`
+    // args_cstr[0] = const_cast<char *>(path.c_str());
+    for (std::size_t i{0}; i < num_args; ++i) {
+      // TODO ... remove/"prevent" this `const_cast`
+      // args_cstr[i + 1] = const_cast<char *>(args[i].c_str());
+      args_cstr[i] = const_cast<char *>(args[i].c_str());
+    }
+    // args_cstr[num_args + 1] = nullptr;
+    args_cstr[num_args] = nullptr;
+
+    // Execute the command
+    BUILD_CXX_SYSCALL_HELPER(execv(path.c_str(), args_cstr.get()));
+  } catch (std::exception const &e) {
+    std::cerr << "child process failed - caught exception: " << e.what()
+              << '\n';
+  }
+
+  std::exit(EXIT_FAILURE);
+}
+
 void exec_path_args::query_status(bool const wait_for_finishing) {
-  if (current_state == state::running) {
+  if (!manages_process()) {
+    throw std::runtime_error{"can't query status - process handle is invalid!"};
+  } else if (current_state == state::running) {
     siginfo_t status{};
     int const options{WEXITED | (wait_for_finishing ? 0 : WNOHANG)};
     //  https://linux.die.net/man/2/waitpid
@@ -247,7 +308,17 @@ void exec_path_args::query_status(bool const wait_for_finishing) {
 }
 
 void exec_path_args::update_buffer(bool const for_stdout) {
+  if (!manages_process()) {
+    throw std::runtime_error{
+        "cannot update any buffer - process handle is invalid!"};
+  }
+
   static auto constexpr read_pipe = [](int const fd, std::string &buffer) {
+    if (fd == invalid_fd) {
+      throw std::runtime_error{
+          "cannot read from given pipe - it's closed or not initialized!"};
+    }
+
     auto const buf_prev_size{static_cast<ssize_t>(buffer.size())};
 
     int avail{0};

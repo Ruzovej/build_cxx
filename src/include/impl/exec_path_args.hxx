@@ -36,6 +36,10 @@ struct exec_path_args {
       : path{std::move(aPath)}, args{std::move(aArgs)}, current_state{
                                                             state::ready} {}
 
+  [[nodiscard]] bool manages_process() const {
+    return handle != invalid_process_handle;
+  }
+
   exec_path_args(exec_path_args &&rhs) noexcept;
 
   ~exec_path_args() noexcept;
@@ -62,14 +66,8 @@ struct exec_path_args {
   void send_to_stdin(std::string_view const data);
   void close_stdin();
 
-  [[nodiscard]] std::string_view get_stdout(bool const whole = false) noexcept {
-    update_buffer(true);
-    return get_buffer(stdout_buffer, stdout_consumed_bytes, whole);
-  }
-  [[nodiscard]] std::string_view get_stderr(bool const whole = false) noexcept {
-    update_buffer(false);
-    return get_buffer(stderr_buffer, stderr_consumed_bytes, whole);
-  }
+  [[nodiscard]] std::string_view get_stdout(bool const whole = false);
+  [[nodiscard]] std::string_view get_stderr(bool const whole = false);
 
   void do_kill();
 
@@ -96,6 +94,8 @@ private:
   pipe_helper stdout_pipe;
   pipe_helper stderr_pipe;
 
+  [[noreturn]] void exec_in_child();
+
   state current_state{state::uninitialzied};
 
   int return_code{};
@@ -108,20 +108,6 @@ private:
   void query_status(bool const wait_for_finishing);
 
   void update_buffer(bool const for_stdout);
-
-  static std::string_view get_buffer(std::string const &buffer,
-                                     std::size_t &consumed_bytes,
-                                     bool const whole) noexcept {
-    if (whole) {
-      consumed_bytes = buffer.size();
-      return buffer;
-    } else {
-      std::string_view const ret{buffer.data() + consumed_bytes,
-                                 buffer.size() - consumed_bytes};
-      consumed_bytes = buffer.size();
-      return ret;
-    }
-  }
 };
 
 } // namespace build_cxx::os_wrapper
