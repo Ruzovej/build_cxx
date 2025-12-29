@@ -447,6 +447,41 @@ TEST_CASE("exec_path_args") {
         REQUIRE_EQ(cmd.get_return_code(), EXIT_FAILURE);
       }
 
+      SUBCASE("missed semaphore in child process") {
+        exec_path_args cmd{some_cli_app_synced("--sleep", "1000", // ...
+                                               "--sync",          // ...
+                                               "--exit", "0"      // ...
+                                               )};
+
+        {
+          exec_path_args::states state;
+          REQUIRE_NOTHROW(state = cmd.update_and_get_state());
+          REQUIRE_EQ(state.previous, exec_path_args::state::ready);
+          REQUIRE_EQ(state.current, exec_path_args::state::running);
+        }
+
+        REQUIRE_FALSE(my_sem->wait_and_notify(40));
+
+        {
+          exec_path_args::states state;
+          REQUIRE_NOTHROW(state = cmd.update_and_get_state());
+          REQUIRE_EQ(state.previous, exec_path_args::state::running);
+          REQUIRE_EQ(state.current, exec_path_args::state::running);
+        }
+
+        REQUIRE_NOTHROW(cmd.do_kill());
+
+        {
+          exec_path_args::state prev_state;
+          REQUIRE_NOTHROW(prev_state = cmd.finish_and_get_prev_state());
+          REQUIRE_EQ(prev_state, exec_path_args::state::finished);
+        }
+
+        REQUIRE_EQ(cmd.get_stderr(true), "");
+        REQUIRE_EQ(cmd.get_stdout(true), "");
+        REQUIRE_EQ(cmd.get_return_code(), SIGKILL);
+      }
+
       SUBCASE("complex happy path") {
         auto const to_stderr{"How is it going?"};
         auto const to_stdout{"Fine, thank You!"};
