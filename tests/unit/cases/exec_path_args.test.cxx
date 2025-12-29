@@ -312,7 +312,7 @@ TEST_CASE("exec_path_args") {
         REQUIRE_EQ(cmd.get_return_code(), EXIT_SUCCESS);
       }
 
-      SUBCASE("echo") {
+      SUBCASE("echo 1") {
         exec_path_args cmd{some_cli_app("--echo", "1")};
 
         {
@@ -325,6 +325,12 @@ TEST_CASE("exec_path_args") {
         auto const text{"Hello! "}; // see the ' ' at the end
         REQUIRE_NOTHROW(cmd.send_to_stdin(text));
 
+        // close it
+        REQUIRE_NOTHROW(cmd.close_stdin());
+        // exceptions will indicate that nothing more can be passed to it
+        REQUIRE_THROWS(cmd.close_stdin());
+        REQUIRE_THROWS(cmd.send_to_stdin(text));
+
         {
           exec_path_args::state prev_state;
           REQUIRE_NOTHROW(prev_state = cmd.finish_and_get_prev_state());
@@ -333,6 +339,31 @@ TEST_CASE("exec_path_args") {
 
         REQUIRE_EQ(cmd.get_stderr(true), "");
         REQUIRE_EQ(cmd.get_stdout(true), space_to_newline(text));
+        REQUIRE_EQ(cmd.get_return_code(), EXIT_SUCCESS);
+      }
+
+      SUBCASE("echo 2") {
+        exec_path_args cmd{some_cli_app("--echo", "1")};
+
+        {
+          exec_path_args::states state;
+          REQUIRE_NOTHROW(state = cmd.update_and_get_state());
+          REQUIRE_EQ(state.previous, exec_path_args::state::ready);
+          REQUIRE_EQ(state.current, exec_path_args::state::running);
+        }
+
+        auto const text{"Hello!"}; // NO ' ' at the end
+        REQUIRE_NOTHROW(cmd.send_to_stdin(text));
+        REQUIRE_NOTHROW(cmd.close_stdin());
+
+        {
+          exec_path_args::state prev_state;
+          REQUIRE_NOTHROW(prev_state = cmd.finish_and_get_prev_state());
+          REQUIRE_EQ(prev_state, exec_path_args::state::running);
+        }
+
+        REQUIRE_EQ(cmd.get_stderr(true), "");
+        REQUIRE_EQ(cmd.get_stdout(true), space_to_newline(text) + '\n');
         REQUIRE_EQ(cmd.get_return_code(), EXIT_SUCCESS);
       }
 
