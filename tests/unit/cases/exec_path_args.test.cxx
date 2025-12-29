@@ -131,10 +131,9 @@ TEST_CASE("exec_path_args") {
       REQUIRE_NOTHROW(cmd.do_kill());
 
       SUBCASE("re-checking the status after kill") {
-        exec_path_args::states state;
-        REQUIRE_NOTHROW(state = cmd.update_and_get_state());
-        REQUIRE_EQ(state.previous, exec_path_args::state::finished);
-        REQUIRE_EQ(state.current, exec_path_args::state::finished);
+        exec_path_args::state prev_state;
+        REQUIRE_NOTHROW(prev_state = cmd.finish_and_get_prev_state());
+        REQUIRE_EQ(prev_state, exec_path_args::state::finished);
       }
 
       SUBCASE("not checking the status after kill") {
@@ -432,7 +431,8 @@ TEST_CASE("exec_path_args") {
           REQUIRE_EQ(state.current, exec_path_args::state::running);
         }
 
-        REQUIRE_FALSE(my_sem->wait_and_notify(40));
+        REQUIRE_FALSE(my_sem->wait_and_notify(
+            1)); // so it doesn't waste too much time ...
 
         {
           exec_path_args::state prev_state;
@@ -460,7 +460,8 @@ TEST_CASE("exec_path_args") {
           REQUIRE_EQ(state.current, exec_path_args::state::running);
         }
 
-        REQUIRE_FALSE(my_sem->wait_and_notify(40));
+        REQUIRE_FALSE(my_sem->wait_and_notify(
+            1)); // so it doesn't waste too much time ...
 
         {
           exec_path_args::states state;
@@ -488,7 +489,7 @@ TEST_CASE("exec_path_args") {
         auto const exit_code{"17"};
         exec_path_args cmd{some_cli_app_synced("--stderr", to_stderr, // 1
                                                "--stdout", to_stdout, // 2
-                                               "--sleep", "5",        // 3
+                                               "--sleep", "1",        // 3
                                                "--sync",              // ...
                                                "--echo", "3",         // 4
                                                "--sync",              // ...
