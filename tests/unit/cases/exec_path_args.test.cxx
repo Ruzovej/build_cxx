@@ -51,31 +51,34 @@ TEST_CASE("exec_path_args") {
         REQUIRE_EQ(state.current, exec_path_args::state::running);
       }
 
-      { // potential for flakiness -> hence there are `WARN`s on the "boundary":
-        {
-          exec_path_args::states state;
-          REQUIRE_NOTHROW(state = cmd.update_and_get_state());
-          REQUIRE_EQ(state.previous, exec_path_args::state::running);
-          WARN_EQ(state.current, exec_path_args::state::running);
-        }
+      {
+        exec_path_args::states state;
+        REQUIRE_NOTHROW(state = cmd.update_and_get_state());
+        REQUIRE_EQ(state.previous, exec_path_args::state::running);
+        WARN_EQ(state.current, exec_path_args::state::running);
+      }
+      // potential for flakiness -> hence there are `WARN`s on this "boundary"
+      {
+        exec_path_args::state prev_state;
+        REQUIRE_NOTHROW(prev_state = cmd.finish_and_get_prev_state());
+        WARN_EQ(prev_state, exec_path_args::state::running);
+      }
 
-        {
-          exec_path_args::state prev_state;
-          REQUIRE_NOTHROW(prev_state = cmd.finish_and_get_prev_state());
-          WARN_EQ(prev_state, exec_path_args::state::running);
-        }
-
+      // querying again won't change anything
+      for (int i{0}; i < 2; ++i) {
         {
           exec_path_args::states state;
           REQUIRE_NOTHROW(state = cmd.update_and_get_state());
           REQUIRE_EQ(state.previous, exec_path_args::state::finished);
           REQUIRE_EQ(state.current, exec_path_args::state::finished);
         }
-      }
 
-      REQUIRE_EQ(cmd.get_return_code(), EXIT_SUCCESS);
-      REQUIRE_EQ(cmd.get_stdout(true), "Hello stdout!");
-      REQUIRE_EQ(cmd.get_stderr(true), "Hello stderr!");
+        REQUIRE_EQ(cmd.get_return_code(), EXIT_SUCCESS);
+        REQUIRE_EQ(cmd.get_stdout(true), "Hello stdout!");
+        REQUIRE_EQ(cmd.get_stdout(false), "");
+        REQUIRE_EQ(cmd.get_stderr(true), "Hello stderr!");
+        REQUIRE_EQ(cmd.get_stderr(false), "");
+      }
     }
 
     SUBCASE("happy path - blocking") {
@@ -161,6 +164,20 @@ TEST_CASE("exec_path_args") {
 
     std::optional<ips> my_sem;
     REQUIRE_NOTHROW(my_sem.emplace(sem_name, true));
+
+    SUBCASE("basic functionality: exit code") {
+      auto const exit_code{"15"};
+      exec_path_args cmd{some_cli_app("--exit", exit_code)};
+      {
+        exec_path_args::state prev_state;
+        REQUIRE_NOTHROW(prev_state = cmd.finish_and_get_prev_state());
+        REQUIRE_EQ(prev_state, exec_path_args::state::ready);
+      }
+
+      REQUIRE_EQ(cmd.get_return_code(), std::stoi(exit_code));
+      REQUIRE_EQ(cmd.get_stderr(true), "");
+      REQUIRE_EQ(cmd.get_stdout(true), "");
+    }
 
     SUBCASE("basic functionality: sync") {
       auto const exit_code{"10"};
