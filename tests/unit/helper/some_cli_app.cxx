@@ -49,11 +49,28 @@ struct to_stdout {
 struct to_stderr {
   std::string msg;
 };
+struct handled_exception {
+  inline static std::optional<std::string> msg;
+};
+struct unhandled_exception {
+  inline static std::optional<std::string> msg;
+};
 struct notify_and_wait {};
 
 using action_variant =
     std::variant<exit_with, sleep_for_ms, echo_stdin_to_stdout, to_stdout,
-                 to_stderr, notify_and_wait>;
+                 to_stderr, handled_exception, unhandled_exception,
+                 notify_and_wait>;
+
+struct input_exception : public std::exception {
+  explicit input_exception(std::string &&aMsg) noexcept
+      : std::exception{}, msg{std::move(aMsg)} {}
+
+  char const *what() const noexcept override { return msg.c_str(); }
+
+private:
+  std::string msg;
+};
 
 } // namespace
 
@@ -66,8 +83,8 @@ int main(int const argc, char const **argv) try {
       return *(argv2++);
     } else {
       if (require) {
-        throw std::runtime_error{std::string{"Not enough arguments: "} +
-                                 std::string{err_msg}};
+        throw input_exception{std::string{"Not enough arguments: "} +
+                              std::string{err_msg}};
       } else {
         return nullptr;
       }
@@ -95,17 +112,31 @@ int main(int const argc, char const **argv) try {
     } else if (arg_sv == "--stderr") {
       actions.emplace_back(
           to_stderr{consume_arg(true, "missing stderr message")});
+    } else if (arg_sv == "--handled-exception") {
+      if (handled_exception::msg.has_value()) {
+        throw input_exception{"Handled exception message already specified"};
+      }
+      actions.emplace_back(handled_exception{});
+      handled_exception::msg.emplace(
+          consume_arg(true, "missing handled exception message"));
+    } else if (arg_sv == "--unhandled-exception") {
+      if (unhandled_exception::msg.has_value()) {
+        throw input_exception{"Unhandled exception message already specified"};
+      }
+      actions.emplace_back(unhandled_exception{});
+      unhandled_exception::msg.emplace(
+          consume_arg(true, "missing unhandled exception message"));
     } else if (arg_sv == "--sync") {
       actions.emplace_back(notify_and_wait{});
     } else if (arg_sv == "--sem-name") {
       if (my_ips.has_value()) {
-        throw std::runtime_error{"Semaphore name already specified"};
+        throw input_exception{"Semaphore name already specified"};
       }
       my_ips.emplace(consume_arg(true, "missing semaphore name"),
                      false); // non-owning
     } else {
-      throw std::runtime_error{std::string{"Unknown argument: "} +
-                               std::string{arg_sv}};
+      throw input_exception{std::string{"Unknown argument: "} +
+                            std::string{arg_sv}};
     }
   }
 
@@ -128,6 +159,10 @@ int main(int const argc, char const **argv) try {
             std::cout << arg.msg << '\n';
           } else if constexpr (std::is_same_v<T, to_stderr>) {
             std::cerr << arg.msg << '\n';
+          } else if constexpr (std::is_same_v<T, handled_exception>) {
+            throw std::runtime_error{handled_exception::msg.value()};
+          } else if constexpr (std::is_same_v<T, unhandled_exception>) {
+            throw unhandled_exception::msg->c_str();
           } else if constexpr (std::is_same_v<T, notify_and_wait>) {
             if (!my_ips.has_value()) {
               throw std::runtime_error{
@@ -150,7 +185,10 @@ int main(int const argc, char const **argv) try {
   }
 
   return EXIT_SUCCESS;
+} catch (input_exception const &e) {
+  std::cerr << "some_cli_app caught `input_exception`: " << e.what() << '\n';
+  return EXIT_FAILURE;
 } catch (std::exception const &e) {
-  std::cerr << "some_cli_app caught exception: " << e.what() << '\n';
+  std::cerr << "some_cli_app caught `std::exception`: " << e.what() << '\n';
   return EXIT_FAILURE;
 }

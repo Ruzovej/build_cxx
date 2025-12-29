@@ -248,6 +248,24 @@ TEST_CASE("exec_path_args") {
         REQUIRE_EQ(cmd.get_return_code(), EXIT_SUCCESS);
       }
 
+      SUBCASE("invalid argument") {
+        auto const exit_code{"11"};
+        exec_path_args cmd{some_cli_app("--exit", exit_code, "--invalid")};
+
+        {
+          exec_path_args::state prev_state;
+          REQUIRE_NOTHROW(prev_state = cmd.finish_and_get_prev_state());
+          REQUIRE_EQ(prev_state, exec_path_args::state::ready);
+        }
+
+        REQUIRE_EQ(cmd.get_stderr(true),
+                   "some_cli_app caught `input_exception`: Unknown argument: "
+                   "--invalid\n");
+        REQUIRE_EQ(cmd.get_stdout(true), "");
+        REQUIRE_NE(cmd.get_return_code(), std::stoi(exit_code));
+        REQUIRE_EQ(cmd.get_return_code(), EXIT_FAILURE);
+      }
+
       SUBCASE("stdout & stderr") {
         auto const text{"Hello!"};
         exec_path_args cmd{some_cli_app("--stdout", text, "--stderr", text)};
