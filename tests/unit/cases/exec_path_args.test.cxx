@@ -117,6 +117,7 @@ TEST_CASE("exec_path_args") {
     }
 
     SUBCASE("not waiting for it") {
+      // in `bash`, `sleep` accepts seconds
       exec_path_args cmd{bash_cmd("sleep 1; printf \"Done!\"")};
 
       {
@@ -125,9 +126,6 @@ TEST_CASE("exec_path_args") {
         REQUIRE_EQ(state.previous, exec_path_args::state::ready);
         REQUIRE_EQ(state.current, exec_path_args::state::running);
       }
-
-      // how dirty ... TODO some better way?
-      std::this_thread::sleep_for(std::chrono::milliseconds{5});
 
       cmd.do_kill();
 
@@ -166,6 +164,33 @@ TEST_CASE("exec_path_args") {
 
     std::optional<ips> my_sem;
     REQUIRE_NOTHROW(my_sem.emplace(sem_name, true));
+
+    SUBCASE("basic functionality: sync") {
+      auto const exit_code{"10"};
+      exec_path_args cmd{some_cli_app("--sync", "--exit", exit_code)};
+
+      {
+        exec_path_args::states state;
+        REQUIRE_NOTHROW(state = cmd.update_and_get_state());
+        REQUIRE_EQ(state.previous, exec_path_args::state::ready);
+        REQUIRE_EQ(state.current, exec_path_args::state::running);
+      }
+
+      REQUIRE(my_sem->wait_and_notify(40));
+
+      std::this_thread::sleep_for(std::chrono::milliseconds{10});
+
+      {
+        exec_path_args::states state;
+        REQUIRE_NOTHROW(state = cmd.update_and_get_state());
+        REQUIRE_EQ(state.previous, exec_path_args::state::running);
+        REQUIRE_EQ(state.current, exec_path_args::state::finished);
+      }
+
+      REQUIRE_EQ(cmd.get_return_code(), std::stoi(exit_code));
+      REQUIRE_EQ(cmd.get_stderr(true), "");
+      REQUIRE_EQ(cmd.get_stdout(true), "");
+    }
 
     SUBCASE("basic functionality & happy path") {
       auto const to_stderr{"How is it going?"};
@@ -223,7 +248,7 @@ TEST_CASE("exec_path_args") {
 
       {
         exec_path_args::states state;
-        REQUIRE_NOTHROW(state = cmd.update_and_get_state());
+        REQUIRE_NOTHROW(state = cmd.update_and_get_state(-1));
         REQUIRE_EQ(state.previous, exec_path_args::state::running);
         REQUIRE_EQ(state.current, exec_path_args::state::finished);
       }

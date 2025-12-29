@@ -45,7 +45,13 @@ struct exec_path_args {
     state current;
   };
 
-  [[nodiscard]] states update_and_get_state();
+  // timeout_until_it_finishes_ms (as in
+  // https://man7.org/linux/man-pages/man2/poll.2.html):
+  // - negative -> wait indefinitely
+  // - zero -> don't block
+  // - positive -> wait up to given time
+  [[nodiscard]] states
+  update_and_get_state(int const timeout_until_it_finishes_ms = 0);
 
   void send_to_stdin(std::string_view const data);
   void close_stdin();
@@ -93,7 +99,7 @@ private:
   std::string stderr_buffer;
   std::size_t stderr_consumed_bytes{0};
 
-  void query_status();
+  void query_status(bool const wait_for_finishing);
 
   void update_buffer(bool const for_stdout);
 

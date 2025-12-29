@@ -278,7 +278,8 @@ exec_path_args::~exec_path_args() noexcept {
   do_kill(); // if this throws ... just let the OS "abort us".
 }
 
-exec_path_args::states exec_path_args::update_and_get_state() {
+exec_path_args::states
+exec_path_args::update_and_get_state(int const timeout_until_it_finishes_ms) {
   auto const previous_state{current_state};
 
   switch (current_state) {
@@ -336,6 +337,12 @@ exec_path_args::states exec_path_args::update_and_get_state() {
     stdout_pipe.close_in();
     stderr_pipe.close_in();
 
+    if (timeout_until_it_finishes_ms != 0) {
+      // IMHO safer than "fallthrough":
+      return {previous_state,
+              update_and_get_state(timeout_until_it_finishes_ms).current};
+    }
+
     break;
   }
   case state::running: {
@@ -343,16 +350,23 @@ exec_path_args::states exec_path_args::update_and_get_state() {
     auto const pid_fd{BUILD_CXX_SYSCALL_HELPER(static_cast<int>(
         syscall(static_cast<long>(SYS_pidfd_open), handle, 0)))};
 
-    struct pollfd p_fd {
-      pid_fd, POLLIN
-    };
+    pollfd p_fd{pid_fd, POLLIN};
 
-    auto const poll_res{BUILD_CXX_SYSCALL_HELPER(
-        poll(&p_fd, 1, 0))}; // https://stackoverflow.com/a/65003348/10712915
+    // https://man7.org/linux/man-pages/man2/poll.2.html
+    // https://stackoverflow.com/a/65003348/10712915
+    auto const poll_res{
+        BUILD_CXX_SYSCALL_HELPER(poll(&p_fd, 1, timeout_until_it_finishes_ms))};
 
     if (poll_res == 1) {
-      query_status();
+      query_status(false);
     }
+
+    if ((timeout_until_it_finishes_ms < 0) &&
+        (current_state != state::finished)) {
+      throw std::runtime_error{
+          "failed to wait for child process to finish without any timeout!"};
+    }
+
     break;
   }
   case state::finished: {
@@ -400,7 +414,7 @@ void exec_path_args::close_stdin() {
 void exec_path_args::do_kill() {
   if (current_state == state::running) {
     BUILD_CXX_SYSCALL_HELPER(kill(handle, SIGKILL));
-    query_status();
+    query_status(true);
   }
 }
 
@@ -424,16 +438,25 @@ int exec_path_args::get_return_code() const {
   return return_code;
 }
 
-void exec_path_args::query_status() {
+void exec_path_args::query_status(bool const wait_for_finishing) {
   if (current_state == state::running) {
-    int status;
-    BUILD_CXX_SYSCALL_HELPER(
-        waitpid(handle, &status,
-                WNOHANG)); // https://linux.die.net/man/2/waitpid
+    siginfo_t status{};
+    int const options{WEXITED | (wait_for_finishing ? 0 : WNOHANG)};
+    //  https://linux.die.net/man/2/waitpid
+    BUILD_CXX_SYSCALL_HELPER(waitid(P_PID, handle, &status, options));
 
-    time_finished_ms = -1; // TODO get current time in ms
-    current_state = state::finished;
-    return_code = WEXITSTATUS(status);
+    if ((status.si_pid != 0) &&
+        ((status.si_code == CLD_EXITED) || (status.si_code == CLD_KILLED) ||
+         (status.si_code == CLD_DUMPED))) {
+      if (status.si_pid != handle) {
+        throw std::runtime_error{"waitid returned unexpected pid different "
+                                 "from the managed one !"};
+      }
+      time_finished_ms = -1; // TODO get current time in ms
+      current_state = state::finished;
+      return_code =
+          status.si_status; // or signal ... don't make a difference here
+    }
   } else if (current_state == state::finished) {
     return;
   } else {
@@ -443,7 +466,6 @@ void exec_path_args::query_status() {
 }
 
 void exec_path_args::update_buffer(bool const for_stdout) {
-  // TODO
   static auto constexpr read_pipe = [](int const fd, std::string &buffer) {
     auto const buf_prev_size{static_cast<ssize_t>(buffer.size())};
 
