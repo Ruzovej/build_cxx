@@ -29,7 +29,9 @@
 
 #define MY_SEM reinterpret_cast<sem_t *>(sem)
 
-ips::ips(std::string const &aName, bool const create)
+namespace detail {
+
+sema_wrap::sema_wrap(std::string const &aName, bool const create)
     : name(create ? aName : ""), owns(create) {
   if (create) {
     // Remove any stale semaphore with this name
@@ -48,7 +50,7 @@ ips::ips(std::string const &aName, bool const create)
   }
 }
 
-ips::~ips() noexcept {
+sema_wrap::~sema_wrap() noexcept {
   sem_close(MY_SEM);
   if (owns) {
     sem_unlink(name.c_str());
@@ -56,7 +58,7 @@ ips::~ips() noexcept {
 }
 
 // Wait for notification. Returns true if notified, false on timeout.
-bool ips::wait(int const timeout_ms) {
+bool sema_wrap::wait(int const timeout_ms) {
   if (timeout_ms < 0) {
     // Infinite wait
     while (sem_wait(MY_SEM) != 0) {
@@ -91,8 +93,18 @@ bool ips::wait(int const timeout_ms) {
   return true;
 }
 
-void ips::notify() {
+void sema_wrap::notify() {
   if (sem_post(MY_SEM) != 0) {
     throw std::runtime_error("sem_post failed");
   }
 }
+
+} // namespace detail
+
+ips::ips(std::string const &aName, bool const create)
+    : sema_wait{aName + (create ? "_wait" : "_notify"), create},
+      sema_notify{aName + (create ? "_notify" : "_wait"), create} {}
+
+bool ips::wait(int const timeout_ms) { return sema_wait.wait(timeout_ms); }
+
+void ips::notify() { sema_notify.notify(); }

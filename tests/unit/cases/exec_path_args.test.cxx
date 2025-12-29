@@ -189,11 +189,11 @@ TEST_CASE("exec_path_args") {
       }
 
       // std::this_thread::sleep_for(std::chrono::milliseconds{100});
-      std::this_thread::sleep_for(std::chrono::milliseconds{10});
+      // std::this_thread::sleep_for(std::chrono::milliseconds{10});
 
       // TODO why does this fail? The output below is really written out (as can
       // be seen if the checks are switched ...)
-      // REQUIRE(my_sem->wait_and_notify(40));
+      REQUIRE(my_sem->wait_and_notify(40));
       // REQUIRE_NOTHROW((void)my_sem->wait_and_notify(40));
 
       REQUIRE_EQ(cmd.get_stdout(true), std::string{to_stdout} + '\n');
@@ -211,8 +211,8 @@ TEST_CASE("exec_path_args") {
           "const std::string_view data "};
       REQUIRE_NOTHROW(cmd.send_to_stdin(expected_echo_input));
 
-      std::this_thread::sleep_for(std::chrono::milliseconds{10});
-      // REQUIRE((my_sem->wait_and_notify(40) || true));
+      // std::this_thread::sleep_for(std::chrono::milliseconds{10});
+      REQUIRE(my_sem->wait_and_notify(40));
       // REQUIRE_NOTHROW((void)my_sem->wait_and_notify(40));
 
       std::string str{expected_echo_input};

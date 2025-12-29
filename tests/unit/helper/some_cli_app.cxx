@@ -57,7 +57,7 @@ using action_variant =
 
 } // namespace
 
-int main(int const argc, char const **argv) {
+int main(int const argc, char const **argv) try {
   auto consume_arg = [argc2 = argc - 1, argv2 = argv + 1](
                          bool const require, std::string_view const err_msg =
                                                  "") mutable -> char const * {
@@ -125,7 +125,7 @@ int main(int const argc, char const **argv) {
               std::cout << str << '\n';
             }
           } else if constexpr (std::is_same_v<T, to_stdout>) {
-            std::cout << arg.msg << std::endl;
+            std::cout << arg.msg << '\n';
           } else if constexpr (std::is_same_v<T, to_stderr>) {
             std::cerr << arg.msg << '\n';
           } else if constexpr (std::is_same_v<T, notify_and_wait>) {
@@ -133,6 +133,12 @@ int main(int const argc, char const **argv) {
               throw std::runtime_error{
                   "Semaphore name not specified for sync operation"};
             }
+
+            // flush pending output before notifying:
+            std::cout.flush();
+            // should be no-op in this case ... but I'm not sure:
+            std::cerr.flush();
+
             if (!my_ips->notify_and_wait(1000)) { // 1 [s]
               throw std::runtime_error{"Timeout while waiting for sync"};
             }
@@ -144,4 +150,7 @@ int main(int const argc, char const **argv) {
   }
 
   return EXIT_SUCCESS;
+} catch (std::exception const &e) {
+  std::cerr << "some_cli_app caught exception: " << e.what() << '\n';
+  return EXIT_FAILURE;
 }

@@ -23,10 +23,33 @@
 
 #include <string>
 
+namespace detail {
+
+struct sema_wrap {
+  // Both processes must use the same name to connect to each other
+  explicit sema_wrap(std::string const &aName, bool const create);
+  ~sema_wrap() noexcept;
+
+  // Wait for notification. Returns true if notified, false on timeout.
+  [[nodiscard]] bool wait(int const timeout_ms);
+
+  void notify();
+
+private:
+  sema_wrap(sema_wrap const &) = delete;
+  sema_wrap &operator=(sema_wrap const &) = delete;
+
+  void *sem;
+  std::string name;
+  bool owns; // responsible for cleanup
+};
+
+} // namespace detail
+
 struct ips {
   // Both processes must use the same name to connect to each other
   explicit ips(std::string const &aName, bool const create);
-  ~ips() noexcept;
+  ~ips() noexcept = default;
 
   // Wait for notification. Returns true if notified, false on timeout.
   [[nodiscard]] bool wait(int const timeout_ms);
@@ -45,10 +68,5 @@ struct ips {
   }
 
 private:
-  ips(ips const &) = delete;
-  ips &operator=(ips const &) = delete;
-
-  void *sem;
-  std::string name;
-  bool owns; // responsible for cleanup
+  detail::sema_wrap sema_wait, sema_notify;
 };
