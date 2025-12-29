@@ -19,6 +19,8 @@
 
 #include "impl/exec_path_args.hxx"
 
+#include <csignal>
+
 #include <algorithm>
 #include <filesystem>
 #include <iostream>
@@ -327,10 +329,37 @@ TEST_CASE("exec_path_args") {
           REQUIRE_EQ(prev_state, exec_path_args::state::ready);
         }
 
-        REQUIRE_EQ(cmd.get_stderr(true), "some_cli_app caught `std::exception`: handled\n");
+        REQUIRE_EQ(cmd.get_stderr(true),
+                   "some_cli_app caught `std::exception`: handled\n");
         REQUIRE_EQ(cmd.get_stdout(true), "");
         REQUIRE_NE(cmd.get_return_code(), std::stoi(exit_code));
         REQUIRE_EQ(cmd.get_return_code(), EXIT_FAILURE);
+      }
+
+      SUBCASE("unhandled exception") {
+        auto const exit_code{"17"};
+        auto const exception_text{"unhandled"};
+        exec_path_args cmd{some_cli_app("--unhandled-exception",
+                                        exception_text, // ...
+                                                        // won't be reached:
+                                        "--handled-exception",
+                                        exception_text,                // ...
+                                        "--exit", exit_code,           // ...
+                                        "--stdout", "won't be printed" // ...
+                                        )};
+
+        {
+          exec_path_args::state prev_state;
+          REQUIRE_NOTHROW(prev_state = cmd.finish_and_get_prev_state());
+          REQUIRE_EQ(prev_state, exec_path_args::state::ready);
+        }
+
+        WARN_EQ(cmd.get_stderr(true),
+                "terminate called after throwing an instance of 'char "
+                "const*'\n"); // IMHO OS dependent ... -> only `WARN`
+        REQUIRE_EQ(cmd.get_stdout(true), "");
+        REQUIRE_NE(cmd.get_return_code(), std::stoi(exit_code));
+        REQUIRE_EQ(cmd.get_return_code(), SIGABRT);
       }
     }
 
