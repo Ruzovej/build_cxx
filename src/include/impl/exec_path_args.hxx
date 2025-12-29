@@ -53,6 +53,12 @@ struct exec_path_args {
   [[nodiscard]] states
   update_and_get_state(int const timeout_until_it_finishes_ms = 0);
 
+  [[nodiscard]] state finish_and_get_prev_state() {
+    return update_and_get_state(-1).previous;
+  }
+
+  void finish() { [[maybe_unused]] auto const r{finish_and_get_prev_state()}; }
+
   void send_to_stdin(std::string_view const data);
   void close_stdin();
 

@@ -60,10 +60,9 @@ TEST_CASE("exec_path_args") {
         }
 
         {
-          exec_path_args::states state;
-          REQUIRE_NOTHROW(state = cmd.update_and_get_state(-1));
-          WARN_EQ(state.previous, exec_path_args::state::running);
-          REQUIRE_EQ(state.current, exec_path_args::state::finished);
+          exec_path_args::state prev_state;
+          REQUIRE_NOTHROW(prev_state = cmd.finish_and_get_prev_state());
+          WARN_EQ(prev_state, exec_path_args::state::running);
         }
 
         {
@@ -74,9 +73,9 @@ TEST_CASE("exec_path_args") {
         }
       }
 
+      REQUIRE_EQ(cmd.get_return_code(), EXIT_SUCCESS);
       REQUIRE_EQ(cmd.get_stdout(true), "Hello stdout!");
       REQUIRE_EQ(cmd.get_stderr(true), "Hello stderr!");
-      REQUIRE_EQ(cmd.get_return_code(), EXIT_SUCCESS);
     }
 
     SUBCASE("happy path - blocking") {
@@ -84,15 +83,14 @@ TEST_CASE("exec_path_args") {
           bash_cmd("printf \"Hello stdout!\"; printf \"Hello stderr!\" 1>&2")};
 
       {
-        exec_path_args::states state;
-        REQUIRE_NOTHROW(state = cmd.update_and_get_state(-1));
-        REQUIRE_EQ(state.previous, exec_path_args::state::ready);
-        REQUIRE_EQ(state.current, exec_path_args::state::finished);
+        exec_path_args::state prev_state;
+        REQUIRE_NOTHROW(prev_state = cmd.finish_and_get_prev_state());
+        REQUIRE_EQ(prev_state, exec_path_args::state::ready);
       }
 
+      REQUIRE_EQ(cmd.get_return_code(), EXIT_SUCCESS);
       REQUIRE_EQ(cmd.get_stdout(true), "Hello stdout!");
       REQUIRE_EQ(cmd.get_stderr(true), "Hello stderr!");
-      REQUIRE_EQ(cmd.get_return_code(), EXIT_SUCCESS);
     }
 
     SUBCASE("non-zero return code") {
@@ -101,15 +99,14 @@ TEST_CASE("exec_path_args") {
       exec_path_args cmd{bash_cmd("exit " + std::to_string(expected_val))};
 
       {
-        exec_path_args::states state;
-        REQUIRE_NOTHROW(state = cmd.update_and_get_state(true));
-        REQUIRE_EQ(state.previous, exec_path_args::state::ready);
-        REQUIRE_EQ(state.current, exec_path_args::state::finished);
+        exec_path_args::state prev_state;
+        REQUIRE_NOTHROW(prev_state = cmd.finish_and_get_prev_state());
+        REQUIRE_EQ(prev_state, exec_path_args::state::ready);
       }
 
+      REQUIRE_EQ(cmd.get_return_code(), expected_val);
       REQUIRE_EQ(cmd.get_stdout(true), "");
       REQUIRE_EQ(cmd.get_stderr(true), "");
-      REQUIRE_EQ(cmd.get_return_code(), expected_val);
     }
 
     SUBCASE("not waiting for it") {
@@ -136,9 +133,9 @@ TEST_CASE("exec_path_args") {
         // should be equivalent ...
       }
 
+      REQUIRE_NE(cmd.get_return_code(), EXIT_SUCCESS);
       REQUIRE_EQ(cmd.get_stdout(true), "");
       REQUIRE_EQ(cmd.get_stderr(true), "");
-      REQUIRE_NE(cmd.get_return_code(), EXIT_SUCCESS);
     }
   }
 
@@ -179,10 +176,9 @@ TEST_CASE("exec_path_args") {
       REQUIRE(my_sem->wait_and_notify(40));
 
       {
-        exec_path_args::states state;
-        REQUIRE_NOTHROW(state = cmd.update_and_get_state(-1));
-        REQUIRE_EQ(state.previous, exec_path_args::state::running);
-        REQUIRE_EQ(state.current, exec_path_args::state::finished);
+        exec_path_args::state prev_state;
+        REQUIRE_NOTHROW(prev_state = cmd.finish_and_get_prev_state());
+        REQUIRE_EQ(prev_state, exec_path_args::state::running);
       }
 
       REQUIRE_EQ(cmd.get_return_code(), std::stoi(exit_code));
@@ -234,13 +230,13 @@ TEST_CASE("exec_path_args") {
       std::transform(str.begin(), str.end(), str.begin(),
                      [](char c) { return c == ' ' ? '\n' : c; });
       REQUIRE_EQ(cmd.get_stdout(false), str);
+      REQUIRE_EQ(cmd.get_stdout(false), ""); // consumed in previous line
       REQUIRE_EQ(cmd.get_stderr(false), "");
 
       {
-        exec_path_args::states state;
-        REQUIRE_NOTHROW(state = cmd.update_and_get_state(-1));
-        REQUIRE_EQ(state.previous, exec_path_args::state::running);
-        REQUIRE_EQ(state.current, exec_path_args::state::finished);
+        exec_path_args::state prev_state;
+        REQUIRE_NOTHROW(prev_state = cmd.finish_and_get_prev_state());
+        REQUIRE_EQ(prev_state, exec_path_args::state::running);
       }
 
       REQUIRE_EQ(cmd.get_return_code(), std::stoi(exit_code));
