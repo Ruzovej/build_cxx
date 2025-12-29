@@ -45,28 +45,28 @@ struct exec_path_args {
     state current;
   };
 
-  states update_and_get_state();
+  [[nodiscard]] states update_and_get_state();
 
   void send_to_stdin(std::string_view const data);
   void close_stdin();
 
-  std::string_view get_stdout(bool const whole = false) noexcept {
+  [[nodiscard]] std::string_view get_stdout(bool const whole = false) noexcept {
     update_buffer(true);
     return get_buffer(stdout_buffer, stdout_consumed_bytes, whole);
   }
-  std::string_view get_stderr(bool const whole = false) noexcept {
+  [[nodiscard]] std::string_view get_stderr(bool const whole = false) noexcept {
     update_buffer(false);
     return get_buffer(stderr_buffer, stderr_consumed_bytes, whole);
   }
 
   void do_kill();
 
-  long long time_running_ms() const;
+  [[nodiscard]] long long time_running_ms() const;
 
-  int get_return_code() const;
+  [[nodiscard]] int get_return_code() const;
 
   // `pid` of the child process
-  process_handle_t get_process_handle() const { return handle; }
+  [[nodiscard]] process_handle_t get_process_handle() const { return handle; }
 
 private:
   exec_path_args(exec_path_args const &rhs) noexcept = delete;
