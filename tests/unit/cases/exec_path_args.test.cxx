@@ -20,11 +20,9 @@
 #include "impl/exec_path_args.hxx"
 
 #include <algorithm>
-#include <chrono>
 #include <filesystem>
 #include <iostream>
 #include <optional>
-#include <thread>
 
 #include <doctest/doctest.h>
 
@@ -32,6 +30,12 @@
 
 namespace build_cxx::os_wrapper {
 namespace {
+
+std::string space_to_newline(std::string str) {
+  std::transform(str.begin(), str.end(), str.begin(),
+                 [](char c) { return c == ' ' ? '\n' : c; });
+  return str;
+}
 
 TEST_CASE("exec_path_args") {
   SUBCASE("simple bash command") {
@@ -258,11 +262,6 @@ TEST_CASE("exec_path_args") {
         }
 
         auto const text{"Hello! "}; // see the ' ' at the end
-
-        std::string str{text};
-        std::transform(str.begin(), str.end(), str.begin(),
-                       [](char c) { return c == ' ' ? '\n' : c; });
-
         REQUIRE_NOTHROW(cmd.send_to_stdin(text));
 
         {
@@ -273,7 +272,7 @@ TEST_CASE("exec_path_args") {
 
         REQUIRE_EQ(cmd.get_return_code(), EXIT_SUCCESS);
         REQUIRE_EQ(cmd.get_stderr(true), "");
-        REQUIRE_EQ(cmd.get_stdout(true), str);
+        REQUIRE_EQ(cmd.get_stdout(true), space_to_newline(text));
       }
     }
 
@@ -346,16 +345,13 @@ TEST_CASE("exec_path_args") {
         }
 
         // pay attention to the space at the end ...:
-        std::string_view const expected_echo_input{
-            "const std::string_view data "};
+        auto const expected_echo_input{"const std::string_view data "};
         REQUIRE_NOTHROW(cmd.send_to_stdin(expected_echo_input));
 
         REQUIRE(my_sem->wait_and_notify(40));
 
-        std::string str{expected_echo_input};
-        std::transform(str.begin(), str.end(), str.begin(),
-                       [](char c) { return c == ' ' ? '\n' : c; });
-        REQUIRE_EQ(cmd.get_stdout(false), str);
+        REQUIRE_EQ(cmd.get_stdout(false),
+                   space_to_newline(expected_echo_input));
         REQUIRE_EQ(cmd.get_stdout(false), ""); // consumed in previous line
         REQUIRE_EQ(cmd.get_stderr(false), "");
 
