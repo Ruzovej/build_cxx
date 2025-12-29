@@ -310,6 +310,28 @@ TEST_CASE("exec_path_args") {
         REQUIRE_EQ(cmd.get_stdout(true), space_to_newline(text));
         REQUIRE_EQ(cmd.get_return_code(), EXIT_SUCCESS);
       }
+
+      SUBCASE("handled exception") {
+        auto const exit_code{"16"};
+        auto const exception_text{"handled"};
+        exec_path_args cmd{some_cli_app("--handled-exception",
+                                        exception_text, // ...
+                                                        // won't be reached:
+                                        "--exit", exit_code,           // ...
+                                        "--stdout", "won't be printed" // ...
+                                        )};
+
+        {
+          exec_path_args::state prev_state;
+          REQUIRE_NOTHROW(prev_state = cmd.finish_and_get_prev_state());
+          REQUIRE_EQ(prev_state, exec_path_args::state::ready);
+        }
+
+        REQUIRE_EQ(cmd.get_stderr(true), "some_cli_app caught `std::exception`: handled\n");
+        REQUIRE_EQ(cmd.get_stdout(true), "");
+        REQUIRE_NE(cmd.get_return_code(), std::stoi(exit_code));
+        REQUIRE_EQ(cmd.get_return_code(), EXIT_FAILURE);
+      }
     }
 
     SUBCASE("synchronized") {
