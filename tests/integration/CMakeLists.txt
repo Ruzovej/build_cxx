@@ -25,16 +25,15 @@ target_link_libraries(
         PRIVATE
             build_cxx
 )
-#target_include_directories(
-#    01
-#        SYSTEM
-#        PRIVATE
-#            "${build_cxx_SOURCE_DIR}/include"
-#)
 
 #add_executable(02 "${CMAKE_CURRENT_LIST_DIR}/02/build.cxx")
 #target_include_directories(
 #    02
 #        PRIVATE
 #            "${CMAKE_CURRENT_LIST_DIR}/02"
+#)
+#target_link_libraries(
+#    02
+#        PRIVATE
+#            build_cxx
 #)
