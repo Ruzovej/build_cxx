@@ -167,7 +167,7 @@ TEST_CASE("exec_path_args") {
 
     SUBCASE("basic functionality, without synchronization") {
       SUBCASE("exit") {
-        auto const exit_code{"15"};
+        auto const exit_code{"11"};
         exec_path_args cmd{some_cli_app("--exit", exit_code)};
 
         {
@@ -182,7 +182,7 @@ TEST_CASE("exec_path_args") {
       }
 
       SUBCASE("exit is always last action") {
-        auto const exit_code{"13"};
+        auto const exit_code{"12"};
         exec_path_args cmd{some_cli_app("--exit", exit_code,            // ...
                                         "--stdout", "won't be printed", // ...
                                         "--sync"                        // ...
@@ -251,7 +251,7 @@ TEST_CASE("exec_path_args") {
       }
 
       SUBCASE("invalid argument") {
-        auto const exit_code{"11"};
+        auto const exit_code{"13"};
         exec_path_args cmd{some_cli_app("--exit", exit_code, "--invalid")};
 
         {
@@ -314,7 +314,7 @@ TEST_CASE("exec_path_args") {
       }
 
       SUBCASE("handled exception") {
-        auto const exit_code{"16"};
+        auto const exit_code{"14"};
         auto const exception_text{"handled"};
         exec_path_args cmd{some_cli_app("--handled-exception",
                                         exception_text, // ...
@@ -337,7 +337,7 @@ TEST_CASE("exec_path_args") {
       }
 
       SUBCASE("unhandled exception") {
-        auto const exit_code{"17"};
+        auto const exit_code{"15"};
         auto const exception_text{"unhandled"};
         exec_path_args cmd{some_cli_app("--unhandled-exception",
                                         exception_text, // ...
@@ -375,7 +375,7 @@ TEST_CASE("exec_path_args") {
       REQUIRE_NOTHROW(my_sem.emplace(sem_name, true));
 
       SUBCASE("basic functionality: sync") {
-        auto const exit_code{"10"};
+        auto const exit_code{"16"};
         exec_path_args cmd{some_cli_app_synced("--sync", "--exit", exit_code)};
 
         {
@@ -401,7 +401,7 @@ TEST_CASE("exec_path_args") {
       SUBCASE("happy path") {
         auto const to_stderr{"How is it going?"};
         auto const to_stdout{"Fine, thank You!"};
-        auto const exit_code{"42"};
+        auto const exit_code{"17"};
 
         exec_path_args cmd{some_cli_app_synced("--stderr", to_stderr, // 1
                                                "--stdout", to_stdout, // 2
