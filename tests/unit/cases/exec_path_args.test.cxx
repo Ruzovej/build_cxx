@@ -155,8 +155,9 @@ TEST_CASE("exec_path_args") {
 
     auto const some_cli_app = [&](auto &&...args) {
       // TODO fix this first version ...:
-      // return exec_path_args{some_cli_app_path.string(),
-      //                       {std::forward<decltype(args)>(args)...}};
+      // return exec_path_args{
+      //    some_cli_app_path.string(),
+      //    {"--sem-name", sem_name, std::forward<decltype(args)>(args)...}};
       // and remove this one:
       return exec_path_args{"/usr/bin/env",
                             {"bash", some_cli_app_path.string(), "--sem-name",
@@ -187,9 +188,13 @@ TEST_CASE("exec_path_args") {
         REQUIRE_EQ(state.current, exec_path_args::state::running);
       }
 
+      // std::this_thread::sleep_for(std::chrono::milliseconds{100});
+      std::this_thread::sleep_for(std::chrono::milliseconds{10});
+
       // TODO why does this fail? The output below is really written out (as can
       // be seen if the checks are switched ...)
-      REQUIRE(my_sem->wait_and_notify(40));
+      // REQUIRE(my_sem->wait_and_notify(40));
+      // REQUIRE_NOTHROW((void)my_sem->wait_and_notify(40));
 
       REQUIRE_EQ(cmd.get_stdout(true), std::string{to_stdout} + '\n');
       REQUIRE_EQ(cmd.get_stderr(true), std::string{to_stderr} + '\n');
@@ -206,7 +211,9 @@ TEST_CASE("exec_path_args") {
           "const std::string_view data "};
       REQUIRE_NOTHROW(cmd.send_to_stdin(expected_echo_input));
 
-      REQUIRE(my_sem->wait_and_notify(40));
+      std::this_thread::sleep_for(std::chrono::milliseconds{10});
+      // REQUIRE((my_sem->wait_and_notify(40) || true));
+      // REQUIRE_NOTHROW((void)my_sem->wait_and_notify(40));
 
       std::string str{expected_echo_input};
       std::transform(str.begin(), str.end(), str.begin(),

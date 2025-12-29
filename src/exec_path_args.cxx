@@ -302,15 +302,25 @@ exec_path_args::states exec_path_args::update_and_get_state() {
         BUILD_CXX_SYSCALL_HELPER(dup2(stderr_pipe.get_in(), STDERR_FILENO));
 
         auto const num_args{args.size()};
+        // auto const args_cstr{std::make_unique<char *[]>(num_args + 2)};
         auto const args_cstr{std::make_unique<char *[]>(num_args + 1)};
+        // https://man7.org/linux/man-pages/man3/exec.3.html -> "The first
+        // argument, by convention, should point to the filename associated with
+        // the file being executed"
+        // TODO:
+        // 1. follow this convention, right off the bat it didin't work
+        // 2. remove/"prevent" this `const_cast`
+        // args_cstr[0] = const_cast<char *>(path.c_str());
         for (std::size_t i{0}; i < num_args; ++i) {
           // TODO ... remove/"prevent" this `const_cast`
+          // args_cstr[i + 1] = const_cast<char *>(args[i].c_str());
           args_cstr[i] = const_cast<char *>(args[i].c_str());
         }
+        // args_cstr[num_args + 1] = nullptr;
         args_cstr[num_args] = nullptr;
 
         // Execute the command
-        BUILD_CXX_SYSCALL_HELPER(execvp(path.c_str(), args_cstr.get()));
+        BUILD_CXX_SYSCALL_HELPER(execv(path.c_str(), args_cstr.get()));
       } catch (std::exception const &e) {
         std::cerr << "child process failed - caught exception: " << e.what()
                   << '\n';
