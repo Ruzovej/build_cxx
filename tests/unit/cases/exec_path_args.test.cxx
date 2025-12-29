@@ -149,114 +149,224 @@ TEST_CASE("exec_path_args") {
     REQUIRE(std::filesystem::exists(some_cli_app_path));
     REQUIRE(std::filesystem::is_regular_file(some_cli_app_path));
 
-    auto const sem_name{"/some_cli_app_shared_sem"};
-
     auto const some_cli_app = [&](auto &&...args) {
       // TODO fix this first version ...:
-      // return exec_path_args{
-      //    some_cli_app_path.string(),
-      //    {"--sem-name", sem_name, std::forward<decltype(args)>(args)...}};
+      // return exec_path_args{some_cli_app_path.string(),
+      //                      {std::forward<decltype(args)>(args)...}};
       // and remove this one:
       return exec_path_args{"/usr/bin/env",
-                            {"bash", some_cli_app_path.string(), "--sem-name",
-                             sem_name, std::forward<decltype(args)>(args)...}};
+                            {"bash", some_cli_app_path.string(),
+                             std::forward<decltype(args)>(args)...}};
     };
 
-    std::optional<ips> my_sem;
-    REQUIRE_NOTHROW(my_sem.emplace(sem_name, true));
+    SUBCASE("basic functionality, without synchronization") {
+      SUBCASE("exit") {
+        auto const exit_code{"15"};
+        exec_path_args cmd{some_cli_app("--exit", exit_code)};
 
-    SUBCASE("basic functionality: exit code") {
-      auto const exit_code{"15"};
-      exec_path_args cmd{some_cli_app("--exit", exit_code)};
-      {
-        exec_path_args::state prev_state;
-        REQUIRE_NOTHROW(prev_state = cmd.finish_and_get_prev_state());
-        REQUIRE_EQ(prev_state, exec_path_args::state::ready);
+        {
+          exec_path_args::state prev_state;
+          REQUIRE_NOTHROW(prev_state = cmd.finish_and_get_prev_state());
+          REQUIRE_EQ(prev_state, exec_path_args::state::ready);
+        }
+
+        REQUIRE_EQ(cmd.get_return_code(), std::stoi(exit_code));
+        REQUIRE_EQ(cmd.get_stderr(true), "");
+        REQUIRE_EQ(cmd.get_stdout(true), "");
       }
 
-      REQUIRE_EQ(cmd.get_return_code(), std::stoi(exit_code));
-      REQUIRE_EQ(cmd.get_stderr(true), "");
-      REQUIRE_EQ(cmd.get_stdout(true), "");
+      SUBCASE("sleep") {
+        exec_path_args cmd{some_cli_app("--sleep", "1")};
+
+        {
+          exec_path_args::state prev_state;
+          REQUIRE_NOTHROW(prev_state = cmd.finish_and_get_prev_state());
+          REQUIRE_EQ(prev_state, exec_path_args::state::ready);
+        }
+
+        REQUIRE_EQ(cmd.get_return_code(), EXIT_SUCCESS);
+        REQUIRE_EQ(cmd.get_stderr(true), "");
+        REQUIRE_EQ(cmd.get_stdout(true), "");
+      }
+
+      SUBCASE("stdout") {
+        auto const text{"Hello!"};
+        exec_path_args cmd{some_cli_app("--stdout", text)};
+
+        {
+          exec_path_args::state prev_state;
+          REQUIRE_NOTHROW(prev_state = cmd.finish_and_get_prev_state());
+          REQUIRE_EQ(prev_state, exec_path_args::state::ready);
+        }
+
+        REQUIRE_EQ(cmd.get_return_code(), EXIT_SUCCESS);
+        REQUIRE_EQ(cmd.get_stderr(true), "");
+        REQUIRE_EQ(cmd.get_stdout(true), std::string{text} + "\n");
+        REQUIRE_EQ(cmd.get_stdout(false), ""); // consumed ...
+        REQUIRE_EQ(cmd.get_stdout(true),
+                   std::string{text} + "\n");  // still reachable
+        REQUIRE_EQ(cmd.get_stdout(false), ""); // still consumed ...
+      }
+
+      SUBCASE("stderr") {
+        auto const text{"Hello!"};
+        exec_path_args cmd{some_cli_app("--stderr", text)};
+
+        {
+          exec_path_args::state prev_state;
+          REQUIRE_NOTHROW(prev_state = cmd.finish_and_get_prev_state());
+          REQUIRE_EQ(prev_state, exec_path_args::state::ready);
+        }
+
+        REQUIRE_EQ(cmd.get_return_code(), EXIT_SUCCESS);
+        REQUIRE_EQ(cmd.get_stderr(true), std::string{text} + "\n");
+        REQUIRE_EQ(cmd.get_stderr(false), "");                      // ditto ...
+        REQUIRE_EQ(cmd.get_stderr(true), std::string{text} + "\n"); // ...
+        REQUIRE_EQ(cmd.get_stderr(false), "");                      // ...
+        REQUIRE_EQ(cmd.get_stdout(true), "");
+      }
+
+      SUBCASE("stdout & stderr") {
+        auto const text{"Hello!"};
+        exec_path_args cmd{some_cli_app("--stdout", text, "--stderr", text)};
+
+        {
+          exec_path_args::state prev_state;
+          REQUIRE_NOTHROW(prev_state = cmd.finish_and_get_prev_state());
+          REQUIRE_EQ(prev_state, exec_path_args::state::ready);
+        }
+
+        REQUIRE_EQ(cmd.get_return_code(), EXIT_SUCCESS);
+        REQUIRE_EQ(cmd.get_stdout(true), std::string{text} + "\n");
+        REQUIRE_EQ(cmd.get_stdout(false), "");
+        REQUIRE_EQ(cmd.get_stdout(true), std::string{text} + "\n");
+        REQUIRE_EQ(cmd.get_stdout(false), "");
+        REQUIRE_EQ(cmd.get_stderr(true), std::string{text} + "\n");
+        REQUIRE_EQ(cmd.get_stderr(false), "");
+        REQUIRE_EQ(cmd.get_stderr(true), std::string{text} + "\n");
+        REQUIRE_EQ(cmd.get_stderr(false), "");
+      }
+
+      SUBCASE("echo") {
+        exec_path_args cmd{some_cli_app("--echo", "1")};
+
+        {
+          exec_path_args::states state;
+          REQUIRE_NOTHROW(state = cmd.update_and_get_state());
+          REQUIRE_EQ(state.previous, exec_path_args::state::ready);
+          REQUIRE_EQ(state.current, exec_path_args::state::running);
+        }
+
+        auto const text{"Hello! "}; // see the ' ' at the end
+
+        std::string str{text};
+        std::transform(str.begin(), str.end(), str.begin(),
+                       [](char c) { return c == ' ' ? '\n' : c; });
+
+        REQUIRE_NOTHROW(cmd.send_to_stdin(text));
+
+        {
+          exec_path_args::state prev_state;
+          REQUIRE_NOTHROW(prev_state = cmd.finish_and_get_prev_state());
+          REQUIRE_EQ(prev_state, exec_path_args::state::running);
+        }
+
+        REQUIRE_EQ(cmd.get_return_code(), EXIT_SUCCESS);
+        REQUIRE_EQ(cmd.get_stderr(true), "");
+        REQUIRE_EQ(cmd.get_stdout(true), str);
+      }
     }
 
-    SUBCASE("basic functionality: sync") {
-      auto const exit_code{"10"};
-      exec_path_args cmd{some_cli_app("--sync", "--exit", exit_code)};
+    SUBCASE("synchronized") {
+      auto const sem_name{"/some_cli_app_shared_sem"};
 
-      {
-        exec_path_args::states state;
-        REQUIRE_NOTHROW(state = cmd.update_and_get_state());
-        REQUIRE_EQ(state.previous, exec_path_args::state::ready);
-        REQUIRE_EQ(state.current, exec_path_args::state::running);
+      auto const some_cli_app_synced = [&](auto &&...args) {
+        return some_cli_app("--sem-name", sem_name,
+                            std::forward<decltype(args)>(args)...);
+      };
+
+      std::optional<ips> my_sem;
+      REQUIRE_NOTHROW(my_sem.emplace(sem_name, true));
+
+      SUBCASE("basic functionality: sync") {
+        auto const exit_code{"10"};
+        exec_path_args cmd{some_cli_app_synced("--sync", "--exit", exit_code)};
+
+        {
+          exec_path_args::states state;
+          REQUIRE_NOTHROW(state = cmd.update_and_get_state());
+          REQUIRE_EQ(state.previous, exec_path_args::state::ready);
+          REQUIRE_EQ(state.current, exec_path_args::state::running);
+        }
+
+        REQUIRE(my_sem->wait_and_notify(40));
+
+        {
+          exec_path_args::state prev_state;
+          REQUIRE_NOTHROW(prev_state = cmd.finish_and_get_prev_state());
+          REQUIRE_EQ(prev_state, exec_path_args::state::running);
+        }
+
+        REQUIRE_EQ(cmd.get_return_code(), std::stoi(exit_code));
+        REQUIRE_EQ(cmd.get_stderr(true), "");
+        REQUIRE_EQ(cmd.get_stdout(true), "");
       }
 
-      REQUIRE(my_sem->wait_and_notify(40));
+      SUBCASE("happy path") {
+        auto const to_stderr{"How is it going?"};
+        auto const to_stdout{"Fine, thank You!"};
+        auto const exit_code{"42"};
 
-      {
-        exec_path_args::state prev_state;
-        REQUIRE_NOTHROW(prev_state = cmd.finish_and_get_prev_state());
-        REQUIRE_EQ(prev_state, exec_path_args::state::running);
+        exec_path_args cmd{some_cli_app_synced("--stderr", to_stderr, // 1
+                                               "--stdout", to_stdout, // 2
+                                               "--sleep", "5",        // 3
+                                               "--sync",              // ...
+                                               "--echo", "3",         // 4
+                                               "--sync",              // ...
+                                               "--exit", exit_code    // 5
+                                               )};
+
+        {
+          exec_path_args::states state;
+          REQUIRE_NOTHROW(state = cmd.update_and_get_state());
+          REQUIRE_EQ(state.previous, exec_path_args::state::ready);
+          REQUIRE_EQ(state.current, exec_path_args::state::running);
+        }
+
+        REQUIRE(my_sem->wait_and_notify(40));
+
+        REQUIRE_EQ(cmd.get_stdout(true), std::string{to_stdout} + '\n');
+        REQUIRE_EQ(cmd.get_stderr(true), std::string{to_stderr} + '\n');
+
+        {
+          exec_path_args::states state;
+          REQUIRE_NOTHROW(state = cmd.update_and_get_state());
+          REQUIRE_EQ(state.previous, exec_path_args::state::running);
+          REQUIRE_EQ(state.current, exec_path_args::state::running);
+        }
+
+        // pay attention to the space at the end ...:
+        std::string_view const expected_echo_input{
+            "const std::string_view data "};
+        REQUIRE_NOTHROW(cmd.send_to_stdin(expected_echo_input));
+
+        REQUIRE(my_sem->wait_and_notify(40));
+
+        std::string str{expected_echo_input};
+        std::transform(str.begin(), str.end(), str.begin(),
+                       [](char c) { return c == ' ' ? '\n' : c; });
+        REQUIRE_EQ(cmd.get_stdout(false), str);
+        REQUIRE_EQ(cmd.get_stdout(false), ""); // consumed in previous line
+        REQUIRE_EQ(cmd.get_stderr(false), "");
+
+        {
+          exec_path_args::state prev_state;
+          REQUIRE_NOTHROW(prev_state = cmd.finish_and_get_prev_state());
+          REQUIRE_EQ(prev_state, exec_path_args::state::running);
+        }
+
+        REQUIRE_EQ(cmd.get_return_code(), std::stoi(exit_code));
       }
-
-      REQUIRE_EQ(cmd.get_return_code(), std::stoi(exit_code));
-      REQUIRE_EQ(cmd.get_stderr(true), "");
-      REQUIRE_EQ(cmd.get_stdout(true), "");
-    }
-
-    SUBCASE("basic functionality & happy path") {
-      auto const to_stderr{"How is it going?"};
-      auto const to_stdout{"Fine, thank You!"};
-      auto const exit_code{"42"};
-
-      exec_path_args cmd{some_cli_app("--stderr", to_stderr, // 1
-                                      "--stdout", to_stdout, // 2
-                                      "--sleep", "5",        // 3
-                                      "--sync",              // ...
-                                      "--echo", "3",         // 4
-                                      "--sync",              // ...
-                                      "--exit", exit_code    // 5
-                                      )};
-
-      {
-        exec_path_args::states state;
-        REQUIRE_NOTHROW(state = cmd.update_and_get_state());
-        REQUIRE_EQ(state.previous, exec_path_args::state::ready);
-        REQUIRE_EQ(state.current, exec_path_args::state::running);
-      }
-
-      REQUIRE(my_sem->wait_and_notify(40));
-
-      REQUIRE_EQ(cmd.get_stdout(true), std::string{to_stdout} + '\n');
-      REQUIRE_EQ(cmd.get_stderr(true), std::string{to_stderr} + '\n');
-
-      {
-        exec_path_args::states state;
-        REQUIRE_NOTHROW(state = cmd.update_and_get_state());
-        REQUIRE_EQ(state.previous, exec_path_args::state::running);
-        REQUIRE_EQ(state.current, exec_path_args::state::running);
-      }
-
-      // pay attention to the space at the end ...:
-      std::string_view const expected_echo_input{
-          "const std::string_view data "};
-      REQUIRE_NOTHROW(cmd.send_to_stdin(expected_echo_input));
-
-      REQUIRE(my_sem->wait_and_notify(40));
-
-      std::string str{expected_echo_input};
-      std::transform(str.begin(), str.end(), str.begin(),
-                     [](char c) { return c == ' ' ? '\n' : c; });
-      REQUIRE_EQ(cmd.get_stdout(false), str);
-      REQUIRE_EQ(cmd.get_stdout(false), ""); // consumed in previous line
-      REQUIRE_EQ(cmd.get_stderr(false), "");
-
-      {
-        exec_path_args::state prev_state;
-        REQUIRE_NOTHROW(prev_state = cmd.finish_and_get_prev_state());
-        REQUIRE_EQ(prev_state, exec_path_args::state::running);
-      }
-
-      REQUIRE_EQ(cmd.get_return_code(), std::stoi(exit_code));
     }
   }
 }
