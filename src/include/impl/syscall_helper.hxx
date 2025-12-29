@@ -23,7 +23,7 @@
 
 namespace build_cxx::os_wrapper {
 
-int current_errno() noexcept;
+[[nodiscard]] int current_errno() noexcept;
 
 // returns: `syscall_ret` if successful (e.g. `0 <= syscall_ret`);
 // throws: std::runtime_error on failure with detailed message
