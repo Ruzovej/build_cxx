@@ -63,6 +63,10 @@ struct exec_path_args {
 
   void finish() { [[maybe_unused]] auto const r{finish_and_get_prev_state()}; }
 
+  [[nodiscard]] bool is_finished() const {
+    return current_state == state::finished;
+  }
+
   void send_to_stdin(std::string_view const data);
   void close_stdin();
 

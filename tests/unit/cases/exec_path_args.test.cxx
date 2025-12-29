@@ -42,8 +42,11 @@ std::string space_to_newline(std::string str) {
 TEST_CASE("exec_path_args") {
   SUBCASE("simple bash command") {
     static auto constexpr bash_cmd = [](std::string &&cmd_str) {
-      return exec_path_args{"/usr/bin/env",
-                            {"bash", "bash", "-c", std::move(cmd_str)}};
+      exec_path_args cmd{"/usr/bin/env",
+                         {"bash", "bash", "-c", std::move(cmd_str)}};
+      REQUIRE_FALSE(cmd.manages_process());
+      REQUIRE_FALSE(cmd.is_finished());
+      return cmd;
     };
 
     SUBCASE("happy path - nonblocking") {
@@ -55,6 +58,7 @@ TEST_CASE("exec_path_args") {
         REQUIRE_NOTHROW(state = cmd.update_and_get_state());
         REQUIRE_EQ(state.previous, exec_path_args::state::ready);
         REQUIRE_EQ(state.current, exec_path_args::state::running);
+        REQUIRE(cmd.manages_process());
       }
 
       {
@@ -95,6 +99,7 @@ TEST_CASE("exec_path_args") {
         exec_path_args::state prev_state;
         REQUIRE_NOTHROW(prev_state = cmd.finish_and_get_prev_state());
         REQUIRE_EQ(prev_state, exec_path_args::state::ready);
+        REQUIRE(cmd.manages_process());
       }
 
       REQUIRE_EQ(cmd.get_stdout(true), "Hello stdout!");
@@ -110,6 +115,7 @@ TEST_CASE("exec_path_args") {
         exec_path_args::state prev_state;
         REQUIRE_NOTHROW(prev_state = cmd.finish_and_get_prev_state());
         REQUIRE_EQ(prev_state, exec_path_args::state::ready);
+        REQUIRE(cmd.manages_process());
       }
 
       REQUIRE_EQ(cmd.get_stdout(true), "");
@@ -126,9 +132,11 @@ TEST_CASE("exec_path_args") {
         REQUIRE_NOTHROW(state = cmd.update_and_get_state());
         REQUIRE_EQ(state.previous, exec_path_args::state::ready);
         REQUIRE_EQ(state.current, exec_path_args::state::running);
+        REQUIRE(cmd.manages_process());
       }
 
       REQUIRE_NOTHROW(cmd.do_kill());
+      REQUIRE(cmd.is_finished());
 
       SUBCASE("re-checking the status after kill") {
         exec_path_args::state prev_state;
@@ -144,6 +152,72 @@ TEST_CASE("exec_path_args") {
       REQUIRE_EQ(cmd.get_stderr(true), "");
       REQUIRE_NE(cmd.get_return_code(), EXIT_SUCCESS);
     }
+
+    SUBCASE("various operations") {
+      SUBCASE("move ctor") {
+        std::optional<exec_path_args> cmd{bash_cmd("echo Hello")};
+        REQUIRE_FALSE(cmd->manages_process());
+
+        SUBCASE("not spawned yet") {
+          exec_path_args cmd2{std::move(*cmd)};
+          REQUIRE_FALSE(cmd2.manages_process());
+          REQUIRE_FALSE(cmd->manages_process());
+        }
+
+        SUBCASE("just spawned") {
+          {
+            exec_path_args::states state;
+            REQUIRE_NOTHROW(state = cmd->update_and_get_state());
+            REQUIRE_EQ(state.previous, exec_path_args::state::ready);
+            REQUIRE_EQ(state.current, exec_path_args::state::running);
+            REQUIRE(cmd->manages_process());
+          }
+
+          exec_path_args cmd2{std::move(*cmd)};
+
+          SUBCASE("without imediate reset") {}
+
+          SUBCASE("with imediate reset") { REQUIRE_NOTHROW(cmd.reset()); }
+
+          REQUIRE(cmd2.manages_process());
+          REQUIRE_FALSE(cmd->manages_process());
+
+          {
+            exec_path_args::state prev_state;
+            REQUIRE_THROWS(prev_state = cmd->finish_and_get_prev_state());
+            REQUIRE_NOTHROW(prev_state = cmd2.finish_and_get_prev_state());
+            REQUIRE_EQ(prev_state, exec_path_args::state::running);
+          }
+
+          REQUIRE_EQ(cmd2.get_stdout(true), "Hello\n");
+          REQUIRE_EQ(cmd2.get_stderr(true), "");
+          REQUIRE_EQ(cmd2.get_return_code(), EXIT_SUCCESS);
+        }
+
+        SUBCASE("after finishing") {
+          {
+            exec_path_args::state prev_state;
+            REQUIRE_NOTHROW(prev_state = cmd->finish_and_get_prev_state());
+            REQUIRE_EQ(prev_state, exec_path_args::state::ready);
+          }
+
+          exec_path_args cmd2{std::move(*cmd)};
+
+          SUBCASE("without imediate reset") {}
+
+          SUBCASE("with imediate reset") { REQUIRE_NOTHROW(cmd.reset()); }
+
+          REQUIRE(cmd2.manages_process());
+          REQUIRE_FALSE(cmd->manages_process());
+
+          REQUIRE_EQ(cmd2.get_stdout(true), "Hello\n");
+          REQUIRE_EQ(cmd2.get_stderr(true), "");
+          REQUIRE_EQ(cmd2.get_return_code(), EXIT_SUCCESS);
+        }
+
+        REQUIRE_NOTHROW(cmd.reset());
+      }
+    }
   }
 
   SUBCASE("some_cli_app") {
@@ -155,12 +229,15 @@ TEST_CASE("exec_path_args") {
 
     auto const some_cli_app = [&](auto &&...args) {
       // TODO fix this first version ...:
-      // return exec_path_args{some_cli_app_path.string(),
-      //                      {std::forward<decltype(args)>(args)...}};
+      // exec_path_args cmd{some_cli_app_path.string(),
+      //                    {std::forward<decltype(args)>(args)...}};
       // and remove this one:
-      return exec_path_args{"/usr/bin/env",
-                            {"bash", some_cli_app_path.string(),
-                             std::forward<decltype(args)>(args)...}};
+      exec_path_args cmd{"/usr/bin/env",
+                         {"bash", some_cli_app_path.string(),
+                          std::forward<decltype(args)>(args)...}};
+      REQUIRE_FALSE(cmd.manages_process());
+      REQUIRE_FALSE(cmd.is_finished());
+      return cmd;
     };
 
     SUBCASE("basic functionality, without synchronization") {
@@ -172,6 +249,7 @@ TEST_CASE("exec_path_args") {
           exec_path_args::state prev_state;
           REQUIRE_NOTHROW(prev_state = cmd.finish_and_get_prev_state());
           REQUIRE_EQ(prev_state, exec_path_args::state::ready);
+          REQUIRE(cmd.manages_process());
         }
 
         REQUIRE_EQ(cmd.get_stderr(true), "");
@@ -190,6 +268,7 @@ TEST_CASE("exec_path_args") {
           exec_path_args::state prev_state;
           REQUIRE_NOTHROW(prev_state = cmd.finish_and_get_prev_state());
           REQUIRE_EQ(prev_state, exec_path_args::state::ready);
+          REQUIRE(cmd.manages_process());
         }
 
         REQUIRE_EQ(cmd.get_stderr(true), "");
@@ -204,6 +283,7 @@ TEST_CASE("exec_path_args") {
           exec_path_args::state prev_state;
           REQUIRE_NOTHROW(prev_state = cmd.finish_and_get_prev_state());
           REQUIRE_EQ(prev_state, exec_path_args::state::ready);
+          REQUIRE(cmd.manages_process());
         }
 
         REQUIRE_EQ(cmd.get_stderr(true), "");
@@ -219,6 +299,7 @@ TEST_CASE("exec_path_args") {
           exec_path_args::state prev_state;
           REQUIRE_NOTHROW(prev_state = cmd.finish_and_get_prev_state());
           REQUIRE_EQ(prev_state, exec_path_args::state::ready);
+          REQUIRE(cmd.manages_process());
         }
 
         REQUIRE_EQ(cmd.get_stderr(true), "");
@@ -240,9 +321,11 @@ TEST_CASE("exec_path_args") {
           REQUIRE_NOTHROW(state = cmd.update_and_get_state());
           REQUIRE_EQ(state.previous, exec_path_args::state::ready);
           REQUIRE_EQ(state.current, exec_path_args::state::running);
+          REQUIRE(cmd.manages_process());
         }
 
         REQUIRE_NOTHROW(cmd.do_kill());
+        REQUIRE(cmd.is_finished());
 
         {
           exec_path_args::state prev_state;
@@ -263,6 +346,7 @@ TEST_CASE("exec_path_args") {
           exec_path_args::state prev_state;
           REQUIRE_NOTHROW(prev_state = cmd.finish_and_get_prev_state());
           REQUIRE_EQ(prev_state, exec_path_args::state::ready);
+          REQUIRE(cmd.manages_process());
         }
 
         REQUIRE_EQ(cmd.get_stderr(true), std::string{text} + "\n");
@@ -281,6 +365,7 @@ TEST_CASE("exec_path_args") {
           exec_path_args::state prev_state;
           REQUIRE_NOTHROW(prev_state = cmd.finish_and_get_prev_state());
           REQUIRE_EQ(prev_state, exec_path_args::state::ready);
+          REQUIRE(cmd.manages_process());
         }
 
         REQUIRE_EQ(cmd.get_stderr(true),
@@ -299,6 +384,7 @@ TEST_CASE("exec_path_args") {
           exec_path_args::state prev_state;
           REQUIRE_NOTHROW(prev_state = cmd.finish_and_get_prev_state());
           REQUIRE_EQ(prev_state, exec_path_args::state::ready);
+          REQUIRE(cmd.manages_process());
         }
 
         REQUIRE_EQ(cmd.get_stdout(true), std::string{text} + "\n");
@@ -320,6 +406,7 @@ TEST_CASE("exec_path_args") {
           REQUIRE_NOTHROW(state = cmd.update_and_get_state());
           REQUIRE_EQ(state.previous, exec_path_args::state::ready);
           REQUIRE_EQ(state.current, exec_path_args::state::running);
+          REQUIRE(cmd.manages_process());
         }
 
         auto const text{"Hello! "}; // see the ' ' at the end
@@ -350,6 +437,7 @@ TEST_CASE("exec_path_args") {
           REQUIRE_NOTHROW(state = cmd.update_and_get_state());
           REQUIRE_EQ(state.previous, exec_path_args::state::ready);
           REQUIRE_EQ(state.current, exec_path_args::state::running);
+          REQUIRE(cmd.manages_process());
         }
 
         auto const text{"Hello!"}; // NO ' ' at the end
@@ -381,6 +469,7 @@ TEST_CASE("exec_path_args") {
           exec_path_args::state prev_state;
           REQUIRE_NOTHROW(prev_state = cmd.finish_and_get_prev_state());
           REQUIRE_EQ(prev_state, exec_path_args::state::ready);
+          REQUIRE(cmd.manages_process());
         }
 
         REQUIRE_EQ(cmd.get_stderr(true),
@@ -406,6 +495,7 @@ TEST_CASE("exec_path_args") {
           exec_path_args::state prev_state;
           REQUIRE_NOTHROW(prev_state = cmd.finish_and_get_prev_state());
           REQUIRE_EQ(prev_state, exec_path_args::state::ready);
+          REQUIRE(cmd.manages_process());
         }
 
         WARN_EQ(cmd.get_stderr(true),
@@ -437,6 +527,7 @@ TEST_CASE("exec_path_args") {
           REQUIRE_NOTHROW(state = cmd.update_and_get_state());
           REQUIRE_EQ(state.previous, exec_path_args::state::ready);
           REQUIRE_EQ(state.current, exec_path_args::state::running);
+          REQUIRE(cmd.manages_process());
         }
 
         REQUIRE(my_sem->wait_and_notify(40));
@@ -460,6 +551,7 @@ TEST_CASE("exec_path_args") {
           REQUIRE_NOTHROW(state = cmd.update_and_get_state());
           REQUIRE_EQ(state.previous, exec_path_args::state::ready);
           REQUIRE_EQ(state.current, exec_path_args::state::running);
+          REQUIRE(cmd.manages_process());
         }
 
         REQUIRE_FALSE(my_sem->wait_and_notify(
@@ -489,6 +581,7 @@ TEST_CASE("exec_path_args") {
           REQUIRE_NOTHROW(state = cmd.update_and_get_state());
           REQUIRE_EQ(state.previous, exec_path_args::state::ready);
           REQUIRE_EQ(state.current, exec_path_args::state::running);
+          REQUIRE(cmd.manages_process());
         }
 
         REQUIRE_FALSE(my_sem->wait_and_notify(
@@ -502,6 +595,7 @@ TEST_CASE("exec_path_args") {
         }
 
         REQUIRE_NOTHROW(cmd.do_kill());
+        REQUIRE(cmd.is_finished());
 
         {
           exec_path_args::state prev_state;
@@ -532,6 +626,7 @@ TEST_CASE("exec_path_args") {
           REQUIRE_NOTHROW(state = cmd.update_and_get_state());
           REQUIRE_EQ(state.previous, exec_path_args::state::ready);
           REQUIRE_EQ(state.current, exec_path_args::state::running);
+          REQUIRE(cmd.manages_process());
         }
 
         REQUIRE(my_sem->wait_and_notify(40));
