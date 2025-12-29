@@ -104,7 +104,6 @@ TEST_CASE("exec_path_args") {
 
     SUBCASE("non-zero return code") {
       static auto constexpr expected_val{42};
-
       exec_path_args cmd{bash_cmd("exit " + std::to_string(expected_val))};
 
       {
@@ -398,11 +397,10 @@ TEST_CASE("exec_path_args") {
         REQUIRE_EQ(cmd.get_return_code(), std::stoi(exit_code));
       }
 
-      SUBCASE("happy path") {
+      SUBCASE("complex happy path") {
         auto const to_stderr{"How is it going?"};
         auto const to_stdout{"Fine, thank You!"};
         auto const exit_code{"17"};
-
         exec_path_args cmd{some_cli_app_synced("--stderr", to_stderr, // 1
                                                "--stdout", to_stdout, // 2
                                                "--sleep", "5",        // 3
