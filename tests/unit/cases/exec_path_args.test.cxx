@@ -40,7 +40,7 @@ TEST_CASE("exec_path_args") {
                             {"bash", "bash", "-c", std::move(cmd_str)}};
     };
 
-    SUBCASE("happy path") {
+    SUBCASE("happy path - nonblocking") {
       exec_path_args cmd{
           bash_cmd("printf \"Hello stdout!\"; printf \"Hello stderr!\" 1>&2")};
 
@@ -51,7 +51,7 @@ TEST_CASE("exec_path_args") {
         REQUIRE_EQ(state.current, exec_path_args::state::running);
       }
 
-      { // potential for flakiness:
+      { // potential for flakiness -> hence there are `WARN`s on the "boundary":
         {
           exec_path_args::states state;
           REQUIRE_NOTHROW(state = cmd.update_and_get_state());
@@ -59,12 +59,9 @@ TEST_CASE("exec_path_args") {
           WARN_EQ(state.current, exec_path_args::state::running);
         }
 
-        // how dirty ... TODO some better way?
-        std::this_thread::sleep_for(std::chrono::milliseconds{5});
-
         {
           exec_path_args::states state;
-          REQUIRE_NOTHROW(state = cmd.update_and_get_state());
+          REQUIRE_NOTHROW(state = cmd.update_and_get_state(-1));
           WARN_EQ(state.previous, exec_path_args::state::running);
           REQUIRE_EQ(state.current, exec_path_args::state::finished);
         }
@@ -82,6 +79,22 @@ TEST_CASE("exec_path_args") {
       REQUIRE_EQ(cmd.get_return_code(), EXIT_SUCCESS);
     }
 
+    SUBCASE("happy path - blocking") {
+      exec_path_args cmd{
+          bash_cmd("printf \"Hello stdout!\"; printf \"Hello stderr!\" 1>&2")};
+
+      {
+        exec_path_args::states state;
+        REQUIRE_NOTHROW(state = cmd.update_and_get_state(-1));
+        REQUIRE_EQ(state.previous, exec_path_args::state::ready);
+        REQUIRE_EQ(state.current, exec_path_args::state::finished);
+      }
+
+      REQUIRE_EQ(cmd.get_stdout(true), "Hello stdout!");
+      REQUIRE_EQ(cmd.get_stderr(true), "Hello stderr!");
+      REQUIRE_EQ(cmd.get_return_code(), EXIT_SUCCESS);
+    }
+
     SUBCASE("non-zero return code") {
       static auto constexpr expected_val{42};
 
@@ -89,25 +102,8 @@ TEST_CASE("exec_path_args") {
 
       {
         exec_path_args::states state;
-        REQUIRE_NOTHROW(state = cmd.update_and_get_state());
+        REQUIRE_NOTHROW(state = cmd.update_and_get_state(true));
         REQUIRE_EQ(state.previous, exec_path_args::state::ready);
-        REQUIRE_EQ(state.current, exec_path_args::state::running);
-      }
-
-      // how dirty ... TODO some better way?
-      std::this_thread::sleep_for(std::chrono::milliseconds{5});
-
-      {
-        exec_path_args::states state;
-        REQUIRE_NOTHROW(state = cmd.update_and_get_state());
-        REQUIRE_EQ(state.previous, exec_path_args::state::running);
-        REQUIRE_EQ(state.current, exec_path_args::state::finished);
-      }
-
-      {
-        exec_path_args::states state;
-        REQUIRE_NOTHROW(state = cmd.update_and_get_state());
-        REQUIRE_EQ(state.previous, exec_path_args::state::finished);
         REQUIRE_EQ(state.current, exec_path_args::state::finished);
       }
 
@@ -129,11 +125,15 @@ TEST_CASE("exec_path_args") {
 
       cmd.do_kill();
 
-      {
+      SUBCASE("re-checking the status after kill") {
         exec_path_args::states state;
         REQUIRE_NOTHROW(state = cmd.update_and_get_state());
         REQUIRE_EQ(state.previous, exec_path_args::state::finished);
         REQUIRE_EQ(state.current, exec_path_args::state::finished);
+      }
+
+      SUBCASE("not checking the status after kill") {
+        // should be equivalent ...
       }
 
       REQUIRE_EQ(cmd.get_stdout(true), "");
@@ -178,11 +178,9 @@ TEST_CASE("exec_path_args") {
 
       REQUIRE(my_sem->wait_and_notify(40));
 
-      std::this_thread::sleep_for(std::chrono::milliseconds{10});
-
       {
         exec_path_args::states state;
-        REQUIRE_NOTHROW(state = cmd.update_and_get_state());
+        REQUIRE_NOTHROW(state = cmd.update_and_get_state(-1));
         REQUIRE_EQ(state.previous, exec_path_args::state::running);
         REQUIRE_EQ(state.current, exec_path_args::state::finished);
       }
@@ -213,13 +211,7 @@ TEST_CASE("exec_path_args") {
         REQUIRE_EQ(state.current, exec_path_args::state::running);
       }
 
-      // std::this_thread::sleep_for(std::chrono::milliseconds{100});
-      // std::this_thread::sleep_for(std::chrono::milliseconds{10});
-
-      // TODO why does this fail? The output below is really written out (as can
-      // be seen if the checks are switched ...)
       REQUIRE(my_sem->wait_and_notify(40));
-      // REQUIRE_NOTHROW((void)my_sem->wait_and_notify(40));
 
       REQUIRE_EQ(cmd.get_stdout(true), std::string{to_stdout} + '\n');
       REQUIRE_EQ(cmd.get_stderr(true), std::string{to_stderr} + '\n');
@@ -236,9 +228,7 @@ TEST_CASE("exec_path_args") {
           "const std::string_view data "};
       REQUIRE_NOTHROW(cmd.send_to_stdin(expected_echo_input));
 
-      // std::this_thread::sleep_for(std::chrono::milliseconds{10});
       REQUIRE(my_sem->wait_and_notify(40));
-      // REQUIRE_NOTHROW((void)my_sem->wait_and_notify(40));
 
       std::string str{expected_echo_input};
       std::transform(str.begin(), str.end(), str.begin(),
