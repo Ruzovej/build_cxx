@@ -397,6 +397,31 @@ TEST_CASE("exec_path_args") {
         REQUIRE_EQ(cmd.get_return_code(), std::stoi(exit_code));
       }
 
+      SUBCASE("uninitialized semaphore in child process") {
+        exec_path_args cmd{some_cli_app("--sync", "--exit", "0")};
+
+        {
+          exec_path_args::states state;
+          REQUIRE_NOTHROW(state = cmd.update_and_get_state());
+          REQUIRE_EQ(state.previous, exec_path_args::state::ready);
+          REQUIRE_EQ(state.current, exec_path_args::state::running);
+        }
+
+        REQUIRE_FALSE(my_sem->wait_and_notify(40));
+
+        {
+          exec_path_args::state prev_state;
+          REQUIRE_NOTHROW(prev_state = cmd.finish_and_get_prev_state());
+          REQUIRE_EQ(prev_state, exec_path_args::state::running);
+        }
+
+        REQUIRE_EQ(cmd.get_stderr(true),
+                   "some_cli_app caught `std::exception`: Semaphore name not "
+                   "specified for sync operation\n");
+        REQUIRE_EQ(cmd.get_stdout(true), "");
+        REQUIRE_EQ(cmd.get_return_code(), EXIT_FAILURE);
+      }
+
       SUBCASE("complex happy path") {
         auto const to_stderr{"How is it going?"};
         auto const to_stdout{"Fine, thank You!"};
