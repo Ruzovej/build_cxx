@@ -77,11 +77,11 @@ TEST_CASE("exec_path_args") {
           REQUIRE_EQ(state.current, exec_path_args::state::finished);
         }
 
-        REQUIRE_EQ(cmd.get_return_code(), EXIT_SUCCESS);
         REQUIRE_EQ(cmd.get_stdout(true), "Hello stdout!");
         REQUIRE_EQ(cmd.get_stdout(false), "");
         REQUIRE_EQ(cmd.get_stderr(true), "Hello stderr!");
         REQUIRE_EQ(cmd.get_stderr(false), "");
+        REQUIRE_EQ(cmd.get_return_code(), EXIT_SUCCESS);
       }
     }
 
@@ -95,9 +95,9 @@ TEST_CASE("exec_path_args") {
         REQUIRE_EQ(prev_state, exec_path_args::state::ready);
       }
 
-      REQUIRE_EQ(cmd.get_return_code(), EXIT_SUCCESS);
       REQUIRE_EQ(cmd.get_stdout(true), "Hello stdout!");
       REQUIRE_EQ(cmd.get_stderr(true), "Hello stderr!");
+      REQUIRE_EQ(cmd.get_return_code(), EXIT_SUCCESS);
     }
 
     SUBCASE("non-zero return code") {
@@ -111,9 +111,9 @@ TEST_CASE("exec_path_args") {
         REQUIRE_EQ(prev_state, exec_path_args::state::ready);
       }
 
-      REQUIRE_EQ(cmd.get_return_code(), expected_val);
       REQUIRE_EQ(cmd.get_stdout(true), "");
       REQUIRE_EQ(cmd.get_stderr(true), "");
+      REQUIRE_EQ(cmd.get_return_code(), expected_val);
     }
 
     SUBCASE("not waiting for it") {
@@ -140,9 +140,9 @@ TEST_CASE("exec_path_args") {
         // should be equivalent ...
       }
 
-      REQUIRE_NE(cmd.get_return_code(), EXIT_SUCCESS);
       REQUIRE_EQ(cmd.get_stdout(true), "");
       REQUIRE_EQ(cmd.get_stderr(true), "");
+      REQUIRE_NE(cmd.get_return_code(), EXIT_SUCCESS);
     }
   }
 
@@ -174,9 +174,27 @@ TEST_CASE("exec_path_args") {
           REQUIRE_EQ(prev_state, exec_path_args::state::ready);
         }
 
-        REQUIRE_EQ(cmd.get_return_code(), std::stoi(exit_code));
         REQUIRE_EQ(cmd.get_stderr(true), "");
         REQUIRE_EQ(cmd.get_stdout(true), "");
+        REQUIRE_EQ(cmd.get_return_code(), std::stoi(exit_code));
+      }
+
+      SUBCASE("exit is always last action") {
+        auto const exit_code{"13"};
+        exec_path_args cmd{some_cli_app("--exit", exit_code,            // ...
+                                        "--stdout", "won't be printed", // ...
+                                        "--sync"                        // ...
+                                        )};
+
+        {
+          exec_path_args::state prev_state;
+          REQUIRE_NOTHROW(prev_state = cmd.finish_and_get_prev_state());
+          REQUIRE_EQ(prev_state, exec_path_args::state::ready);
+        }
+
+        REQUIRE_EQ(cmd.get_stderr(true), "");
+        REQUIRE_EQ(cmd.get_stdout(true), "");
+        REQUIRE_EQ(cmd.get_return_code(), std::stoi(exit_code));
       }
 
       SUBCASE("sleep") {
@@ -188,9 +206,9 @@ TEST_CASE("exec_path_args") {
           REQUIRE_EQ(prev_state, exec_path_args::state::ready);
         }
 
-        REQUIRE_EQ(cmd.get_return_code(), EXIT_SUCCESS);
         REQUIRE_EQ(cmd.get_stderr(true), "");
         REQUIRE_EQ(cmd.get_stdout(true), "");
+        REQUIRE_EQ(cmd.get_return_code(), EXIT_SUCCESS);
       }
 
       SUBCASE("stdout") {
@@ -203,13 +221,13 @@ TEST_CASE("exec_path_args") {
           REQUIRE_EQ(prev_state, exec_path_args::state::ready);
         }
 
-        REQUIRE_EQ(cmd.get_return_code(), EXIT_SUCCESS);
         REQUIRE_EQ(cmd.get_stderr(true), "");
         REQUIRE_EQ(cmd.get_stdout(true), std::string{text} + "\n");
         REQUIRE_EQ(cmd.get_stdout(false), ""); // consumed ...
         REQUIRE_EQ(cmd.get_stdout(true),
                    std::string{text} + "\n");  // still reachable
         REQUIRE_EQ(cmd.get_stdout(false), ""); // still consumed ...
+        REQUIRE_EQ(cmd.get_return_code(), EXIT_SUCCESS);
       }
 
       SUBCASE("stderr") {
@@ -222,12 +240,12 @@ TEST_CASE("exec_path_args") {
           REQUIRE_EQ(prev_state, exec_path_args::state::ready);
         }
 
-        REQUIRE_EQ(cmd.get_return_code(), EXIT_SUCCESS);
         REQUIRE_EQ(cmd.get_stderr(true), std::string{text} + "\n");
         REQUIRE_EQ(cmd.get_stderr(false), "");                      // ditto ...
         REQUIRE_EQ(cmd.get_stderr(true), std::string{text} + "\n"); // ...
         REQUIRE_EQ(cmd.get_stderr(false), "");                      // ...
         REQUIRE_EQ(cmd.get_stdout(true), "");
+        REQUIRE_EQ(cmd.get_return_code(), EXIT_SUCCESS);
       }
 
       SUBCASE("stdout & stderr") {
@@ -240,15 +258,15 @@ TEST_CASE("exec_path_args") {
           REQUIRE_EQ(prev_state, exec_path_args::state::ready);
         }
 
+        REQUIRE_EQ(cmd.get_stdout(true), std::string{text} + "\n");
+        REQUIRE_EQ(cmd.get_stdout(false), "");
+        REQUIRE_EQ(cmd.get_stdout(true), std::string{text} + "\n");
+        REQUIRE_EQ(cmd.get_stdout(false), "");
+        REQUIRE_EQ(cmd.get_stderr(true), std::string{text} + "\n");
+        REQUIRE_EQ(cmd.get_stderr(false), "");
+        REQUIRE_EQ(cmd.get_stderr(true), std::string{text} + "\n");
+        REQUIRE_EQ(cmd.get_stderr(false), "");
         REQUIRE_EQ(cmd.get_return_code(), EXIT_SUCCESS);
-        REQUIRE_EQ(cmd.get_stdout(true), std::string{text} + "\n");
-        REQUIRE_EQ(cmd.get_stdout(false), "");
-        REQUIRE_EQ(cmd.get_stdout(true), std::string{text} + "\n");
-        REQUIRE_EQ(cmd.get_stdout(false), "");
-        REQUIRE_EQ(cmd.get_stderr(true), std::string{text} + "\n");
-        REQUIRE_EQ(cmd.get_stderr(false), "");
-        REQUIRE_EQ(cmd.get_stderr(true), std::string{text} + "\n");
-        REQUIRE_EQ(cmd.get_stderr(false), "");
       }
 
       SUBCASE("echo") {
@@ -270,9 +288,9 @@ TEST_CASE("exec_path_args") {
           REQUIRE_EQ(prev_state, exec_path_args::state::running);
         }
 
-        REQUIRE_EQ(cmd.get_return_code(), EXIT_SUCCESS);
         REQUIRE_EQ(cmd.get_stderr(true), "");
         REQUIRE_EQ(cmd.get_stdout(true), space_to_newline(text));
+        REQUIRE_EQ(cmd.get_return_code(), EXIT_SUCCESS);
       }
     }
 
@@ -306,9 +324,9 @@ TEST_CASE("exec_path_args") {
           REQUIRE_EQ(prev_state, exec_path_args::state::running);
         }
 
-        REQUIRE_EQ(cmd.get_return_code(), std::stoi(exit_code));
         REQUIRE_EQ(cmd.get_stderr(true), "");
         REQUIRE_EQ(cmd.get_stdout(true), "");
+        REQUIRE_EQ(cmd.get_return_code(), std::stoi(exit_code));
       }
 
       SUBCASE("happy path") {
