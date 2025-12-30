@@ -91,6 +91,7 @@ TEST_CASE("exec_path_args") {
         REQUIRE_EQ(cmd.read_stderr(false), "");
 
         REQUIRE_EQ(cmd.get_return_code(), EXIT_SUCCESS);
+        REQUIRE_LT(0.0, cmd.time_running_ms());
       }
 
       // consume outputs ...
@@ -117,6 +118,7 @@ TEST_CASE("exec_path_args") {
       REQUIRE_EQ(cmd.read_stdout(true), "Hello stdout!");
       REQUIRE_EQ(cmd.read_stderr(true), "Hello stderr!");
       REQUIRE_EQ(cmd.get_return_code(), EXIT_SUCCESS);
+      REQUIRE_LT(0.0, cmd.time_running_ms());
     }
 
     SUBCASE("non-zero return code") {
@@ -133,6 +135,7 @@ TEST_CASE("exec_path_args") {
       REQUIRE_EQ(cmd.read_stdout(true), "");
       REQUIRE_EQ(cmd.read_stderr(true), "");
       REQUIRE_EQ(cmd.get_return_code(), expected_val);
+      REQUIRE_LT(0.0, cmd.time_running_ms());
     }
 
     SUBCASE("not waiting for it") {
@@ -164,6 +167,7 @@ TEST_CASE("exec_path_args") {
       REQUIRE_EQ(cmd.read_stdout(true), "");
       REQUIRE_EQ(cmd.read_stderr(true), "");
       REQUIRE_NE(cmd.get_return_code(), EXIT_SUCCESS);
+      REQUIRE_LT(0.0, cmd.time_running_ms());
     }
 
     SUBCASE("various operations") {
@@ -215,6 +219,7 @@ TEST_CASE("exec_path_args") {
           REQUIRE_EQ(cmd2.read_stdout(true), "Hello\n");
           REQUIRE_EQ(cmd2.read_stderr(true), "");
           REQUIRE_EQ(cmd2.get_return_code(), EXIT_SUCCESS);
+          REQUIRE_LT(0.0, cmd2.time_running_ms());
         }
 
         SUBCASE("after finishing") {
@@ -236,6 +241,7 @@ TEST_CASE("exec_path_args") {
           REQUIRE_EQ(cmd2.read_stdout(true), "Hello\n");
           REQUIRE_EQ(cmd2.read_stderr(true), "");
           REQUIRE_EQ(cmd2.get_return_code(), EXIT_SUCCESS);
+          REQUIRE_LT(0.0, cmd2.time_running_ms());
         }
 
         cmd.reset();
@@ -327,9 +333,11 @@ TEST_CASE("exec_path_args") {
 
         REQUIRE_EQ(cmd1.read_stdout(true), "cmd2\n");
         REQUIRE_EQ(cmd1.get_return_code(), 2);
+        REQUIRE_LT(0.0, cmd1.time_running_ms());
 
         REQUIRE_EQ(cmd2.read_stdout(true), "cmd1\n");
         REQUIRE_EQ(cmd2.get_return_code(), 1);
+        REQUIRE_LT(0.0, cmd2.time_running_ms());
       }
     }
   }
@@ -369,6 +377,7 @@ TEST_CASE("exec_path_args") {
         REQUIRE_EQ(cmd.read_stderr(true), "");
         REQUIRE_EQ(cmd.read_stdout(true), "");
         REQUIRE_EQ(cmd.get_return_code(), std::stoi(exit_code));
+        REQUIRE_LT(0.0, cmd.time_running_ms());
       }
 
       SUBCASE("exit is always last action") {
@@ -388,6 +397,7 @@ TEST_CASE("exec_path_args") {
         REQUIRE_EQ(cmd.read_stderr(true), "");
         REQUIRE_EQ(cmd.read_stdout(true), "");
         REQUIRE_EQ(cmd.get_return_code(), std::stoi(exit_code));
+        REQUIRE_LT(0.0, cmd.time_running_ms());
       }
 
       SUBCASE("sleep") {
@@ -403,6 +413,7 @@ TEST_CASE("exec_path_args") {
         REQUIRE_EQ(cmd.read_stderr(true), "");
         REQUIRE_EQ(cmd.read_stdout(true), "");
         REQUIRE_EQ(cmd.get_return_code(), EXIT_SUCCESS);
+        REQUIRE_LT(0.0, cmd.time_running_ms());
       }
 
       SUBCASE("stdout") {
@@ -416,13 +427,16 @@ TEST_CASE("exec_path_args") {
           REQUIRE(cmd.manages_process());
         }
 
+        std::string const expected{std::string{text} + '\n'};
+
         REQUIRE_EQ(cmd.read_stderr(true), "");
-        REQUIRE_EQ(cmd.read_stdout(true), std::string{text} + "\n");
-        REQUIRE_EQ(cmd.read_stdout(false), ""); // consumed ...
-        REQUIRE_EQ(cmd.read_stdout(true),
-                   std::string{text} + "\n");   // still reachable
-        REQUIRE_EQ(cmd.read_stdout(false), ""); // still consumed ...
+        REQUIRE_EQ(cmd.read_stdout(false), expected); // not yet consumed ...
+        REQUIRE_EQ(cmd.read_stdout(true), expected);
+        REQUIRE_EQ(cmd.read_stdout(false), "");      // consumed ...
+        REQUIRE_EQ(cmd.read_stdout(true), expected); // still reachable
+        REQUIRE_EQ(cmd.read_stdout(false), "");      // still consumed ...
         REQUIRE_EQ(cmd.get_return_code(), EXIT_SUCCESS);
+        REQUIRE_LT(0.0, cmd.time_running_ms());
       }
 
       SUBCASE("sleep interupted") {
@@ -450,6 +464,7 @@ TEST_CASE("exec_path_args") {
         REQUIRE_EQ(cmd.read_stderr(true), "");
         REQUIRE_EQ(cmd.read_stdout(true), "");
         REQUIRE_EQ(cmd.get_return_code(), SIGKILL);
+        REQUIRE_LT(0.0, cmd.time_running_ms());
       }
 
       SUBCASE("stderr") {
@@ -463,12 +478,16 @@ TEST_CASE("exec_path_args") {
           REQUIRE(cmd.manages_process());
         }
 
-        REQUIRE_EQ(cmd.read_stderr(true), std::string{text} + "\n");
-        REQUIRE_EQ(cmd.read_stderr(false), ""); // ditto ...
-        REQUIRE_EQ(cmd.read_stderr(true), std::string{text} + "\n"); // ...
-        REQUIRE_EQ(cmd.read_stderr(false), "");                      // ...
+        std::string const expected{std::string{text} + '\n'};
+
+        REQUIRE_EQ(cmd.read_stderr(false), expected);
+        REQUIRE_EQ(cmd.read_stderr(true), expected);
+        REQUIRE_EQ(cmd.read_stderr(false), "");      // ditto ...
+        REQUIRE_EQ(cmd.read_stderr(true), expected); // ...
+        REQUIRE_EQ(cmd.read_stderr(false), "");      // ...
         REQUIRE_EQ(cmd.read_stdout(true), "");
         REQUIRE_EQ(cmd.get_return_code(), EXIT_SUCCESS);
+        REQUIRE_LT(0.0, cmd.time_running_ms());
       }
 
       SUBCASE("invalid argument") {
@@ -488,6 +507,7 @@ TEST_CASE("exec_path_args") {
         REQUIRE_EQ(cmd.read_stdout(true), "");
         REQUIRE_NE(cmd.get_return_code(), std::stoi(exit_code));
         REQUIRE_EQ(cmd.get_return_code(), EXIT_FAILURE);
+        REQUIRE_LT(0.0, cmd.time_running_ms());
       }
 
       SUBCASE("stdout & stderr") {
@@ -501,15 +521,17 @@ TEST_CASE("exec_path_args") {
           REQUIRE(cmd.manages_process());
         }
 
-        REQUIRE_EQ(cmd.read_stdout(true), std::string{text} + "\n");
+        std::string const expected{std::string{text} + '\n'};
+        REQUIRE_EQ(cmd.read_stdout(true), expected);
         REQUIRE_EQ(cmd.read_stdout(false), "");
-        REQUIRE_EQ(cmd.read_stdout(true), std::string{text} + "\n");
+        REQUIRE_EQ(cmd.read_stdout(true), expected);
         REQUIRE_EQ(cmd.read_stdout(false), "");
-        REQUIRE_EQ(cmd.read_stderr(true), std::string{text} + "\n");
+        REQUIRE_EQ(cmd.read_stderr(true), expected);
         REQUIRE_EQ(cmd.read_stderr(false), "");
-        REQUIRE_EQ(cmd.read_stderr(true), std::string{text} + "\n");
+        REQUIRE_EQ(cmd.read_stderr(true), expected);
         REQUIRE_EQ(cmd.read_stderr(false), "");
         REQUIRE_EQ(cmd.get_return_code(), EXIT_SUCCESS);
+        REQUIRE_LT(0.0, cmd.time_running_ms());
       }
 
       SUBCASE("echo 1") {
@@ -541,6 +563,7 @@ TEST_CASE("exec_path_args") {
         REQUIRE_EQ(cmd.read_stderr(true), "");
         REQUIRE_EQ(cmd.read_stdout(true), space_to_newline(text));
         REQUIRE_EQ(cmd.get_return_code(), EXIT_SUCCESS);
+        REQUIRE_LT(0.0, cmd.time_running_ms());
       }
 
       SUBCASE("echo 2") {
@@ -567,6 +590,7 @@ TEST_CASE("exec_path_args") {
         REQUIRE_EQ(cmd.read_stderr(true), "");
         REQUIRE_EQ(cmd.read_stdout(true), space_to_newline(text) + '\n');
         REQUIRE_EQ(cmd.get_return_code(), EXIT_SUCCESS);
+        REQUIRE_LT(0.0, cmd.time_running_ms());
       }
 
       SUBCASE("handled exception") {
@@ -591,6 +615,7 @@ TEST_CASE("exec_path_args") {
         REQUIRE_EQ(cmd.read_stdout(true), "");
         REQUIRE_NE(cmd.get_return_code(), std::stoi(exit_code));
         REQUIRE_EQ(cmd.get_return_code(), EXIT_FAILURE);
+        REQUIRE_LT(0.0, cmd.time_running_ms());
       }
 
       SUBCASE("unhandled exception") {
@@ -618,6 +643,7 @@ TEST_CASE("exec_path_args") {
         REQUIRE_EQ(cmd.read_stdout(true), "");
         REQUIRE_NE(cmd.get_return_code(), std::stoi(exit_code));
         REQUIRE_EQ(cmd.get_return_code(), SIGABRT);
+        REQUIRE_LT(0.0, cmd.time_running_ms());
       }
     }
 
@@ -656,6 +682,7 @@ TEST_CASE("exec_path_args") {
         REQUIRE_EQ(cmd.read_stderr(true), "");
         REQUIRE_EQ(cmd.read_stdout(true), "");
         REQUIRE_EQ(cmd.get_return_code(), std::stoi(exit_code));
+        REQUIRE_LT(0.0, cmd.time_running_ms());
       }
 
       SUBCASE("uninitialized IPS in child process") {
@@ -683,6 +710,7 @@ TEST_CASE("exec_path_args") {
                    "specified for sync operation\n");
         REQUIRE_EQ(cmd.read_stdout(true), "");
         REQUIRE_EQ(cmd.get_return_code(), EXIT_FAILURE);
+        REQUIRE_LT(0.0, cmd.time_running_ms());
       }
 
       SUBCASE("missed IPS in child process") {
@@ -715,12 +743,14 @@ TEST_CASE("exec_path_args") {
         {
           exec_path_args::state prev_state;
           REQUIRE_NOTHROW(prev_state = cmd.finish_and_get_prev_state());
+          // e.g. redundant, but valid ...:
           REQUIRE_EQ(prev_state, exec_path_args::state::finished);
         }
 
         REQUIRE_EQ(cmd.read_stderr(true), "");
         REQUIRE_EQ(cmd.read_stdout(true), "");
         REQUIRE_EQ(cmd.get_return_code(), SIGKILL);
+        REQUIRE_LT(0.0, cmd.time_running_ms());
       }
 
       SUBCASE("complex happy path") {
@@ -774,6 +804,7 @@ TEST_CASE("exec_path_args") {
         }
 
         REQUIRE_EQ(cmd.get_return_code(), std::stoi(exit_code));
+        REQUIRE_LT(0.0, cmd.time_running_ms());
       }
 
       SUBCASE("continuous output consumption") {
@@ -879,6 +910,7 @@ TEST_CASE("exec_path_args") {
         REQUIRE_EQ(cmd.read_stderr(true), "");
         REQUIRE_EQ(cmd.read_stdout(true), "");
         REQUIRE_EQ(cmd.get_return_code(), std::stoi(exit_code));
+        REQUIRE_LT(0.0, cmd.time_running_ms());
       }
     }
   }
