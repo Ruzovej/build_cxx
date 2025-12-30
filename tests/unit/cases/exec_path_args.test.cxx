@@ -217,6 +217,57 @@ TEST_CASE("exec_path_args") {
 
         REQUIRE_NOTHROW(cmd.reset());
       }
+
+      SUBCASE("operations on un-started process") {
+        exec_path_args cmd1{bash_cmd("whatever ... won't be started for the "
+                                     "purpose of the test case ...")};
+        exec_path_args cmd2{std::move(cmd1)};
+
+        SUBCASE("state checks") {
+          REQUIRE_FALSE(cmd1.manages_process());
+          REQUIRE_FALSE(cmd1.is_finished());
+
+          REQUIRE_FALSE(cmd2.manages_process());
+          REQUIRE_FALSE(cmd2.is_finished());
+        }
+
+        SUBCASE("stdin operations") {
+          REQUIRE_THROWS(cmd1.send_to_stdin("data"));
+          REQUIRE_THROWS(cmd1.close_stdin());
+
+          REQUIRE_THROWS(cmd1.send_to_stdin("data"));
+          REQUIRE_THROWS(cmd1.close_stdin());
+
+          REQUIRE_THROWS(cmd2.send_to_stdin("data"));
+          REQUIRE_THROWS(cmd2.close_stdin());
+        }
+
+        SUBCASE("stdout & stderr operations") {
+          [[maybe_unused]] std::string_view str;
+
+          REQUIRE_THROWS(str = cmd1.get_stdout());
+          REQUIRE_THROWS(str = cmd1.get_stderr());
+
+          REQUIRE_THROWS(str = cmd2.get_stdout());
+          REQUIRE_THROWS(str = cmd2.get_stderr());
+        }
+
+        SUBCASE("termination related") {
+          [[maybe_unused]] int ret_code;
+          [[maybe_unused]] long long time_ms;
+
+          REQUIRE_THROWS(ret_code = cmd1.get_return_code());
+          REQUIRE_THROWS(time_ms = cmd1.time_running_ms());
+
+          REQUIRE_THROWS(ret_code = cmd2.get_return_code());
+          REQUIRE_THROWS(time_ms = cmd2.time_running_ms());
+
+          // this one has checks inside, because it's used in d-tor ...:
+          REQUIRE_NOTHROW(cmd1.do_kill());
+
+          REQUIRE_NOTHROW(cmd2.do_kill());
+        }
+      }
     }
   }
 
