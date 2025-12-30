@@ -39,6 +39,25 @@
 
 namespace build_cxx::os_wrapper {
 
+void swap(exec_path_args &lhs, exec_path_args &rhs) noexcept {
+  using std::swap;
+
+  swap(lhs.path, rhs.path);
+  swap(lhs.args, rhs.args);
+  swap(lhs.time_spawned_ms, rhs.time_spawned_ms);
+  swap(lhs.time_finished_ms, rhs.time_finished_ms);
+  swap(lhs.handle, rhs.handle);
+  swap(lhs.stdin_pipe, rhs.stdin_pipe);
+  swap(lhs.stdout_pipe, rhs.stdout_pipe);
+  swap(lhs.stderr_pipe, rhs.stderr_pipe);
+  swap(lhs.current_state, rhs.current_state);
+  swap(lhs.return_code, rhs.return_code);
+  swap(lhs.stdout_buffer, rhs.stdout_buffer);
+  swap(lhs.stdout_consumed_bytes, rhs.stdout_consumed_bytes);
+  swap(lhs.stderr_buffer, rhs.stderr_buffer);
+  swap(lhs.stderr_consumed_bytes, rhs.stderr_consumed_bytes);
+}
+
 exec_path_args::exec_path_args(exec_path_args &&rhs) noexcept
     : path{std::move(rhs.path)}, args{std::move(rhs.args)},
       time_spawned_ms{rhs.time_spawned_ms},
@@ -53,6 +72,14 @@ exec_path_args::exec_path_args(exec_path_args &&rhs) noexcept
       stdout_consumed_bytes{rhs.stdout_consumed_bytes}, stderr_buffer{std::move(
                                                             rhs.stderr_buffer)},
       stderr_consumed_bytes{rhs.stderr_consumed_bytes} {}
+
+exec_path_args &exec_path_args::operator=(exec_path_args &&rhs) noexcept {
+  if (this != &rhs) {
+    exec_path_args tmp{std::move(rhs)};
+    swap(*this, tmp);
+  }
+  return *this;
+}
 
 exec_path_args::~exec_path_args() noexcept {
   if (manages_process()) {

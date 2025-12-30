@@ -32,6 +32,13 @@ namespace build_cxx::os_wrapper {
 struct exec_path_args {
   enum class state : char { uninitialzied, ready, running, finished };
 
+  struct states {
+    state previous;
+    state current;
+  };
+
+  friend void swap(exec_path_args &lhs, exec_path_args &rhs) noexcept;
+
   explicit exec_path_args(std::string &&aPath,
                           std::vector<std::string> &&aArgs) noexcept
       : path{std::move(aPath)}, args{std::move(aArgs)}, current_state{
@@ -42,13 +49,9 @@ struct exec_path_args {
   }
 
   exec_path_args(exec_path_args &&rhs) noexcept;
+  exec_path_args &operator=(exec_path_args &&rhs) noexcept;
 
   ~exec_path_args() noexcept;
-
-  struct states {
-    state previous;
-    state current;
-  };
 
   // timeout_until_it_finishes_ms (as in
   // https://man7.org/linux/man-pages/man2/poll.2.html):
@@ -94,7 +97,6 @@ struct exec_path_args {
 private:
   exec_path_args(exec_path_args const &rhs) noexcept = delete;
   exec_path_args &operator=(exec_path_args const &rhs) noexcept = delete;
-  exec_path_args &operator=(exec_path_args &&rhs) noexcept = delete;
 
   std::string path;
   std::vector<std::string> args;
