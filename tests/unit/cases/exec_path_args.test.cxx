@@ -24,6 +24,7 @@
 #include <algorithm>
 #include <filesystem>
 #include <iostream>
+#include <new>
 #include <optional>
 
 #include <doctest/doctest.h>
@@ -138,30 +139,41 @@ TEST_CASE("exec_path_args") {
       REQUIRE_NOTHROW(cmd.do_kill());
       REQUIRE(cmd.is_finished());
 
-      SUBCASE("re-checking the status after kill") {
+      SUBCASE("explicitly updating the status after kill") {
         exec_path_args::state prev_state;
         REQUIRE_NOTHROW(prev_state = cmd.finish_and_get_prev_state());
         REQUIRE_EQ(prev_state, exec_path_args::state::finished);
       }
 
-      SUBCASE("not checking the status after kill") {
-        // should be equivalent ...
+      SUBCASE("not updating the status after kill") {
+        // is expetected to be equivalent ...
       }
 
+      REQUIRE(cmd.is_finished());
       REQUIRE_EQ(cmd.read_stdout(true), "");
       REQUIRE_EQ(cmd.read_stderr(true), "");
       REQUIRE_NE(cmd.get_return_code(), EXIT_SUCCESS);
     }
 
     SUBCASE("various operations") {
-      SUBCASE("move ctor") {
+      SUBCASE("move opearations") {
         std::optional<exec_path_args> cmd{bash_cmd("echo Hello")};
         REQUIRE_FALSE(cmd->manages_process());
 
         SUBCASE("not spawned yet") {
+          SUBCASE("ctor") {
           exec_path_args cmd2{std::move(*cmd)};
           REQUIRE_FALSE(cmd2.manages_process());
           REQUIRE_FALSE(cmd->manages_process());
+          }
+
+          SUBCASE("assignment") {
+            exec_path_args cmd2;
+            auto const ptr{std::launder(&cmd2)}; // prevent optimizations ...
+            *ptr = std::move(*cmd);
+            REQUIRE_FALSE(ptr->manages_process());
+            REQUIRE_FALSE(cmd->manages_process());
+          }
         }
 
         SUBCASE("just spawned") {
@@ -177,7 +189,7 @@ TEST_CASE("exec_path_args") {
 
           SUBCASE("without imediate reset") {}
 
-          SUBCASE("with imediate reset") { REQUIRE_NOTHROW(cmd.reset()); }
+          SUBCASE("with imediate reset") { cmd.reset(); }
 
           REQUIRE(cmd2.manages_process());
           REQUIRE_FALSE(cmd->manages_process());
@@ -205,7 +217,7 @@ TEST_CASE("exec_path_args") {
 
           SUBCASE("without imediate reset") {}
 
-          SUBCASE("with imediate reset") { REQUIRE_NOTHROW(cmd.reset()); }
+          SUBCASE("with imediate reset") { cmd.reset(); }
 
           REQUIRE(cmd2.manages_process());
           REQUIRE_FALSE(cmd->manages_process());
@@ -215,7 +227,7 @@ TEST_CASE("exec_path_args") {
           REQUIRE_EQ(cmd2.get_return_code(), EXIT_SUCCESS);
         }
 
-        REQUIRE_NOTHROW(cmd.reset());
+        cmd.reset();
       }
 
       SUBCASE("operations on un-started process") {
