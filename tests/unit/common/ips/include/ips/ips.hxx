@@ -25,6 +25,9 @@
 
 namespace detail {
 
+// intended for very simple scheme: only 2 processes, one, the "owner"/parent,
+// which creates and destroys internal semaphores, and its "child", that only
+// uses them, and whose lifetime is strictly within the lifetime of the parent
 struct sema_wrap {
   // Both processes must use the same name to connect to each other
   explicit sema_wrap(std::string const &aName, bool const create);
@@ -47,9 +50,8 @@ private:
 } // namespace detail
 
 // ips ~ inter-process synchronization
-// intended for very simple scheme: only 2 processes, one beginning before and
-// ending after the other, which creates and destroys (or simply "owns")
-// internal semaphores
+// see its intended usage & limitations in `sema_wrap` above, or in the
+// implementation itself
 struct ips {
   // Both processes must use the same name to connect to each other
   explicit ips(std::string const &aName, bool const create);
