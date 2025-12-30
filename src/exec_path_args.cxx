@@ -235,6 +235,16 @@ std::string_view exec_path_args::read_stderr(bool const whole) {
   return get_buffer(stderr_buffer, stderr_consumed_bytes, whole);
 }
 
+std::string exec_path_args::get_stdout() {
+  update_buffer(true);
+  return std::move(stdout_buffer);
+}
+
+std::string exec_path_args::get_stderr() {
+  update_buffer(false);
+  return std::move(stderr_buffer);
+}
+
 void exec_path_args::do_kill() {
   if (manages_process() && (current_state == state::running)) {
     BUILD_CXX_SYSCALL_HELPER(kill(handle, SIGKILL));

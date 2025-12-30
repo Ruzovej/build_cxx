@@ -73,9 +73,14 @@ struct exec_path_args {
 
   // updates corresponding internal buffer and returns:
   // `whole == false` -> only "increment" since it was called previously
-  // `whole == true` -> everything since the start of the child process
+  // `whole == true` -> everything since the start of the child process or last
+  // call to the `get_...` counterpart
   [[nodiscard]] std::string_view read_stdout(bool const whole = false);
   [[nodiscard]] std::string_view read_stderr(bool const whole = false);
+
+  // updates corresponding internal buffer and transfers its ownership:
+  [[nodiscard]] std::string get_stdout();
+  [[nodiscard]] std::string get_stderr();
 
   void do_kill();
 
