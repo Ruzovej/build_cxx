@@ -24,6 +24,7 @@
 #include <sys/syscall.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <time.h>
 #include <unistd.h>
 
 #include <cerrno>
@@ -38,6 +39,23 @@
 #include "impl/syscall_helper.hxx"
 
 namespace build_cxx::os_wrapper {
+
+namespace {
+
+using timepoint_t = struct timespec;
+
+// copied from
+// <https://github.com/Ruzovej/cxxet/blob/main/include/public/cxxet/timepoint.hxx>
+// & simplified:
+[[nodiscard]] long long now_ns() {
+  // https://stackoverflow.com/a/42658433
+  // https://www.man7.org/linux/man-pages/man3/clock_gettime.3.html
+  timepoint_t t;
+  clock_gettime(CLOCK_MONOTONIC, &t);
+  return static_cast<long long>(t.tv_sec * 1'000'000'000 + t.tv_nsec);
+}
+
+} // namespace
 
 void swap(exec_path_args &lhs, exec_path_args &rhs) noexcept {
   using std::swap;
@@ -137,7 +155,7 @@ exec_path_args::update_and_get_state(int const timeout_until_it_finishes_ms) {
     stdout_pipe.close_in();
     stderr_pipe.close_in();
 
-    time_spawned_ns = -1; // TODO get current time in ms
+    time_spawned_ns = now_ns();
     static_assert(
         std::is_same_v<std::decay_t<decltype(pid)>, process_handle_t>);
     handle = pid;
@@ -280,12 +298,17 @@ void exec_path_args::do_kill() {
 }
 
 double exec_path_args::time_running_ms() const {
+  static auto constexpr time_diff_ms = [](long long const high_ns,
+                                          long long const low_ns) -> double {
+    return static_cast<double>(high_ns - low_ns) / 1'000'000;
+  };
+
   if (!manages_process()) {
     throw std::runtime_error{"can't measure time - process handle is invalid!"};
   } else if (current_state == state::running) {
-    return 0; // TODO `"current time in ms" - time_spawned_ms`
+    return time_diff_ms(now_ns(), time_spawned_ns);
   } else if (current_state == state::finished) {
-    return time_finished_ns - time_spawned_ns;
+    return time_diff_ms(time_finished_ns, time_spawned_ns);
   } else {
     throw std::runtime_error{
         "cannot get running time - process isn't running or finished!"};
@@ -358,7 +381,7 @@ void exec_path_args::query_status(bool const wait_for_finishing) {
         throw std::runtime_error{"waitid returned unexpected pid different "
                                  "from the managed one !"};
       }
-      time_finished_ns = -1; // TODO get current time in ms
+      time_finished_ns = now_ns();
       current_state = state::finished;
       return_code =
           status.si_status; // or signal ... don't make a difference here

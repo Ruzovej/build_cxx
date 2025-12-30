@@ -89,9 +89,13 @@ struct exec_path_args {
 
   void do_kill();
 
-  // TODO proper implementation:
+  // - for running process, returns `current_time - time_spawned`
+  // - it doesn't update status (e.g. if it already ended, this won't check it &
+  // update internal state accordingly)
+  // - once the process finishes, returned value is fixed
   [[nodiscard]] double time_running_ms() const;
 
+  // NOTE: if the process was terminated by a signal, returns that signal number
   [[nodiscard]] int get_return_code() const;
 
   // `pid` of the child process
