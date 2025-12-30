@@ -173,9 +173,9 @@ TEST_CASE("exec_path_args") {
 
         SUBCASE("not spawned yet") {
           SUBCASE("ctor") {
-          exec_path_args cmd2{std::move(*cmd)};
-          REQUIRE_FALSE(cmd2.manages_process());
-          REQUIRE_FALSE(cmd->manages_process());
+            exec_path_args cmd2{std::move(*cmd)};
+            REQUIRE_FALSE(cmd2.manages_process());
+            REQUIRE_FALSE(cmd->manages_process());
           }
 
           SUBCASE("assignment") {
@@ -246,7 +246,7 @@ TEST_CASE("exec_path_args") {
 
         exec_path_args cmd_moved_from{
             bash_cmd("whatever ... won't be started for the "
-                                     "purpose of the test case ...")};
+                     "purpose of the test case ...")};
 
         exec_path_args cmd_move_constructed{std::move(cmd_default_constructed)};
 
@@ -772,6 +772,103 @@ TEST_CASE("exec_path_args") {
           REQUIRE_EQ(prev_state, exec_path_args::state::running);
         }
 
+        REQUIRE_EQ(cmd.get_return_code(), std::stoi(exit_code));
+      }
+
+      SUBCASE("continuous output consumption") {
+        auto const out1{"out 111"};
+        auto const out2{"out 222"};
+        auto const err1{"err 111"};
+        auto const err2{"err 222"};
+        auto const exit_code{"18"};
+        exec_path_args cmd{some_cli_app_synced("--stdout", out1,   // ...
+                                               "--sync",           // ...
+                                               "--stderr", err1,   // ...
+                                               "--sync",           // ...
+                                               "--stdout", out2,   // ...
+                                               "--sync",           // ...
+                                               "--stderr", err2,   // ...
+                                               "--exit", exit_code // ...
+                                               )};
+
+        {
+          exec_path_args::states state;
+          REQUIRE_NOTHROW(state = cmd.update_and_get_state());
+          REQUIRE_EQ(state.previous, exec_path_args::state::ready);
+          REQUIRE_EQ(state.current, exec_path_args::state::running);
+          REQUIRE(cmd.manages_process());
+        }
+
+        // using the IPS "unconventionally" ... watch out for the last `notify`:
+        REQUIRE(my_sem->wait(40));
+
+        { // out 1
+          std::string const expected{std::string{out1} + '\n'};
+
+          REQUIRE_EQ(cmd.read_stdout(false), expected);
+          REQUIRE_EQ(cmd.read_stdout(true), expected);
+          REQUIRE_EQ(cmd.read_stdout(false), ""); // consumed ...
+
+          // transferred ownership:
+          REQUIRE_EQ(cmd.get_stdout(), expected);
+          REQUIRE_EQ(cmd.read_stdout(true), "");
+          REQUIRE_EQ(cmd.get_stdout(), "");
+        }
+
+        REQUIRE(my_sem->notify_and_wait(40));
+
+        { // err 1
+          std::string const expected{std::string{err1} + '\n'};
+
+          REQUIRE_EQ(cmd.read_stderr(false), expected);
+          REQUIRE_EQ(cmd.read_stderr(true), expected);
+          REQUIRE_EQ(cmd.read_stderr(false), ""); // consumed ...
+
+          // transferred ownership:
+          REQUIRE_EQ(cmd.get_stderr(), expected);
+          REQUIRE_EQ(cmd.read_stderr(true), "");
+          REQUIRE_EQ(cmd.get_stderr(), "");
+        }
+
+        REQUIRE(my_sem->notify_and_wait(40));
+
+        { // out 2
+          std::string const expected{std::string{out2} + '\n'};
+
+          REQUIRE_EQ(cmd.read_stdout(false), expected);
+          REQUIRE_EQ(cmd.read_stdout(true), expected);
+          REQUIRE_EQ(cmd.read_stdout(false), ""); // consumed ...
+
+          // transferred ownership:
+          REQUIRE_EQ(cmd.get_stdout(), expected);
+          REQUIRE_EQ(cmd.read_stdout(true), "");
+          REQUIRE_EQ(cmd.get_stdout(), "");
+        }
+
+        // above mentioned "unconventional" use ...
+        REQUIRE_NOTHROW(my_sem->notify());
+
+        {
+          exec_path_args::state prev_state;
+          REQUIRE_NOTHROW(prev_state = cmd.finish_and_get_prev_state());
+          REQUIRE_EQ(prev_state, exec_path_args::state::running);
+        }
+
+        { // err 2
+          std::string const expected{std::string{err2} + '\n'};
+
+          REQUIRE_EQ(cmd.read_stderr(false), expected);
+          REQUIRE_EQ(cmd.read_stderr(true), expected);
+          REQUIRE_EQ(cmd.read_stderr(false), ""); // consumed ...
+
+          // transferred ownership:
+          REQUIRE_EQ(cmd.get_stderr(), expected);
+          REQUIRE_EQ(cmd.read_stderr(true), "");
+          REQUIRE_EQ(cmd.get_stderr(), "");
+        }
+
+        REQUIRE_EQ(cmd.read_stderr(true), "");
+        REQUIRE_EQ(cmd.read_stdout(true), "");
         REQUIRE_EQ(cmd.get_return_code(), std::stoi(exit_code));
       }
     }
