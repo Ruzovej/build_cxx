@@ -375,7 +375,7 @@ TEST_CASE("exec_path_args") {
         auto const exit_code{"12"};
         exec_path_args cmd{some_cli_app("--exit", exit_code,            // ...
                                         "--stdout", "won't be printed", // ...
-                                        "--sync"                        // ...
+                                        "--notify-and-wait"             // ...
                                         )};
 
         {
@@ -632,9 +632,10 @@ TEST_CASE("exec_path_args") {
       std::optional<ips> my_sem;
       REQUIRE_NOTHROW(my_sem.emplace(sem_name, true));
 
-      SUBCASE("basic functionality: sync") {
+      SUBCASE("basic functionality: interprocess synchronization") {
         auto const exit_code{"16"};
-        exec_path_args cmd{some_cli_app_synced("--sync", "--exit", exit_code)};
+        exec_path_args cmd{
+            some_cli_app_synced("--notify-and-wait", "--exit", exit_code)};
 
         {
           exec_path_args::states state;
@@ -657,8 +658,8 @@ TEST_CASE("exec_path_args") {
         REQUIRE_EQ(cmd.get_return_code(), std::stoi(exit_code));
       }
 
-      SUBCASE("uninitialized semaphore in child process") {
-        exec_path_args cmd{some_cli_app("--sync", "--exit", "0")};
+      SUBCASE("uninitialized IPS in child process") {
+        exec_path_args cmd{some_cli_app("--notify-and-wait", "--exit", "0")};
 
         {
           exec_path_args::states state;
@@ -684,10 +685,10 @@ TEST_CASE("exec_path_args") {
         REQUIRE_EQ(cmd.get_return_code(), EXIT_FAILURE);
       }
 
-      SUBCASE("missed semaphore in child process") {
-        exec_path_args cmd{some_cli_app_synced("--sleep", "1000", // ...
-                                               "--sync",          // ...
-                                               "--exit", "0"      // ...
+      SUBCASE("missed IPS in child process") {
+        exec_path_args cmd{some_cli_app_synced("--sleep", "1000",   // ...
+                                               "--notify-and-wait", // ...
+                                               "--exit", "0"        // ...
                                                )};
 
         {
@@ -729,9 +730,9 @@ TEST_CASE("exec_path_args") {
         exec_path_args cmd{some_cli_app_synced("--stderr", to_stderr, // 1
                                                "--stdout", to_stdout, // 2
                                                "--sleep", "1",        // 3
-                                               "--sync",              // ...
+                                               "--notify-and-wait",   // ...
                                                "--echo", "3",         // 4
-                                               "--sync",              // ...
+                                               "--notify-and-wait",   // ...
                                                "--exit", exit_code    // 5
                                                )};
 
@@ -781,14 +782,14 @@ TEST_CASE("exec_path_args") {
         auto const err1{"err 111"};
         auto const err2{"err 222"};
         auto const exit_code{"18"};
-        exec_path_args cmd{some_cli_app_synced("--stdout", out1,   // ...
-                                               "--sync",           // ...
-                                               "--stderr", err1,   // ...
-                                               "--sync",           // ...
-                                               "--stdout", out2,   // ...
-                                               "--sync",           // ...
-                                               "--stderr", err2,   // ...
-                                               "--exit", exit_code // ...
+        exec_path_args cmd{some_cli_app_synced("--stdout", out1,    // ...
+                                               "--notify-and-wait", // ...
+                                               "--stderr", err1,    // ...
+                                               "--notify-and-wait", // ...
+                                               "--stdout", out2,    // ...
+                                               "--notify-and-wait", // ...
+                                               "--stderr", err2,    // ...
+                                               "--exit", exit_code  // ...
                                                )};
 
         {
@@ -806,11 +807,13 @@ TEST_CASE("exec_path_args") {
           std::string const expected{std::string{out1} + '\n'};
 
           REQUIRE_EQ(cmd.read_stdout(false), expected);
+          // consumed but available:
           REQUIRE_EQ(cmd.read_stdout(true), expected);
-          REQUIRE_EQ(cmd.read_stdout(false), ""); // consumed ...
+          REQUIRE_EQ(cmd.read_stdout(false), "");
 
           // transferred ownership:
           REQUIRE_EQ(cmd.get_stdout(), expected);
+          // really consumed:
           REQUIRE_EQ(cmd.read_stdout(true), "");
           REQUIRE_EQ(cmd.get_stdout(), "");
         }
@@ -821,11 +824,13 @@ TEST_CASE("exec_path_args") {
           std::string const expected{std::string{err1} + '\n'};
 
           REQUIRE_EQ(cmd.read_stderr(false), expected);
+          // consumed but available:
           REQUIRE_EQ(cmd.read_stderr(true), expected);
-          REQUIRE_EQ(cmd.read_stderr(false), ""); // consumed ...
+          REQUIRE_EQ(cmd.read_stderr(false), "");
 
           // transferred ownership:
           REQUIRE_EQ(cmd.get_stderr(), expected);
+          // really consumed:
           REQUIRE_EQ(cmd.read_stderr(true), "");
           REQUIRE_EQ(cmd.get_stderr(), "");
         }
@@ -836,11 +841,13 @@ TEST_CASE("exec_path_args") {
           std::string const expected{std::string{out2} + '\n'};
 
           REQUIRE_EQ(cmd.read_stdout(false), expected);
+          // consumed but available:
           REQUIRE_EQ(cmd.read_stdout(true), expected);
-          REQUIRE_EQ(cmd.read_stdout(false), ""); // consumed ...
+          REQUIRE_EQ(cmd.read_stdout(false), "");
 
           // transferred ownership:
           REQUIRE_EQ(cmd.get_stdout(), expected);
+          // really consumed:
           REQUIRE_EQ(cmd.read_stdout(true), "");
           REQUIRE_EQ(cmd.get_stdout(), "");
         }
@@ -858,11 +865,13 @@ TEST_CASE("exec_path_args") {
           std::string const expected{std::string{err2} + '\n'};
 
           REQUIRE_EQ(cmd.read_stderr(false), expected);
+          // consumed but available:
           REQUIRE_EQ(cmd.read_stderr(true), expected);
-          REQUIRE_EQ(cmd.read_stderr(false), ""); // consumed ...
+          REQUIRE_EQ(cmd.read_stderr(false), "");
 
           // transferred ownership:
           REQUIRE_EQ(cmd.get_stderr(), expected);
+          // really consumed:
           REQUIRE_EQ(cmd.read_stderr(true), "");
           REQUIRE_EQ(cmd.get_stderr(), "");
         }

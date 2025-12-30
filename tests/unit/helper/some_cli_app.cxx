@@ -126,7 +126,8 @@ int main(int const argc, char const **argv) try {
       actions.emplace_back(unhandled_exception{});
       unhandled_exception::msg.emplace(
           consume_arg(true, "missing unhandled exception message"));
-    } else if (arg_sv == "--sync") {
+    } else if (arg_sv == "--notify-and-wait") {
+      // IMHO more isn't needed right now ...
       actions.emplace_back(notify_and_wait{});
     } else if (arg_sv == "--sem-name") {
       if (my_ips.has_value()) {
