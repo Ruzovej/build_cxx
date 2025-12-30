@@ -19,6 +19,7 @@
 
 #pragma once
 
+#include <memory>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -98,7 +99,7 @@ private:
   pipe_helper stdout_pipe;
   pipe_helper stderr_pipe;
 
-  [[noreturn]] void exec_in_child();
+  [[noreturn]] void exec_in_child(char *args[]);
 
   state current_state{state::uninitialzied};
 

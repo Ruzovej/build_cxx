@@ -25,13 +25,22 @@ namespace build_cxx::os_wrapper {
 
 [[nodiscard]] int current_errno() noexcept;
 
-// returns: `syscall_ret` if successful (e.g. `0 <= syscall_ret`);
-// throws: std::runtime_error on failure with detailed message
+// returns: if successful (e.g. `0 <= syscall_ret`);
+// throws: `std::runtime_error` on failure with detailed message
+void syscall_helper(std::string_view const file, int const line,
+                    int const syscall_ret);
+
 // NOTE: use the syscall directly, without this wrapper, if failure is allowed
-int syscall_helper(std::string_view const file, int const line,
-                   int const syscall_ret);
+// (see implementation & above)
+template <typename ret_t>
+ret_t syscall_helper_r(std::string_view const file, int const line,
+                       ret_t const syscall_ret) {
+  syscall_helper(file, line, static_cast<int>(syscall_ret));
+  return syscall_ret;
+}
 
 } // namespace build_cxx::os_wrapper
 
 #define BUILD_CXX_SYSCALL_HELPER(fn)                                           \
-  ::build_cxx::os_wrapper::syscall_helper(__FILE__, __LINE__, (fn))
+  ::build_cxx::os_wrapper::syscall_helper_r<decltype(fn)>(__FILE__, __LINE__,  \
+                                                          (fn))

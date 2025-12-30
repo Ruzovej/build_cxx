@@ -32,31 +32,12 @@
 
 #include <exception>
 #include <iostream>
-#include <memory>
 #include <stdexcept>
 #include <utility>
 
 #include "impl/syscall_helper.hxx"
 
 namespace build_cxx::os_wrapper {
-
-namespace {
-
-std::string_view get_buffer(std::string const &buffer,
-                            std::size_t &consumed_bytes,
-                            bool const whole) noexcept {
-  if (whole) {
-    consumed_bytes = buffer.size();
-    return buffer;
-  } else {
-    std::string_view const ret{buffer.data() + consumed_bytes,
-                               buffer.size() - consumed_bytes};
-    consumed_bytes = buffer.size();
-    return ret;
-  }
-}
-
-} // namespace
 
 exec_path_args::exec_path_args(exec_path_args &&rhs) noexcept
     : path{std::move(rhs.path)}, args{std::move(rhs.args)},
@@ -79,6 +60,32 @@ exec_path_args::~exec_path_args() noexcept {
   }
 }
 
+namespace {
+// the "holder" (`[]`) is owned, what it points to (`*`) isn't ...
+[[nodiscard]] std::unique_ptr<char *[]>
+build_args_cstr(std::vector<std::string> const &args) {
+  auto const num_args{args.size()};
+  // auto const args_cstr{std::make_unique<char *[]>(num_args + 2)};
+  auto args_cstr{std::make_unique<char *[]>(num_args + 1)};
+  // https://man7.org/linux/man-pages/man3/exec.3.html -> "The first
+  // argument, by convention, should point to the filename associated with
+  // the file being executed"
+  // TODO:
+  // 1. follow this convention, right off the bat it didin't work
+  // 2. remove/"prevent" this `const_cast`
+  // args_cstr[0] = const_cast<char *>(path.c_str());
+  for (std::size_t i{0}; i < num_args; ++i) {
+    // TODO ... remove/"prevent" this `const_cast`
+    // args_cstr[i + 1] = const_cast<char *>(args[i].c_str());
+    args_cstr[i] = const_cast<char *>(args[i].c_str());
+  }
+  // args_cstr[num_args + 1] = nullptr;
+  args_cstr[num_args] = nullptr;
+
+  return args_cstr;
+}
+} // namespace
+
 exec_path_args::states
 exec_path_args::update_and_get_state(int const timeout_until_it_finishes_ms) {
   auto const previous_state{current_state};
@@ -89,20 +96,25 @@ exec_path_args::update_and_get_state(int const timeout_until_it_finishes_ms) {
     stdout_pipe.init();
     stderr_pipe.init();
 
-    static_assert(std::is_same_v<pid_t, process_handle_t>);
-    pid_t const pid{BUILD_CXX_SYSCALL_HELPER(fork())};
+    // it's safer to do as little after the `fork` and before `exec` as
+    // possible:
+    auto const argv{build_args_cstr(args)};
+
+    auto const pid{BUILD_CXX_SYSCALL_HELPER(fork())};
     if (pid == 0) // Child process
     {
-      exec_in_child();
-    }
-    // else ... parent process
-    current_state = state::running;
-    handle = pid;
-    time_spawned_ms = -1; // TODO get current time in ms
+      exec_in_child(argv.get());
+    } // else ... parent process
 
     stdin_pipe.close_out();
     stdout_pipe.close_in();
     stderr_pipe.close_in();
+
+    time_spawned_ms = -1; // TODO get current time in ms
+    static_assert(
+        std::is_same_v<std::decay_t<decltype(pid)>, process_handle_t>);
+    handle = pid;
+    current_state = state::running;
 
     if (timeout_until_it_finishes_ms != 0) {
       // IMHO safer than "fallthrough":
@@ -197,6 +209,22 @@ void exec_path_args::close_stdin() {
   stdin_pipe.close_in();
 }
 
+namespace {
+std::string_view get_buffer(std::string const &buffer,
+                            std::size_t &consumed_bytes,
+                            bool const whole) noexcept {
+  if (whole) {
+    consumed_bytes = buffer.size();
+    return buffer;
+  } else {
+    std::string_view const ret{buffer.data() + consumed_bytes,
+                               buffer.size() - consumed_bytes};
+    consumed_bytes = buffer.size();
+    return ret;
+  }
+}
+} // namespace
+
 std::string_view exec_path_args::get_stdout(bool const whole) {
   update_buffer(true);
   return get_buffer(stdout_buffer, stdout_consumed_bytes, whole);
@@ -239,7 +267,7 @@ int exec_path_args::get_return_code() const {
   return return_code;
 }
 
-void exec_path_args::exec_in_child() {
+void exec_path_args::exec_in_child(char *args[]) {
   try {
     stdin_pipe.close_in();
     BUILD_CXX_SYSCALL_HELPER(dup2(stdin_pipe.get_out(), STDIN_FILENO));
@@ -250,32 +278,32 @@ void exec_path_args::exec_in_child() {
     stderr_pipe.close_out();
     BUILD_CXX_SYSCALL_HELPER(dup2(stderr_pipe.get_in(), STDERR_FILENO));
 
-    auto const num_args{args.size()};
-    // auto const args_cstr{std::make_unique<char *[]>(num_args + 2)};
-    auto const args_cstr{std::make_unique<char *[]>(num_args + 1)};
-    // https://man7.org/linux/man-pages/man3/exec.3.html -> "The first
-    // argument, by convention, should point to the filename associated with
-    // the file being executed"
-    // TODO:
-    // 1. follow this convention, right off the bat it didin't work
-    // 2. remove/"prevent" this `const_cast`
-    // args_cstr[0] = const_cast<char *>(path.c_str());
-    for (std::size_t i{0}; i < num_args; ++i) {
-      // TODO ... remove/"prevent" this `const_cast`
-      // args_cstr[i + 1] = const_cast<char *>(args[i].c_str());
-      args_cstr[i] = const_cast<char *>(args[i].c_str());
-    }
-    // args_cstr[num_args + 1] = nullptr;
-    args_cstr[num_args] = nullptr;
-
     // Execute the command
-    BUILD_CXX_SYSCALL_HELPER(execv(path.c_str(), args_cstr.get()));
+    BUILD_CXX_SYSCALL_HELPER(execv(path.c_str(), args));
   } catch (std::exception const &e) {
+    // TODO is it safe to use `std::cerr` here (e.g. after `fork`, etc.)?
     std::cerr << "child process failed - caught exception: " << e.what()
               << '\n';
   }
 
-  std::exit(EXIT_FAILURE);
+  // Comment under <https://youtu.be/ki9omnMeYS8?si=WIVsmwHjcDxvwvlI> states:
+  /*
+  @keithmiller4358
+  It's also worth mentioning that if you exit from signal handlers or after
+  fork(), but before exec*(), you should use _exit() from posix, or std::_Exit()
+  from c++11.  Anything called in such contexts must be async signal safe, and
+  shouldn't malloc or free memory, or do anything else that isn't async signal
+  safe. At least glibc has mutexes that can be left in inconsistent states in
+  such contexts, causing hangs. This precludes using buffered i/o in signal
+  handlers. This isn't an imaginary problem. I have fixed real cases of this in
+  breakpad integration, threaded code that drops privelege by forking etc.
+  Unless you like fixing weird hangs on internal glibc functions that occur
+  randomly and rarely, burn this into your memory.
+  */
+  // made me rethink & rework it so ...
+  // <https://en.cppreference.com/w/cpp/utility/program/_Exit> vs.
+  // <https://en.cppreference.com/w/cpp/utility/program/exit.html>
+  std::_Exit(EXIT_FAILURE);
 }
 
 void exec_path_args::query_status(bool const wait_for_finishing) {
