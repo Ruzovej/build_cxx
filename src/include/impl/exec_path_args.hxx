@@ -39,6 +39,8 @@ struct exec_path_args {
 
   friend void swap(exec_path_args &lhs, exec_path_args &rhs) noexcept;
 
+  exec_path_args() = default;
+
   explicit exec_path_args(std::string &&aPath,
                           std::vector<std::string> &&aArgs) noexcept
       : path{std::move(aPath)}, args{std::move(aArgs)}, current_state{

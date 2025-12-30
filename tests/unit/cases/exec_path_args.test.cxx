@@ -219,53 +219,68 @@ TEST_CASE("exec_path_args") {
       }
 
       SUBCASE("operations on un-started process") {
-        exec_path_args cmd1{bash_cmd("whatever ... won't be started for the "
+        exec_path_args cmd_default_constructed{};
+
+        exec_path_args cmd_moved_from{
+            bash_cmd("whatever ... won't be started for the "
                                      "purpose of the test case ...")};
-        exec_path_args cmd2{std::move(cmd1)};
+
+        exec_path_args cmd_move_constructed{std::move(cmd_default_constructed)};
 
         SUBCASE("state checks") {
-          REQUIRE_FALSE(cmd1.manages_process());
-          REQUIRE_FALSE(cmd1.is_finished());
+          REQUIRE_FALSE(cmd_default_constructed.manages_process());
+          REQUIRE_FALSE(cmd_default_constructed.is_finished());
 
-          REQUIRE_FALSE(cmd2.manages_process());
-          REQUIRE_FALSE(cmd2.is_finished());
+          REQUIRE_FALSE(cmd_moved_from.manages_process());
+          REQUIRE_FALSE(cmd_moved_from.is_finished());
+
+          REQUIRE_FALSE(cmd_move_constructed.manages_process());
+          REQUIRE_FALSE(cmd_move_constructed.is_finished());
         }
 
         SUBCASE("stdin operations") {
-          REQUIRE_THROWS(cmd1.send_to_stdin("data"));
-          REQUIRE_THROWS(cmd1.close_stdin());
+          REQUIRE_THROWS(cmd_default_constructed.send_to_stdin("data"));
+          REQUIRE_THROWS(cmd_default_constructed.close_stdin());
 
-          REQUIRE_THROWS(cmd1.send_to_stdin("data"));
-          REQUIRE_THROWS(cmd1.close_stdin());
+          REQUIRE_THROWS(cmd_moved_from.send_to_stdin("data"));
+          REQUIRE_THROWS(cmd_moved_from.close_stdin());
 
-          REQUIRE_THROWS(cmd2.send_to_stdin("data"));
-          REQUIRE_THROWS(cmd2.close_stdin());
+          REQUIRE_THROWS(cmd_move_constructed.send_to_stdin("data"));
+          REQUIRE_THROWS(cmd_move_constructed.close_stdin());
         }
 
         SUBCASE("stdout & stderr operations") {
           [[maybe_unused]] std::string_view str;
 
-          REQUIRE_THROWS(str = cmd1.read_stdout());
-          REQUIRE_THROWS(str = cmd1.read_stderr());
+          REQUIRE_THROWS(str = cmd_default_constructed.read_stdout());
+          REQUIRE_THROWS(str = cmd_default_constructed.read_stderr());
 
-          REQUIRE_THROWS(str = cmd2.read_stdout());
-          REQUIRE_THROWS(str = cmd2.read_stderr());
+          REQUIRE_THROWS(str = cmd_moved_from.read_stdout());
+          REQUIRE_THROWS(str = cmd_moved_from.read_stderr());
+
+          REQUIRE_THROWS(str = cmd_move_constructed.read_stdout());
+          REQUIRE_THROWS(str = cmd_move_constructed.read_stderr());
         }
 
         SUBCASE("termination related") {
           [[maybe_unused]] int ret_code;
           [[maybe_unused]] long long time_ms;
 
-          REQUIRE_THROWS(ret_code = cmd1.get_return_code());
-          REQUIRE_THROWS(time_ms = cmd1.time_running_ms());
+          REQUIRE_THROWS(ret_code = cmd_default_constructed.get_return_code());
+          REQUIRE_THROWS(time_ms = cmd_default_constructed.time_running_ms());
 
-          REQUIRE_THROWS(ret_code = cmd2.get_return_code());
-          REQUIRE_THROWS(time_ms = cmd2.time_running_ms());
+          REQUIRE_THROWS(ret_code = cmd_moved_from.get_return_code());
+          REQUIRE_THROWS(time_ms = cmd_moved_from.time_running_ms());
+
+          REQUIRE_THROWS(ret_code = cmd_move_constructed.get_return_code());
+          REQUIRE_THROWS(time_ms = cmd_move_constructed.time_running_ms());
 
           // this one has checks inside, because it's used in d-tor ...:
-          REQUIRE_NOTHROW(cmd1.do_kill());
+          REQUIRE_NOTHROW(cmd_default_constructed.do_kill());
 
-          REQUIRE_NOTHROW(cmd2.do_kill());
+          REQUIRE_NOTHROW(cmd_moved_from.do_kill());
+
+          REQUIRE_NOTHROW(cmd_move_constructed.do_kill());
         }
       }
     }
