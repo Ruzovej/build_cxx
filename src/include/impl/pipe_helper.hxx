@@ -24,6 +24,8 @@
 namespace build_cxx::os_wrapper {
 
 struct pipe_helper {
+  friend void swap(pipe_helper &lhs, pipe_helper &rhs) noexcept;
+
   pipe_helper() noexcept = default;
 
   void init();

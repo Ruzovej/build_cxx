@@ -58,6 +58,11 @@ void close_fd(int &fd) noexcept {
 
 } // namespace
 
+void swap(pipe_helper &lhs, pipe_helper &rhs) noexcept {
+  std::swap(lhs.fds[0], rhs.fds[0]);
+  std::swap(lhs.fds[1], rhs.fds[1]);
+}
+
 void pipe_helper::init() { BUILD_CXX_SYSCALL_HELPER(pipe(fds)); }
 
 pipe_helper::~pipe_helper() noexcept {
@@ -71,12 +76,8 @@ pipe_helper::pipe_helper(pipe_helper &&rhs) noexcept
 
 pipe_helper &pipe_helper::operator=(pipe_helper &&rhs) noexcept {
   if (this != &rhs) {
-    static auto constexpr exchange_fd = [](int &dest, int &src) {
-      close_fd(dest);
-      dest = std::exchange(src, invalid_fd);
-    };
-    exchange_fd(fds[0], rhs.fds[0]);
-    exchange_fd(fds[1], rhs.fds[1]);
+    pipe_helper tmp{std::move(rhs)};
+    swap(*this, tmp);
   }
   return *this;
 }
