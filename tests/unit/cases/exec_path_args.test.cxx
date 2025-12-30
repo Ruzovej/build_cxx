@@ -86,10 +86,21 @@ TEST_CASE("exec_path_args") {
 
         REQUIRE_EQ(cmd.read_stdout(true), "Hello stdout!");
         REQUIRE_EQ(cmd.read_stdout(false), "");
+
         REQUIRE_EQ(cmd.read_stderr(true), "Hello stderr!");
         REQUIRE_EQ(cmd.read_stderr(false), "");
+
         REQUIRE_EQ(cmd.get_return_code(), EXIT_SUCCESS);
       }
+
+      // consume outputs ...
+      REQUIRE_EQ(cmd.get_stdout(), "Hello stdout!");
+      REQUIRE_EQ(cmd.get_stdout(), "");
+      REQUIRE_EQ(cmd.read_stdout(true), "");
+
+      REQUIRE_EQ(cmd.get_stderr(), "Hello stderr!");
+      REQUIRE_EQ(cmd.get_stderr(), "");
+      REQUIRE_EQ(cmd.read_stderr(true), "");
     }
 
     SUBCASE("happy path - blocking") {
@@ -294,6 +305,31 @@ TEST_CASE("exec_path_args") {
 
           REQUIRE_NOTHROW(cmd_move_constructed.do_kill());
         }
+      }
+
+      SUBCASE("swap") {
+        exec_path_args cmd1{bash_cmd("echo cmd1; exit 1")};
+        exec_path_args cmd2{bash_cmd("echo cmd2; exit 2")};
+
+        {
+          exec_path_args::state prev_state;
+          REQUIRE_NOTHROW(prev_state = cmd1.finish_and_get_prev_state());
+          REQUIRE_EQ(prev_state, exec_path_args::state::ready);
+        }
+
+        {
+          exec_path_args::state prev_state;
+          REQUIRE_NOTHROW(prev_state = cmd2.finish_and_get_prev_state());
+          REQUIRE_EQ(prev_state, exec_path_args::state::ready);
+        }
+
+        swap(cmd1, cmd2);
+
+        REQUIRE_EQ(cmd1.read_stdout(true), "cmd2\n");
+        REQUIRE_EQ(cmd1.get_return_code(), 2);
+
+        REQUIRE_EQ(cmd2.read_stdout(true), "cmd1\n");
+        REQUIRE_EQ(cmd2.get_return_code(), 1);
       }
     }
   }
