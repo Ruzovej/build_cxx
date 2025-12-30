@@ -225,12 +225,12 @@ std::string_view get_buffer(std::string const &buffer,
 }
 } // namespace
 
-std::string_view exec_path_args::get_stdout(bool const whole) {
+std::string_view exec_path_args::read_stdout(bool const whole) {
   update_buffer(true);
   return get_buffer(stdout_buffer, stdout_consumed_bytes, whole);
 }
 
-std::string_view exec_path_args::get_stderr(bool const whole) {
+std::string_view exec_path_args::read_stderr(bool const whole) {
   update_buffer(false);
   return get_buffer(stderr_buffer, stderr_consumed_bytes, whole);
 }
@@ -341,7 +341,8 @@ void exec_path_args::update_buffer(bool const for_stdout) {
         "cannot update any buffer - process handle is invalid!"};
   }
 
-  static auto constexpr read_pipe = [](int const fd, std::string &buffer) {
+  static auto constexpr read_pipe = [](native_fd_t const fd,
+                                       std::string &buffer) {
     if (fd == invalid_fd) {
       throw std::runtime_error{
           "cannot read from given pipe - it's closed or not initialized!"};

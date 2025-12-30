@@ -71,8 +71,11 @@ struct exec_path_args {
   void send_to_stdin(std::string_view const data);
   void close_stdin();
 
-  [[nodiscard]] std::string_view get_stdout(bool const whole = false);
-  [[nodiscard]] std::string_view get_stderr(bool const whole = false);
+  // updates corresponding internal buffer and returns:
+  // `whole == false` -> only "increment" since it was called previously
+  // `whole == true` -> everything since the start of the child process
+  [[nodiscard]] std::string_view read_stdout(bool const whole = false);
+  [[nodiscard]] std::string_view read_stderr(bool const whole = false);
 
   void do_kill();
 

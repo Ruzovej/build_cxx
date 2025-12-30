@@ -83,10 +83,10 @@ TEST_CASE("exec_path_args") {
           REQUIRE_EQ(state.current, exec_path_args::state::finished);
         }
 
-        REQUIRE_EQ(cmd.get_stdout(true), "Hello stdout!");
-        REQUIRE_EQ(cmd.get_stdout(false), "");
-        REQUIRE_EQ(cmd.get_stderr(true), "Hello stderr!");
-        REQUIRE_EQ(cmd.get_stderr(false), "");
+        REQUIRE_EQ(cmd.read_stdout(true), "Hello stdout!");
+        REQUIRE_EQ(cmd.read_stdout(false), "");
+        REQUIRE_EQ(cmd.read_stderr(true), "Hello stderr!");
+        REQUIRE_EQ(cmd.read_stderr(false), "");
         REQUIRE_EQ(cmd.get_return_code(), EXIT_SUCCESS);
       }
     }
@@ -102,8 +102,8 @@ TEST_CASE("exec_path_args") {
         REQUIRE(cmd.manages_process());
       }
 
-      REQUIRE_EQ(cmd.get_stdout(true), "Hello stdout!");
-      REQUIRE_EQ(cmd.get_stderr(true), "Hello stderr!");
+      REQUIRE_EQ(cmd.read_stdout(true), "Hello stdout!");
+      REQUIRE_EQ(cmd.read_stderr(true), "Hello stderr!");
       REQUIRE_EQ(cmd.get_return_code(), EXIT_SUCCESS);
     }
 
@@ -118,8 +118,8 @@ TEST_CASE("exec_path_args") {
         REQUIRE(cmd.manages_process());
       }
 
-      REQUIRE_EQ(cmd.get_stdout(true), "");
-      REQUIRE_EQ(cmd.get_stderr(true), "");
+      REQUIRE_EQ(cmd.read_stdout(true), "");
+      REQUIRE_EQ(cmd.read_stderr(true), "");
       REQUIRE_EQ(cmd.get_return_code(), expected_val);
     }
 
@@ -148,8 +148,8 @@ TEST_CASE("exec_path_args") {
         // should be equivalent ...
       }
 
-      REQUIRE_EQ(cmd.get_stdout(true), "");
-      REQUIRE_EQ(cmd.get_stderr(true), "");
+      REQUIRE_EQ(cmd.read_stdout(true), "");
+      REQUIRE_EQ(cmd.read_stderr(true), "");
       REQUIRE_NE(cmd.get_return_code(), EXIT_SUCCESS);
     }
 
@@ -189,8 +189,8 @@ TEST_CASE("exec_path_args") {
             REQUIRE_EQ(prev_state, exec_path_args::state::running);
           }
 
-          REQUIRE_EQ(cmd2.get_stdout(true), "Hello\n");
-          REQUIRE_EQ(cmd2.get_stderr(true), "");
+          REQUIRE_EQ(cmd2.read_stdout(true), "Hello\n");
+          REQUIRE_EQ(cmd2.read_stderr(true), "");
           REQUIRE_EQ(cmd2.get_return_code(), EXIT_SUCCESS);
         }
 
@@ -210,8 +210,8 @@ TEST_CASE("exec_path_args") {
           REQUIRE(cmd2.manages_process());
           REQUIRE_FALSE(cmd->manages_process());
 
-          REQUIRE_EQ(cmd2.get_stdout(true), "Hello\n");
-          REQUIRE_EQ(cmd2.get_stderr(true), "");
+          REQUIRE_EQ(cmd2.read_stdout(true), "Hello\n");
+          REQUIRE_EQ(cmd2.read_stderr(true), "");
           REQUIRE_EQ(cmd2.get_return_code(), EXIT_SUCCESS);
         }
 
@@ -245,11 +245,11 @@ TEST_CASE("exec_path_args") {
         SUBCASE("stdout & stderr operations") {
           [[maybe_unused]] std::string_view str;
 
-          REQUIRE_THROWS(str = cmd1.get_stdout());
-          REQUIRE_THROWS(str = cmd1.get_stderr());
+          REQUIRE_THROWS(str = cmd1.read_stdout());
+          REQUIRE_THROWS(str = cmd1.read_stderr());
 
-          REQUIRE_THROWS(str = cmd2.get_stdout());
-          REQUIRE_THROWS(str = cmd2.get_stderr());
+          REQUIRE_THROWS(str = cmd2.read_stdout());
+          REQUIRE_THROWS(str = cmd2.read_stderr());
         }
 
         SUBCASE("termination related") {
@@ -303,8 +303,8 @@ TEST_CASE("exec_path_args") {
           REQUIRE(cmd.manages_process());
         }
 
-        REQUIRE_EQ(cmd.get_stderr(true), "");
-        REQUIRE_EQ(cmd.get_stdout(true), "");
+        REQUIRE_EQ(cmd.read_stderr(true), "");
+        REQUIRE_EQ(cmd.read_stdout(true), "");
         REQUIRE_EQ(cmd.get_return_code(), std::stoi(exit_code));
       }
 
@@ -322,8 +322,8 @@ TEST_CASE("exec_path_args") {
           REQUIRE(cmd.manages_process());
         }
 
-        REQUIRE_EQ(cmd.get_stderr(true), "");
-        REQUIRE_EQ(cmd.get_stdout(true), "");
+        REQUIRE_EQ(cmd.read_stderr(true), "");
+        REQUIRE_EQ(cmd.read_stdout(true), "");
         REQUIRE_EQ(cmd.get_return_code(), std::stoi(exit_code));
       }
 
@@ -337,8 +337,8 @@ TEST_CASE("exec_path_args") {
           REQUIRE(cmd.manages_process());
         }
 
-        REQUIRE_EQ(cmd.get_stderr(true), "");
-        REQUIRE_EQ(cmd.get_stdout(true), "");
+        REQUIRE_EQ(cmd.read_stderr(true), "");
+        REQUIRE_EQ(cmd.read_stdout(true), "");
         REQUIRE_EQ(cmd.get_return_code(), EXIT_SUCCESS);
       }
 
@@ -353,12 +353,12 @@ TEST_CASE("exec_path_args") {
           REQUIRE(cmd.manages_process());
         }
 
-        REQUIRE_EQ(cmd.get_stderr(true), "");
-        REQUIRE_EQ(cmd.get_stdout(true), std::string{text} + "\n");
-        REQUIRE_EQ(cmd.get_stdout(false), ""); // consumed ...
-        REQUIRE_EQ(cmd.get_stdout(true),
-                   std::string{text} + "\n");  // still reachable
-        REQUIRE_EQ(cmd.get_stdout(false), ""); // still consumed ...
+        REQUIRE_EQ(cmd.read_stderr(true), "");
+        REQUIRE_EQ(cmd.read_stdout(true), std::string{text} + "\n");
+        REQUIRE_EQ(cmd.read_stdout(false), ""); // consumed ...
+        REQUIRE_EQ(cmd.read_stdout(true),
+                   std::string{text} + "\n");   // still reachable
+        REQUIRE_EQ(cmd.read_stdout(false), ""); // still consumed ...
         REQUIRE_EQ(cmd.get_return_code(), EXIT_SUCCESS);
       }
 
@@ -384,8 +384,8 @@ TEST_CASE("exec_path_args") {
           REQUIRE_EQ(prev_state, exec_path_args::state::finished);
         }
 
-        REQUIRE_EQ(cmd.get_stderr(true), "");
-        REQUIRE_EQ(cmd.get_stdout(true), "");
+        REQUIRE_EQ(cmd.read_stderr(true), "");
+        REQUIRE_EQ(cmd.read_stdout(true), "");
         REQUIRE_EQ(cmd.get_return_code(), SIGKILL);
       }
 
@@ -400,11 +400,11 @@ TEST_CASE("exec_path_args") {
           REQUIRE(cmd.manages_process());
         }
 
-        REQUIRE_EQ(cmd.get_stderr(true), std::string{text} + "\n");
-        REQUIRE_EQ(cmd.get_stderr(false), "");                      // ditto ...
-        REQUIRE_EQ(cmd.get_stderr(true), std::string{text} + "\n"); // ...
-        REQUIRE_EQ(cmd.get_stderr(false), "");                      // ...
-        REQUIRE_EQ(cmd.get_stdout(true), "");
+        REQUIRE_EQ(cmd.read_stderr(true), std::string{text} + "\n");
+        REQUIRE_EQ(cmd.read_stderr(false), ""); // ditto ...
+        REQUIRE_EQ(cmd.read_stderr(true), std::string{text} + "\n"); // ...
+        REQUIRE_EQ(cmd.read_stderr(false), "");                      // ...
+        REQUIRE_EQ(cmd.read_stdout(true), "");
         REQUIRE_EQ(cmd.get_return_code(), EXIT_SUCCESS);
       }
 
@@ -419,10 +419,10 @@ TEST_CASE("exec_path_args") {
           REQUIRE(cmd.manages_process());
         }
 
-        REQUIRE_EQ(cmd.get_stderr(true),
+        REQUIRE_EQ(cmd.read_stderr(true),
                    "some_cli_app caught `input_exception`: Unknown argument: "
                    "--invalid\n");
-        REQUIRE_EQ(cmd.get_stdout(true), "");
+        REQUIRE_EQ(cmd.read_stdout(true), "");
         REQUIRE_NE(cmd.get_return_code(), std::stoi(exit_code));
         REQUIRE_EQ(cmd.get_return_code(), EXIT_FAILURE);
       }
@@ -438,14 +438,14 @@ TEST_CASE("exec_path_args") {
           REQUIRE(cmd.manages_process());
         }
 
-        REQUIRE_EQ(cmd.get_stdout(true), std::string{text} + "\n");
-        REQUIRE_EQ(cmd.get_stdout(false), "");
-        REQUIRE_EQ(cmd.get_stdout(true), std::string{text} + "\n");
-        REQUIRE_EQ(cmd.get_stdout(false), "");
-        REQUIRE_EQ(cmd.get_stderr(true), std::string{text} + "\n");
-        REQUIRE_EQ(cmd.get_stderr(false), "");
-        REQUIRE_EQ(cmd.get_stderr(true), std::string{text} + "\n");
-        REQUIRE_EQ(cmd.get_stderr(false), "");
+        REQUIRE_EQ(cmd.read_stdout(true), std::string{text} + "\n");
+        REQUIRE_EQ(cmd.read_stdout(false), "");
+        REQUIRE_EQ(cmd.read_stdout(true), std::string{text} + "\n");
+        REQUIRE_EQ(cmd.read_stdout(false), "");
+        REQUIRE_EQ(cmd.read_stderr(true), std::string{text} + "\n");
+        REQUIRE_EQ(cmd.read_stderr(false), "");
+        REQUIRE_EQ(cmd.read_stderr(true), std::string{text} + "\n");
+        REQUIRE_EQ(cmd.read_stderr(false), "");
         REQUIRE_EQ(cmd.get_return_code(), EXIT_SUCCESS);
       }
 
@@ -475,8 +475,8 @@ TEST_CASE("exec_path_args") {
           REQUIRE_EQ(prev_state, exec_path_args::state::running);
         }
 
-        REQUIRE_EQ(cmd.get_stderr(true), "");
-        REQUIRE_EQ(cmd.get_stdout(true), space_to_newline(text));
+        REQUIRE_EQ(cmd.read_stderr(true), "");
+        REQUIRE_EQ(cmd.read_stdout(true), space_to_newline(text));
         REQUIRE_EQ(cmd.get_return_code(), EXIT_SUCCESS);
       }
 
@@ -501,8 +501,8 @@ TEST_CASE("exec_path_args") {
           REQUIRE_EQ(prev_state, exec_path_args::state::running);
         }
 
-        REQUIRE_EQ(cmd.get_stderr(true), "");
-        REQUIRE_EQ(cmd.get_stdout(true), space_to_newline(text) + '\n');
+        REQUIRE_EQ(cmd.read_stderr(true), "");
+        REQUIRE_EQ(cmd.read_stdout(true), space_to_newline(text) + '\n');
         REQUIRE_EQ(cmd.get_return_code(), EXIT_SUCCESS);
       }
 
@@ -523,9 +523,9 @@ TEST_CASE("exec_path_args") {
           REQUIRE(cmd.manages_process());
         }
 
-        REQUIRE_EQ(cmd.get_stderr(true),
+        REQUIRE_EQ(cmd.read_stderr(true),
                    "some_cli_app caught `std::exception`: handled\n");
-        REQUIRE_EQ(cmd.get_stdout(true), "");
+        REQUIRE_EQ(cmd.read_stdout(true), "");
         REQUIRE_NE(cmd.get_return_code(), std::stoi(exit_code));
         REQUIRE_EQ(cmd.get_return_code(), EXIT_FAILURE);
       }
@@ -549,10 +549,10 @@ TEST_CASE("exec_path_args") {
           REQUIRE(cmd.manages_process());
         }
 
-        WARN_EQ(cmd.get_stderr(true),
+        WARN_EQ(cmd.read_stderr(true),
                 "terminate called after throwing an instance of 'char "
                 "const*'\n"); // IMHO OS dependent ... -> only `WARN`
-        REQUIRE_EQ(cmd.get_stdout(true), "");
+        REQUIRE_EQ(cmd.read_stdout(true), "");
         REQUIRE_NE(cmd.get_return_code(), std::stoi(exit_code));
         REQUIRE_EQ(cmd.get_return_code(), SIGABRT);
       }
@@ -589,8 +589,8 @@ TEST_CASE("exec_path_args") {
           REQUIRE_EQ(prev_state, exec_path_args::state::running);
         }
 
-        REQUIRE_EQ(cmd.get_stderr(true), "");
-        REQUIRE_EQ(cmd.get_stdout(true), "");
+        REQUIRE_EQ(cmd.read_stderr(true), "");
+        REQUIRE_EQ(cmd.read_stdout(true), "");
         REQUIRE_EQ(cmd.get_return_code(), std::stoi(exit_code));
       }
 
@@ -614,10 +614,10 @@ TEST_CASE("exec_path_args") {
           REQUIRE_EQ(prev_state, exec_path_args::state::running);
         }
 
-        REQUIRE_EQ(cmd.get_stderr(true),
+        REQUIRE_EQ(cmd.read_stderr(true),
                    "some_cli_app caught `std::exception`: Semaphore name not "
                    "specified for sync operation\n");
-        REQUIRE_EQ(cmd.get_stdout(true), "");
+        REQUIRE_EQ(cmd.read_stdout(true), "");
         REQUIRE_EQ(cmd.get_return_code(), EXIT_FAILURE);
       }
 
@@ -654,8 +654,8 @@ TEST_CASE("exec_path_args") {
           REQUIRE_EQ(prev_state, exec_path_args::state::finished);
         }
 
-        REQUIRE_EQ(cmd.get_stderr(true), "");
-        REQUIRE_EQ(cmd.get_stdout(true), "");
+        REQUIRE_EQ(cmd.read_stderr(true), "");
+        REQUIRE_EQ(cmd.read_stdout(true), "");
         REQUIRE_EQ(cmd.get_return_code(), SIGKILL);
       }
 
@@ -682,8 +682,8 @@ TEST_CASE("exec_path_args") {
 
         REQUIRE(my_sem->wait_and_notify(40));
 
-        REQUIRE_EQ(cmd.get_stdout(true), std::string{to_stdout} + '\n');
-        REQUIRE_EQ(cmd.get_stderr(true), std::string{to_stderr} + '\n');
+        REQUIRE_EQ(cmd.read_stdout(true), std::string{to_stdout} + '\n');
+        REQUIRE_EQ(cmd.read_stderr(true), std::string{to_stderr} + '\n');
 
         {
           exec_path_args::states state;
@@ -698,10 +698,10 @@ TEST_CASE("exec_path_args") {
 
         REQUIRE(my_sem->wait_and_notify(40));
 
-        REQUIRE_EQ(cmd.get_stdout(false),
+        REQUIRE_EQ(cmd.read_stdout(false),
                    space_to_newline(expected_echo_input));
-        REQUIRE_EQ(cmd.get_stdout(false), ""); // consumed in previous line
-        REQUIRE_EQ(cmd.get_stderr(false), "");
+        REQUIRE_EQ(cmd.read_stdout(false), ""); // consumed in previous line
+        REQUIRE_EQ(cmd.read_stderr(false), "");
 
         {
           exec_path_args::state prev_state;
