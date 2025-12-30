@@ -44,8 +44,8 @@ void swap(exec_path_args &lhs, exec_path_args &rhs) noexcept {
 
   swap(lhs.path, rhs.path);
   swap(lhs.args, rhs.args);
-  swap(lhs.time_spawned_ms, rhs.time_spawned_ms);
-  swap(lhs.time_finished_ms, rhs.time_finished_ms);
+  swap(lhs.time_spawned_ns, rhs.time_spawned_ns);
+  swap(lhs.time_finished_ns, rhs.time_finished_ns);
   swap(lhs.handle, rhs.handle);
   swap(lhs.stdin_pipe, rhs.stdin_pipe);
   swap(lhs.stdout_pipe, rhs.stdout_pipe);
@@ -60,8 +60,8 @@ void swap(exec_path_args &lhs, exec_path_args &rhs) noexcept {
 
 exec_path_args::exec_path_args(exec_path_args &&rhs) noexcept
     : path{std::move(rhs.path)}, args{std::move(rhs.args)},
-      time_spawned_ms{rhs.time_spawned_ms},
-      time_finished_ms{rhs.time_finished_ms}, handle{std::exchange(
+      time_spawned_ns{rhs.time_spawned_ns},
+      time_finished_ns{rhs.time_finished_ns}, handle{std::exchange(
                                                   rhs.handle,
                                                   invalid_process_handle)},
       stdin_pipe{std::move(rhs.stdin_pipe)},
@@ -137,7 +137,7 @@ exec_path_args::update_and_get_state(int const timeout_until_it_finishes_ms) {
     stdout_pipe.close_in();
     stderr_pipe.close_in();
 
-    time_spawned_ms = -1; // TODO get current time in ms
+    time_spawned_ns = -1; // TODO get current time in ms
     static_assert(
         std::is_same_v<std::decay_t<decltype(pid)>, process_handle_t>);
     handle = pid;
@@ -279,14 +279,13 @@ void exec_path_args::do_kill() {
   }
 }
 
-long long exec_path_args::time_running_ms() const {
+double exec_path_args::time_running_ms() const {
   if (!manages_process()) {
     throw std::runtime_error{"can't measure time - process handle is invalid!"};
   } else if (current_state == state::running) {
     return 0; // TODO `"current time in ms" - time_spawned_ms`
-
   } else if (current_state == state::finished) {
-    return time_finished_ms - time_spawned_ms;
+    return time_finished_ns - time_spawned_ns;
   } else {
     throw std::runtime_error{
         "cannot get running time - process isn't running or finished!"};
@@ -359,7 +358,7 @@ void exec_path_args::query_status(bool const wait_for_finishing) {
         throw std::runtime_error{"waitid returned unexpected pid different "
                                  "from the managed one !"};
       }
-      time_finished_ms = -1; // TODO get current time in ms
+      time_finished_ns = -1; // TODO get current time in ms
       current_state = state::finished;
       return_code =
           status.si_status; // or signal ... don't make a difference here

@@ -287,7 +287,7 @@ TEST_CASE("exec_path_args") {
 
         SUBCASE("termination related") {
           [[maybe_unused]] int ret_code;
-          [[maybe_unused]] long long time_ms;
+          [[maybe_unused]] double time_ms;
 
           REQUIRE_THROWS(ret_code = cmd_default_constructed.get_return_code());
           REQUIRE_THROWS(time_ms = cmd_default_constructed.time_running_ms());

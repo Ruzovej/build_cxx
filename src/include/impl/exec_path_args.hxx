@@ -89,7 +89,8 @@ struct exec_path_args {
 
   void do_kill();
 
-  [[nodiscard]] long long time_running_ms() const;
+  // TODO proper implementation:
+  [[nodiscard]] double time_running_ms() const;
 
   [[nodiscard]] int get_return_code() const;
 
@@ -103,8 +104,8 @@ private:
   std::string path;
   std::vector<std::string> args;
 
-  long long time_spawned_ms{-1};
-  long long time_finished_ms{-1};
+  long long time_spawned_ns{-1};
+  long long time_finished_ns{-1};
 
   process_handle_t handle{invalid_process_handle};
   pipe_helper stdin_pipe;
