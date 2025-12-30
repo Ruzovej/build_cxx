@@ -41,10 +41,10 @@ std::string space_to_newline(std::string str) {
 }
 
 TEST_CASE("exec_path_args") {
-  SUBCASE("simple bash command") {
-    static auto constexpr bash_cmd = [](std::string &&cmd_str) {
-      exec_path_args cmd{"/usr/bin/env",
-                         {"bash", "bash", "-c", std::move(cmd_str)}};
+  SUBCASE("simple shell command") {
+    static auto constexpr shell_cmd = [](std::string &&cmd_str) {
+      exec_path_args cmd{"/usr/bin/env", {"sh", "-c", std::move(cmd_str)}};
+
       REQUIRE_FALSE(cmd.manages_process());
       REQUIRE_FALSE(cmd.is_finished());
       return cmd;
@@ -52,7 +52,7 @@ TEST_CASE("exec_path_args") {
 
     SUBCASE("happy path - nonblocking") {
       exec_path_args cmd{
-          bash_cmd("printf \"Hello stdout!\"; printf \"Hello stderr!\" 1>&2")};
+          shell_cmd("printf \"Hello stdout!\"; printf \"Hello stderr!\" 1>&2")};
 
       {
         exec_path_args::states state;
@@ -106,7 +106,7 @@ TEST_CASE("exec_path_args") {
 
     SUBCASE("happy path - blocking") {
       exec_path_args cmd{
-          bash_cmd("printf \"Hello stdout!\"; printf \"Hello stderr!\" 1>&2")};
+          shell_cmd("printf \"Hello stdout!\"; printf \"Hello stderr!\" 1>&2")};
 
       {
         exec_path_args::state prev_state;
@@ -123,7 +123,7 @@ TEST_CASE("exec_path_args") {
 
     SUBCASE("non-zero return code") {
       static auto constexpr expected_val{42};
-      exec_path_args cmd{bash_cmd("exit " + std::to_string(expected_val))};
+      exec_path_args cmd{shell_cmd("exit " + std::to_string(expected_val))};
 
       {
         exec_path_args::state prev_state;
@@ -139,8 +139,8 @@ TEST_CASE("exec_path_args") {
     }
 
     SUBCASE("not waiting for it") {
-      // in `bash`, `sleep` accepts seconds
-      exec_path_args cmd{bash_cmd("sleep 1; printf \"Done!\"")};
+      // in `shell`, `sleep` accepts seconds
+      exec_path_args cmd{shell_cmd("sleep 1; printf \"Done!\"")};
 
       {
         exec_path_args::states state;
@@ -150,7 +150,8 @@ TEST_CASE("exec_path_args") {
         REQUIRE(cmd.manages_process());
       }
 
-      REQUIRE_NOTHROW(cmd.do_kill());
+      REQUIRE_NOTHROW(cmd.do_kill()); // it should get there safely, way sooner
+                                      // than 1 second after forking ...
       REQUIRE(cmd.is_finished());
 
       SUBCASE("explicitly updating the status after kill") {
@@ -172,7 +173,7 @@ TEST_CASE("exec_path_args") {
 
     SUBCASE("various operations") {
       SUBCASE("move opearations") {
-        std::optional<exec_path_args> cmd{bash_cmd("echo Hello")};
+        std::optional<exec_path_args> cmd{shell_cmd("echo Hello")};
         REQUIRE_FALSE(cmd->manages_process());
 
         SUBCASE("not spawned yet") {
@@ -251,8 +252,8 @@ TEST_CASE("exec_path_args") {
         exec_path_args cmd_default_constructed{};
 
         exec_path_args cmd_moved_from{
-            bash_cmd("whatever ... won't be started for the "
-                     "purpose of the test case ...")};
+            shell_cmd("whatever ... won't be started for the purpose of the "
+                      "test case ...")};
 
         exec_path_args cmd_move_constructed{std::move(cmd_default_constructed)};
 
@@ -314,8 +315,8 @@ TEST_CASE("exec_path_args") {
       }
 
       SUBCASE("swap") {
-        exec_path_args cmd1{bash_cmd("echo cmd1; exit 1")};
-        exec_path_args cmd2{bash_cmd("echo cmd2; exit 2")};
+        exec_path_args cmd1{shell_cmd("echo cmd1; exit 1")};
+        exec_path_args cmd2{shell_cmd("echo cmd2; exit 2")};
 
         {
           exec_path_args::state prev_state;
@@ -350,13 +351,9 @@ TEST_CASE("exec_path_args") {
     REQUIRE(std::filesystem::is_regular_file(some_cli_app_path));
 
     auto const some_cli_app = [&](auto &&...args) {
-      // TODO fix this first version ...:
-      // exec_path_args cmd{some_cli_app_path.string(),
-      //                    {std::forward<decltype(args)>(args)...}};
-      // and remove this one:
-      exec_path_args cmd{"/usr/bin/env",
-                         {"bash", some_cli_app_path.string(),
-                          std::forward<decltype(args)>(args)...}};
+      exec_path_args cmd{some_cli_app_path.string(),
+                         {std::forward<decltype(args)>(args)...}};
+
       REQUIRE_FALSE(cmd.manages_process());
       REQUIRE_FALSE(cmd.is_finished());
       return cmd;

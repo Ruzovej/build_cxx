@@ -106,28 +106,36 @@ exec_path_args::~exec_path_args() noexcept {
 }
 
 namespace {
-// the "holder" (`[]`) is owned, what it points to (`*`) isn't ...
-[[nodiscard]] std::unique_ptr<char *[]>
-build_args_cstr(std::vector<std::string> const &args) {
+
+struct my_cstr_arr_deleter {
+  void operator()(char *null_terminated_arr[]) const {
+    if (null_terminated_arr != nullptr) {
+      for (char **ptr = null_terminated_arr; *ptr != nullptr; ++ptr) {
+        std::free(*ptr); // due to `strdup`
+      }
+      delete[] null_terminated_arr;
+    }
+  }
+};
+
+[[nodiscard]] std::unique_ptr<char *[], my_cstr_arr_deleter>
+build_args_cstr(std::string const &path, std::vector<std::string> const &args) {
   auto const num_args{args.size()};
-  // auto const args_cstr{std::make_unique<char *[]>(num_args + 2)};
-  auto args_cstr{std::make_unique<char *[]>(num_args + 1)};
+
+  std::unique_ptr<char *[], my_cstr_arr_deleter> args_cstr_arr {
+    new char *[num_args + 2], {}
+  };
+
   // https://man7.org/linux/man-pages/man3/exec.3.html -> "The first
   // argument, by convention, should point to the filename associated with
   // the file being executed"
-  // TODO:
-  // 1. follow this convention, right off the bat it didin't work
-  // 2. remove/"prevent" this `const_cast`
-  // args_cstr[0] = const_cast<char *>(path.c_str());
+  args_cstr_arr[0] = strdup(path.c_str());
   for (std::size_t i{0}; i < num_args; ++i) {
-    // TODO ... remove/"prevent" this `const_cast`
-    // args_cstr[i + 1] = const_cast<char *>(args[i].c_str());
-    args_cstr[i] = const_cast<char *>(args[i].c_str());
+    args_cstr_arr[i + 1] = strdup(args[i].c_str());
   }
-  // args_cstr[num_args + 1] = nullptr;
-  args_cstr[num_args] = nullptr;
+  args_cstr_arr[num_args + 1] = nullptr;
 
-  return args_cstr;
+  return args_cstr_arr;
 }
 } // namespace
 
@@ -143,7 +151,7 @@ exec_path_args::update_and_get_state(int const timeout_until_it_finishes_ms) {
 
     // it's safer to do as little after the `fork` and before `exec` as
     // possible:
-    auto const argv{build_args_cstr(args)};
+    auto const argv{build_args_cstr(path, args)};
 
     auto const pid{BUILD_CXX_SYSCALL_HELPER(fork())};
     if (pid == 0) // Child process
@@ -338,7 +346,7 @@ void exec_path_args::exec_in_child(char *args[]) {
     BUILD_CXX_SYSCALL_HELPER(dup2(stderr_pipe.get_in(), STDERR_FILENO));
 
     // Execute the command
-    BUILD_CXX_SYSCALL_HELPER(execv(path.c_str(), args));
+    BUILD_CXX_SYSCALL_HELPER(execv(args[0], args));
   } catch (std::exception const &e) {
     // TODO is it safe to use `std::cerr` here (e.g. after `fork`, etc.)?
     std::cerr << "child process failed - caught exception: " << e.what()
@@ -371,15 +379,15 @@ void exec_path_args::query_status(bool const wait_for_finishing) {
   } else if (current_state == state::running) {
     siginfo_t status{};
     int const options{WEXITED | (wait_for_finishing ? 0 : WNOHANG)};
-    //  https://linux.die.net/man/2/waitpid
+    // https://man7.org/linux/man-pages/man2/wait.2.html
     BUILD_CXX_SYSCALL_HELPER(waitid(P_PID, handle, &status, options));
 
     if ((status.si_pid != 0) &&
         ((status.si_code == CLD_EXITED) || (status.si_code == CLD_KILLED) ||
          (status.si_code == CLD_DUMPED))) {
       if (status.si_pid != handle) {
-        throw std::runtime_error{"waitid returned unexpected pid different "
-                                 "from the managed one !"};
+        throw std::runtime_error{
+            "waitid returned unexpected pid - different from the managed one!"};
       }
       time_finished_ns = now_ns();
       current_state = state::finished;
