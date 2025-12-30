@@ -46,6 +46,10 @@ private:
 
 } // namespace detail
 
+// ips ~ inter-process synchronization
+// intended for very simple scheme: only 2 processes, one beginning before and
+// ending after the other, which creates and destroys (or simply "owns")
+// internal semaphores
 struct ips {
   // Both processes must use the same name to connect to each other
   explicit ips(std::string const &aName, bool const create);
