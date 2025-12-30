@@ -29,7 +29,7 @@ namespace build_cxx::os_wrapper {
 
 int current_errno() noexcept { return errno; }
 
-void syscall_helper(std::string_view const file, int const line,
+void check_syscall_ret_val(std::string_view const file, int const line,
                    int const syscall_ret) {
   // don't check the `errno` in advance (as was done in the past here) ... in
   // case some syscalls (graciously) failed before this one
