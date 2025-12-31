@@ -652,9 +652,10 @@ TEST_CASE("exec_path_args") {
                             std::forward<decltype(args)>(args)...);
       };
 
-      // compromise between stalls (in case of failure) and flakiness; feel free
-      // to (slightly?!) increase this number if necessary
+      // compromise between stalls (in case of a failure) and flakiness; feel
+      // free to (slightly?!) increase this number if necessary
       static int constexpr default_wait_timeout_ms{5};
+
       std::optional<ips> my_sem;
       REQUIRE_NOTHROW(my_sem.emplace(sem_name, true));
 
