@@ -688,8 +688,32 @@ TEST_CASE("exec_path_args") {
         REQUIRE_LT(0.0, cmd.time_running_ms());
       }
 
-      SUBCASE("uninitialized IPS in child process") {
-        exec_path_args cmd{some_cli_app("--notify-and-wait", "--exit", "0")};
+      SUBCASE("uninitialized `ips` in parent process") {
+        my_sem.reset(); // destroy it here, in the parent process
+
+        exec_path_args cmd{some_cli_app_synced("--notify-and-wait", // ...
+                                               "--exit", "0"        // ...
+                                               )};
+
+        {
+          exec_path_args::state prev_state;
+          REQUIRE_NOTHROW(prev_state = cmd.finish_and_get_prev_state());
+          REQUIRE_EQ(prev_state, exec_path_args::state::ready);
+        }
+
+        REQUIRE_EQ(
+            cmd.read_stderr(true),
+            "some_cli_app caught `std::exception`: sem_open failed: 2\n");
+        REQUIRE_EQ(cmd.read_stdout(true), "");
+        REQUIRE_EQ(cmd.get_return_code(), EXIT_FAILURE);
+        REQUIRE_LT(0.0, cmd.time_running_ms());
+      }
+
+      SUBCASE("uninitialized `ips` in child process") {
+        // not calling the `some_cli_app_synced` helper here ...:
+        exec_path_args cmd{some_cli_app("--notify-and-wait", // ...
+                                        "--exit", "0"        // ...
+                                        )};
 
         {
           exec_path_args::states state;
@@ -716,7 +740,7 @@ TEST_CASE("exec_path_args") {
         REQUIRE_LT(0.0, cmd.time_running_ms());
       }
 
-      SUBCASE("missed IPS in child process") {
+      SUBCASE("missed `ips` in child process") {
         exec_path_args cmd{some_cli_app_synced("--sleep", "1000",   // ...
                                                "--notify-and-wait", // ...
                                                "--exit", "0"        // ...
@@ -868,7 +892,8 @@ TEST_CASE("exec_path_args") {
           REQUIRE(cmd.manages_process());
         }
 
-        // using the IPS "unconventionally" ... watch out for the last `notify`:
+        // using the `ips` "unconventionally" ... watch out for the last
+        // `notify`:
         REQUIRE(my_sem->wait(default_wait_timeout_ms));
 
         { // out 1
