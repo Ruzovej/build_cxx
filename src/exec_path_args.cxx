@@ -425,22 +425,20 @@ void exec_path_args::update_buffer(bool const for_stdout) {
     {
       buffer.resize(static_cast<size_t>(buf_prev_size + avail));
 
-#if defined(__clang__)
-      // TODO get rid of the ugly `const_cast`
-      nbytes = BUILD_CXX_SYSCALL_HELPER(
-          read(fd, const_cast<char *>(buffer.data()) + buf_prev_size, avail));
-#else
+      //#if defined(__clang__)
+      //      // TODO get rid of the ugly `const_cast`
+      //      nbytes = BUILD_CXX_SYSCALL_HELPER(
+      //          read(fd, const_cast<char *>(buffer.data()) + buf_prev_size,
+      //          avail));
+      //#else
       nbytes = BUILD_CXX_SYSCALL_HELPER(
           read(fd, buffer.data() + buf_prev_size, avail));
-#endif
+      //#endif
     }
     if (nbytes < avail) {
       throw std::runtime_error(
           "failed to read all available bytes from given pipe!");
     }
-    // std::cout << "parent process ... reads " << nbytes
-    //           << " [B] from pipe (where " << avail
-    //           << " [B] were available)\n";
   };
 
   read_pipe(for_stdout ? stdout_pipe.get_out() : stderr_pipe.get_out(),
