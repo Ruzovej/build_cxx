@@ -657,6 +657,8 @@ TEST_CASE("exec_path_args") {
       static int constexpr default_wait_timeout_ms{5};
 
       std::optional<ips> my_sem;
+      // using `std::optional` for a single purpose - so the c-tor can be
+      // checked for not throwing ...:
       REQUIRE_NOTHROW(my_sem.emplace(sem_name, true));
 
       SUBCASE("basic functionality: interprocess synchronization") {
