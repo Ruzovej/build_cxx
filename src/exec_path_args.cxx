@@ -263,8 +263,7 @@ void exec_path_args::close_stdin() {
 }
 
 namespace {
-std::string_view get_buffer(std::string const &buffer,
-                            std::size_t &consumed_bytes,
+std::string_view get_buffer(std::string const &buffer, ssize_t &consumed_bytes,
                             bool const whole) noexcept {
   if (whole) {
     consumed_bytes = buffer.size();

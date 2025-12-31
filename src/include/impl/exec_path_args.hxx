@@ -108,8 +108,8 @@ private:
   std::string path;
   std::vector<std::string> args;
 
-  long long time_spawned_ns{-1};
-  long long time_finished_ns{-1};
+  long long time_spawned_ns{0};
+  long long time_finished_ns{0};
 
   process_handle_t handle{invalid_process_handle};
   pipe_helper stdin_pipe;
@@ -123,9 +123,9 @@ private:
   int return_code{};
 
   std::string stdout_buffer;
-  std::size_t stdout_consumed_bytes{0};
+  ssize_t stdout_consumed_bytes{0};
   std::string stderr_buffer;
-  std::size_t stderr_consumed_bytes{0};
+  ssize_t stderr_consumed_bytes{0};
 
   void query_status(bool const wait_for_finishing);
 
