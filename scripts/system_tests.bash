@@ -13,7 +13,10 @@ scripts/build.bash
 #    --target some_cli_app
 
 source scripts/common/bats_runner.bash
-bats_runner "${PWD}" "$@"
+time \
+    bats_runner \
+        "${PWD}" \
+        "$@"
 
 #time \
 #    build/tests/unit/build_cxx_unit_tests \

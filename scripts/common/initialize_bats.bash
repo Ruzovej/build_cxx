@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
 
-
 function initialize_bats() {
     local REPO_ROOT_DIR="${1:?repository root directory is required}"
 
