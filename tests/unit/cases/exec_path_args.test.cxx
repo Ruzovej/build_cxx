@@ -652,6 +652,9 @@ TEST_CASE("exec_path_args") {
                             std::forward<decltype(args)>(args)...);
       };
 
+      // compromise between stalls (in case of failure) and flakiness; feel free
+      // to (slightly?!) increase this number if necessary
+      static int constexpr default_wait_timeout_ms{5};
       std::optional<ips> my_sem;
       REQUIRE_NOTHROW(my_sem.emplace(sem_name, true));
 
@@ -668,7 +671,7 @@ TEST_CASE("exec_path_args") {
           REQUIRE(cmd.manages_process());
         }
 
-        REQUIRE(my_sem->wait_and_notify(40));
+        REQUIRE(my_sem->wait_and_notify(default_wait_timeout_ms));
 
         {
           exec_path_args::state prev_state;
@@ -750,6 +753,40 @@ TEST_CASE("exec_path_args") {
         REQUIRE_LT(0.0, cmd.time_running_ms());
       }
 
+      SUBCASE("echo 3 (synced)") {
+        exec_path_args cmd{some_cli_app_synced("--echo", "1",      // ...
+                                               "--notify-and-wait" // ...
+                                               )};
+
+        {
+          exec_path_args::states state;
+          REQUIRE_NOTHROW(state = cmd.update_and_get_state());
+          REQUIRE_EQ(state.previous, exec_path_args::state::ready);
+          REQUIRE_EQ(state.current, exec_path_args::state::running);
+          REQUIRE(cmd.manages_process());
+        }
+
+        auto const text{"Hello!"}; // NO ' ' at the end
+        REQUIRE_NOTHROW(cmd.send_to_stdin(text));
+        REQUIRE_NOTHROW(cmd.close_stdin());
+
+        REQUIRE(my_sem->wait_and_notify(default_wait_timeout_ms));
+
+        REQUIRE_EQ(cmd.read_stderr(true), "");
+        REQUIRE_EQ(cmd.read_stdout(true), space_to_newline(text) + '\n');
+
+        {
+          exec_path_args::state prev_state;
+          REQUIRE_NOTHROW(prev_state = cmd.finish_and_get_prev_state());
+          REQUIRE_EQ(prev_state, exec_path_args::state::running);
+        }
+
+        REQUIRE_EQ(cmd.read_stderr(false), "");
+        REQUIRE_EQ(cmd.read_stdout(false), "");
+        REQUIRE_EQ(cmd.get_return_code(), EXIT_SUCCESS);
+        REQUIRE_LT(0.0, cmd.time_running_ms());
+      }
+
       SUBCASE("complex happy path") {
         auto const to_stderr{"How is it going?"};
         auto const to_stdout{"Fine, thank You!"};
@@ -771,7 +808,7 @@ TEST_CASE("exec_path_args") {
           REQUIRE(cmd.manages_process());
         }
 
-        REQUIRE(my_sem->wait_and_notify(40));
+        REQUIRE(my_sem->wait_and_notify(default_wait_timeout_ms));
 
         REQUIRE_EQ(cmd.read_stdout(true), std::string{to_stdout} + '\n');
         REQUIRE_EQ(cmd.read_stderr(true), std::string{to_stderr} + '\n');
@@ -787,7 +824,7 @@ TEST_CASE("exec_path_args") {
         auto const expected_echo_input{"const std::string_view data "};
         REQUIRE_NOTHROW(cmd.send_to_stdin(expected_echo_input));
 
-        REQUIRE(my_sem->wait_and_notify(40));
+        REQUIRE(my_sem->wait_and_notify(default_wait_timeout_ms));
 
         REQUIRE_EQ(cmd.read_stdout(false),
                    space_to_newline(expected_echo_input));
@@ -829,7 +866,7 @@ TEST_CASE("exec_path_args") {
         }
 
         // using the IPS "unconventionally" ... watch out for the last `notify`:
-        REQUIRE(my_sem->wait(40));
+        REQUIRE(my_sem->wait(default_wait_timeout_ms));
 
         { // out 1
           std::string const expected{std::string{out1} + '\n'};
@@ -846,7 +883,7 @@ TEST_CASE("exec_path_args") {
           REQUIRE_EQ(cmd.get_stdout(), "");
         }
 
-        REQUIRE(my_sem->notify_and_wait(40));
+        REQUIRE(my_sem->notify_and_wait(default_wait_timeout_ms));
 
         { // err 1
           std::string const expected{std::string{err1} + '\n'};
@@ -863,7 +900,7 @@ TEST_CASE("exec_path_args") {
           REQUIRE_EQ(cmd.get_stderr(), "");
         }
 
-        REQUIRE(my_sem->notify_and_wait(40));
+        REQUIRE(my_sem->notify_and_wait(default_wait_timeout_ms));
 
         { // out 2
           std::string const expected{std::string{out2} + '\n'};
