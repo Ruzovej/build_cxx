@@ -1,7 +1,5 @@
 cmake_minimum_required(VERSION 3.16)
 
-add_subdirectory(common/ips)
-
 include(FetchContent)
 #cmake_policy(SET CMP0135 NEW) # file timestamps of extracted data are updated to "now"
 FetchContent_Declare(
@@ -12,6 +10,14 @@ FetchContent_Declare(
     #GIT_SHALLOW     TRUE
 )
 FetchContent_MakeAvailable(doctest)
+
+FetchContent_Declare(
+    exec_path_args
+    GIT_REPOSITORY  https://github.com/Ruzovej/exec_path_args.git
+    GIT_TAG         v000.001.000
+    GIT_SHALLOW     TRUE
+)
+FetchContent_MakeAvailable(exec_path_args)
 
 file(
     GLOB_RECURSE
@@ -38,22 +44,12 @@ target_include_directories(
 target_link_libraries(
     build_cxx_unit_tests
         PRIVATE
+            exec_path_args
             doctest::doctest
-            ips
 )
 target_compile_definitions(
     build_cxx_unit_tests
         PRIVATE
             DOCTEST_CONFIG_SUPER_FAST_ASSERTS
             DOCTEST_CONFIG_NO_TRY_CATCH_IN_ASSERTS
-)
-
-add_executable(
-    some_cli_app
-        "${CMAKE_CURRENT_LIST_DIR}/helper/some_cli_app.cxx"
-)
-target_link_libraries(
-    some_cli_app
-        PRIVATE
-            ips
 )

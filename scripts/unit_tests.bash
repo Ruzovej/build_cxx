@@ -5,8 +5,7 @@
 set -e
 
 scripts/build.bash \
-    --target build_cxx_unit_tests \
-    --target some_cli_app
+    --target build_cxx_unit_tests
 
 time \
     build/tests/unit/build_cxx_unit_tests \
