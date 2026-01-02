@@ -21,7 +21,7 @@ function bats_runner() {
     local REPO_ROOT_DIR="${1:?repository root directory is required}"
     shift
 
-    local no_parallel='false'
+    local run_in_parallel='false'
 
     function usage() {
         {
@@ -31,7 +31,7 @@ function bats_runner() {
             printf 'Usage: bats_runner <repo_root_dir> [options...]\n'
             printf 'Where options are:\n'
             #printf '    --preset, -p PRESET        Run tests only for the specified preset (default is all presets: %s)\n' "${test_presets[*]}"
-            printf '    --no-parallel              Disable parallel test execution\n'
+            printf '    --run-in-parallel          Enable parallel test execution\n'
             printf '    --help, -h                 Show this help message\n'
         } >&2
     }
@@ -42,8 +42,8 @@ function bats_runner() {
             #    test_presets=("${2:?No preset specified!}")
             #    shift 2
             #    ;;
-            --no-parallel)
-                no_parallel='true'
+            --run-in-parallel)
+                run_in_parallel='true'
                 shift
                 ;;
             --help|-h)
@@ -64,7 +64,8 @@ function bats_runner() {
         #--tap
     )
 
-    if [[ "${no_parallel}" == 'false' ]]; then
+    if [[ "${run_in_parallel}" == 'true' ]]; then
+        # requires `parallel` command
         args+=(--jobs "$(nproc)")
     fi
 
@@ -74,6 +75,7 @@ function bats_runner() {
     # for convenience ... TODO refactor later:
     export BUILD_CXX_ROOT_DIR="${REPO_ROOT_DIR}"
 
+    # TODO implement/copy/remove later:
     #commit_hash_json_file "${TMP_RESULT_DIR_BASE}"
 
     local reports_folder="${TMP_RESULT_DIR_BASE}/bats_reports"
