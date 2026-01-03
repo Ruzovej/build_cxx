@@ -20,7 +20,6 @@
 #pragma once
 
 #include "build_cxx/impl/implicit_name.h"
-#include "build_cxx/impl/main.hxx"
 #include "build_cxx/impl/registrator.hxx"
 #include "build_cxx/impl/target_builder.hxx"
 
