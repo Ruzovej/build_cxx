@@ -17,8 +17,22 @@
   with build_cxx. If not, see <https://www.gnu.org/licenses/>.
 */
 
-namespace build_cxx::client {
+#include "build_cxx/common/target_builder.hxx"
 
-// TODO ... delete this later?
+namespace build_cxx::common {
 
+target_builder::target_builder(std::string &&aName,
+                               std::string_view const aFilename,
+                               int const aLine, int const aIndex,
+                               adjust_target_fn *const aFn)
+    : name{std::move(aName)}, filename{aFilename}, line{aLine}, index{aIndex},
+      fn{aFn} {}
+
+void target_builder::update_target() { fn(*this); }
+
+std::vector<target_builder> &get_target_builders_vector() {
+  static std::vector<target_builder> registered_targets;
+  return registered_targets;
 }
+
+} // namespace build_cxx::common

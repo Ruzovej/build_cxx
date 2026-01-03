@@ -17,6 +17,8 @@
   with build_cxx. If not, see <https://www.gnu.org/licenses/>.
 */
 
+#include <dlfcn.h>
+
 #include <cstdlib>
 
 #include <exception>
@@ -24,17 +26,53 @@
 
 #include <build_cxx/common/target_builder.hxx>
 
-int main(int const argc, char const *const argv[]) {
+namespace {
+
+struct dlopen_scoped {
+  explicit dlopen_scoped(char const *const filename)
+      : handle{dlopen(filename, RTLD_LAZY /*| RTLD_GLOBAL*/)} {
+    if (handle == nullptr) {
+      throw std::runtime_error{std::string{"dlopen failed - error: "} +
+                               dlerror()};
+    }
+  }
+
+  ~dlopen_scoped() noexcept {
+    if (handle != nullptr) {
+      if (dlclose(handle) < 0) {
+        std::cerr << "Warning: dlclose failed - error: " << dlerror() << '\n';
+      }
+    }
+  }
+
+private:
+  void *handle;
+};
+
+} // namespace
+
+int main(int argc, char *argv[]) {
   try {
+    std::vector<dlopen_scoped> dl_handles;
+    dl_handles.reserve(argc - 1);
+
+    --argc;
+    ++argv;
+    while (argc > 0) {
+      auto const arg{argv[0]};
+      --argc;
+      ++argv;
+      dl_handles.emplace_back(arg);
+    }
+
     auto &target_builders{::build_cxx::common::get_target_builders_vector()};
 
     for (auto &tb : target_builders) {
-      // tb.fn(const_cast<::build_cxx::impl::target_builder &>(tb));
       std::cout << "Processing target '" << tb.name << "' defined at '"
                 << tb.filename << ":" << tb.line << "' (index " << tb.index
                 << "):\n";
 
-      tb.adjust_target();
+      tb.update_target();
     }
 
     return EXIT_SUCCESS;

@@ -36,16 +36,20 @@ using adjust_target_fn = void(target_builder & /*current_target*/);
 struct target_builder {
   explicit target_builder(std::string &&aName, std::string_view const aFilename,
                           int const aLine, int const aIndex,
-                          adjust_target_fn *const aFn)
-      : name(std::move(aName)), filename(aFilename), line(aLine), index(aIndex),
-        fn(aFn) {}
+                          adjust_target_fn *const aFn);
 
   target_builder(target_builder const &) = default;
   target_builder &operator=(target_builder const &) = default;
   target_builder(target_builder &&) = default;
   target_builder &operator=(target_builder &&) = default;
 
-  void adjust_target() { fn(*this); }
+  ~target_builder() = default;
+
+  // virtual ~target_builder() = default;
+  //
+  // virtual bool is_up_to_date() const { return false; }
+
+  void update_target();
 
   std::string name;
   std::string_view filename;
@@ -56,9 +60,7 @@ private:
   adjust_target_fn *fn;
 };
 
-inline std::vector<target_builder> &get_target_builders_vector() {
-  static std::vector<target_builder> registered_targets;
-  return registered_targets;
-}
+// TODO "inplace/inlined/own" linked list to prevent allocations ...
+std::vector<target_builder> &get_target_builders_vector();
 
 } // namespace build_cxx::common

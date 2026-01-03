@@ -17,6 +17,14 @@
   with build_cxx. If not, see <https://www.gnu.org/licenses/>.
 */
 
-#include <build_cxx/core.hxx>
+#include <iostream>
 
-// TODO
+#include <build_cxx/client/core.hxx>
+
+BUILD_CXX_GENERIC_TARGET("Root target BBB 1") {
+  std::cout << "I'm happy :-) - inside '" << current_target.name << "'\n";
+}
+
+BUILD_CXX_GENERIC_TARGET("Root target BBB 2") {
+  std::cout << "I'm happy :-) - inside '" << current_target.name << "'\n";
+}

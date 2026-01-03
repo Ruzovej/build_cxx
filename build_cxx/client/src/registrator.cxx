@@ -17,8 +17,15 @@
   with build_cxx. If not, see <https://www.gnu.org/licenses/>.
 */
 
-namespace build_cxx::common {
+#include "build_cxx/client/registrator.hxx"
 
-// TODO ... delete this later?
+namespace build_cxx::client {
 
+registrator::registrator(std::string &&name, std::string_view const filename,
+                         int const line, int const idx,
+                         common::adjust_target_fn *const fn) {
+  common::get_target_builders_vector().emplace_back(std::move(name), filename,
+                                                    line, idx, fn);
 }
+
+} // namespace build_cxx::client

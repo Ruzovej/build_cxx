@@ -30,16 +30,18 @@ namespace build_cxx::client {
 struct registrator {
   explicit registrator(std::string &&name, std::string_view const filename,
                        int const line, int const idx,
-                       common::adjust_target_fn *const fn) {
-    common::get_target_builders_vector().emplace_back(std::move(name), filename,
-                                                      line, idx, fn);
-  }
+                       common::adjust_target_fn *const fn);
 
 private:
   registrator(registrator const &) = delete;
   registrator &operator=(registrator const &) = delete;
   registrator(registrator &&) = delete;
   registrator &operator=(registrator &&) = delete;
+
+  void *operator new(std::size_t) = delete;
+  void operator delete(void *) = delete;
+  void *operator new[](std::size_t) = delete;
+  void operator delete[](void *) = delete;
 };
 
 } // namespace build_cxx::client

@@ -30,18 +30,18 @@ target_link_libraries(
             build_cxx_client
 )
 
-#add_library(
-#    02
-#        SHARED
-#            "${CMAKE_CURRENT_LIST_DIR}/01/build.cxx"
-#)
-#target_include_directories(
-#    02
-#        PRIVATE
-#            "${CMAKE_CURRENT_LIST_DIR}/02"
-#)
-#target_link_libraries(
-#    02
-#        PRIVATE
-#            build_cxx_client
-#)
+add_library(
+    02
+        SHARED
+            "${CMAKE_CURRENT_LIST_DIR}/02/build.cxx"
+)
+target_include_directories(
+    02
+        PRIVATE
+            "${CMAKE_CURRENT_LIST_DIR}/02"
+)
+target_link_libraries(
+    02
+        PRIVATE
+            build_cxx_client
+)
