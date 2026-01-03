@@ -23,16 +23,16 @@
 #include <string_view>
 #include <utility>
 
-#include "build_cxx/impl/target_builder.hxx"
+#include <build_cxx/common/target_builder.hxx>
 
-namespace build_cxx::impl {
+namespace build_cxx::client {
 
 struct registrator {
   explicit registrator(std::string &&name, std::string_view const filename,
                        int const line, int const idx,
-                       adjust_target_fn *const fn) {
-    get_target_builders_vector().emplace_back(std::move(name), filename, line,
-                                              idx, fn);
+                       common::adjust_target_fn *const fn) {
+    common::get_target_builders_vector().emplace_back(std::move(name), filename,
+                                                      line, idx, fn);
   }
 
 private:
@@ -42,4 +42,4 @@ private:
   registrator &operator=(registrator &&) = delete;
 };
 
-} // namespace build_cxx::impl
+} // namespace build_cxx::client

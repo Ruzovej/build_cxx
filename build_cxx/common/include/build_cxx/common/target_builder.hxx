@@ -24,14 +24,14 @@
 #include <utility>
 #include <vector>
 
-namespace build_cxx::impl {
+namespace build_cxx::common {
 
 struct target_builder;
 
 using adjust_target_fn = void(target_builder & /*current_target*/);
 
 #define BUILD_CXX_ADJUST_TARGET_FN(fn_name)                                    \
-  void fn_name(::build_cxx::impl::target_builder &current_target)
+  void fn_name(::build_cxx::common::target_builder &current_target)
 
 struct target_builder {
   explicit target_builder(std::string &&aName, std::string_view const aFilename,
@@ -61,4 +61,4 @@ inline std::vector<target_builder> &get_target_builders_vector() {
   return registered_targets;
 }
 
-} // namespace build_cxx::impl
+} // namespace build_cxx::common

@@ -23,7 +23,8 @@ target_include_directories(
 )
 target_link_libraries(
     build_cxx_client
-        PRIVATE
+        PUBLIC
+            build_cxx_common
             exec_path_args
 )
 #target_compile_definitions(

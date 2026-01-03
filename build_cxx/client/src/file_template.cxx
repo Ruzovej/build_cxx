@@ -17,10 +17,8 @@
   with build_cxx. If not, see <https://www.gnu.org/licenses/>.
 */
 
-#include <iostream>
+namespace build_cxx::client {
 
-#include <build_cxx/client/core.hxx>
+// TODO ... delete this later?
 
-BUILD_CXX_GENERIC_TARGET("   C target") {
-  std::cout << "I'm happy :-) - inside '" << current_target.name << "'\n";
 }

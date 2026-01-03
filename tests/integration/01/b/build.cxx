@@ -19,7 +19,7 @@
 
 #include <iostream>
 
-#include <build_cxx/core.hxx>
+#include <build_cxx/client/core.hxx>
 
 BUILD_CXX_GENERIC_TARGET("   B target") {
   std::cout << "I'm happy :-) - inside '" << current_target.name << "'\n";

@@ -17,7 +17,7 @@
   with build_cxx. If not, see <https://www.gnu.org/licenses/>.
 */
 
-namespace build_cxx::impl {
+namespace build_cxx::common {
 
 // TODO ... delete this later?
 

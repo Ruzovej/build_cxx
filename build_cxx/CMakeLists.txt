@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.16)
 
-#add_subdirectory(common)
+add_subdirectory(common)
 
 FetchContent_Declare(
     exec_path_args
@@ -10,5 +10,5 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(exec_path_args)
 
-#add_subdirectory(client)
-#add_subdirectory(driver)
+add_subdirectory(client)
+add_subdirectory(driver)

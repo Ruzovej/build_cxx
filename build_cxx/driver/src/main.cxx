@@ -17,20 +17,16 @@
   with build_cxx. If not, see <https://www.gnu.org/licenses/>.
 */
 
-#pragma once
-
 #include <cstdlib>
 
 #include <exception>
 #include <iostream>
 
-#include "build_cxx/impl/target_builder.hxx"
-
-#ifndef BUILD_CXX_INTERNAL_IMPLEMENTATION
+#include <build_cxx/common/target_builder.hxx>
 
 int main(int const argc, char const *const argv[]) {
   try {
-    auto &target_builders = ::build_cxx::impl::get_target_builders_vector();
+    auto &target_builders{::build_cxx::common::get_target_builders_vector()};
 
     for (auto &tb : target_builders) {
       // tb.fn(const_cast<::build_cxx::impl::target_builder &>(tb));
@@ -43,13 +39,13 @@ int main(int const argc, char const *const argv[]) {
 
     return EXIT_SUCCESS;
   } catch (std::exception const &e) {
-    std::cerr << "build_cxx failed - error (exception): " << e.what() << "\n";
+    std::cerr << "build_cxx::driver failed - error (exception): " << e.what()
+              << "\n";
   } catch (char const *const msg) {
-    std::cerr << "build_cxx failed - error (char const *): " << msg << "\n";
+    std::cerr << "build_cxx::driver failed - error (char const *): " << msg
+              << "\n";
   } catch (...) {
-    std::cerr << "build_cxx failed - unknown error\n";
+    std::cerr << "build_cxx::driver failed - unknown error\n";
   }
   return EXIT_FAILURE;
 }
-
-#endif

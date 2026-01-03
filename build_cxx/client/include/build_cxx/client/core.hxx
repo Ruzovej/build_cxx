@@ -19,14 +19,15 @@
 
 #pragma once
 
-#include "build_cxx/impl/implicit_name.h"
-#include "build_cxx/impl/registrator.hxx"
-#include "build_cxx/impl/target_builder.hxx"
+#include <build_cxx/common/target_builder.hxx>
+
+#include "build_cxx/client/implicit_name.h"
+#include "build_cxx/client/registrator.hxx"
 
 #define BUILD_CXX_GENERIC_TARGET_IMPL(name, index)                             \
   static BUILD_CXX_ADJUST_TARGET_FN(                                           \
       BUILD_CXX_IMPL_IMPLICIT_NAME(BUILD_CXX_ADJUST_TARGET_FN_, index));       \
-  static ::build_cxx::impl::registrator const BUILD_CXX_IMPL_IMPLICIT_NAME(    \
+  static ::build_cxx::client::registrator const BUILD_CXX_IMPL_IMPLICIT_NAME(  \
       BUILD_CXX_REGISTRATOR_, index){                                          \
       name, __FILE__, __LINE__, index,                                         \
       BUILD_CXX_IMPL_IMPLICIT_NAME(BUILD_CXX_ADJUST_TARGET_FN_, index)};       \

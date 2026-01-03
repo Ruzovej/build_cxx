@@ -14,7 +14,11 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-add_executable(01 "${CMAKE_CURRENT_LIST_DIR}/01/build.cxx")
+add_library(
+    01
+        SHARED
+            "${CMAKE_CURRENT_LIST_DIR}/01/build.cxx"
+)
 target_include_directories(
     01
         PRIVATE
@@ -23,10 +27,14 @@ target_include_directories(
 target_link_libraries(
     01
         PRIVATE
-            build_cxx
+            build_cxx_client
 )
 
-#add_executable(02 "${CMAKE_CURRENT_LIST_DIR}/02/build.cxx")
+#add_library(
+#    02
+#        SHARED
+#            "${CMAKE_CURRENT_LIST_DIR}/01/build.cxx"
+#)
 #target_include_directories(
 #    02
 #        PRIVATE
@@ -35,5 +43,5 @@ target_link_libraries(
 #target_link_libraries(
 #    02
 #        PRIVATE
-#            build_cxx
+#            build_cxx_client
 #)
