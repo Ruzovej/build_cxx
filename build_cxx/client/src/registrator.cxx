@@ -19,12 +19,17 @@
 
 #include "build_cxx/client/registrator.hxx"
 
+#include <string>
+#include <utility>
+
 namespace build_cxx::client {
 
-registrator::registrator(std::string &&name, std::string_view const filename,
-                         int const line, int const idx,
+registrator::registrator(std::string_view const filename, int const line,
+                         int const idx, std::string_view const name,
+                         std::string_view const *deps,
+                         std::size_t const deps_size,
                          common::adjust_target_fn *const fn) {
-  common::get_target_builders_vector().emplace_back(std::move(name), filename,
+  common::get_target_builders_vector().emplace_back(std::string{name}, filename,
                                                     line, idx, fn);
 }
 

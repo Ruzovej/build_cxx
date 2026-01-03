@@ -24,17 +24,25 @@
 #include "build_cxx/client/implicit_name.h"
 #include "build_cxx/client/registrator.hxx"
 
-#define BUILD_CXX_GENERIC_TARGET_IMPL(name, index)                             \
+#define BUILD_CXX_GENERIC_TARGET_IMPL(index, name, ...)                        \
   static BUILD_CXX_ADJUST_TARGET_FN(                                           \
       BUILD_CXX_IMPL_IMPLICIT_NAME(BUILD_CXX_ADJUST_TARGET_FN_, index));       \
+  static std::string_view const BUILD_CXX_IMPL_IMPLICIT_NAME(                  \
+      BUILD_CXX_TARGET_DEPS_, index)[]{__VA_ARGS__};                           \
   static ::build_cxx::client::registrator const BUILD_CXX_IMPL_IMPLICIT_NAME(  \
       BUILD_CXX_REGISTRATOR_, index){                                          \
-      name, __FILE__, __LINE__, index,                                         \
+      __FILE__,                                                                \
+      __LINE__,                                                                \
+      index,                                                                   \
+      name,                                                                    \
+      BUILD_CXX_IMPL_IMPLICIT_NAME(BUILD_CXX_TARGET_DEPS_, index),             \
+      sizeof(BUILD_CXX_IMPL_IMPLICIT_NAME(BUILD_CXX_TARGET_DEPS_, index)) /    \
+          sizeof(std::string_view),                                            \
       BUILD_CXX_IMPL_IMPLICIT_NAME(BUILD_CXX_ADJUST_TARGET_FN_, index)};       \
   BUILD_CXX_ADJUST_TARGET_FN(                                                  \
       BUILD_CXX_IMPL_IMPLICIT_NAME(BUILD_CXX_ADJUST_TARGET_FN_, index))
 
 // https://gcc.gnu.org/onlinedocs/cpp/Common-Predefined-Macros.html
 // I hope others support `__COUNTER__` too
-#define BUILD_CXX_GENERIC_TARGET(name)                                         \
-  BUILD_CXX_GENERIC_TARGET_IMPL(name, __COUNTER__)
+#define BUILD_CXX_GENERIC_TARGET(name, ...)                                    \
+  BUILD_CXX_GENERIC_TARGET_IMPL(__COUNTER__, name, __VA_ARGS__)

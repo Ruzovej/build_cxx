@@ -19,18 +19,18 @@
 
 #pragma once
 
-#include <string>
 #include <string_view>
-#include <utility>
 
 #include <build_cxx/common/target_builder.hxx>
 
 namespace build_cxx::client {
 
 struct registrator {
-  explicit registrator(std::string &&name, std::string_view const filename,
-                       int const line, int const idx,
-                       common::adjust_target_fn *const fn);
+  explicit registrator(
+      std::string_view const filename, int const line, int const idx,
+      std::string_view const name, std::string_view const *deps,
+      std::size_t const deps_size, // looking forward to `std::span` ...
+      common::adjust_target_fn *const fn);
 
 private:
   registrator(registrator const &) = delete;
