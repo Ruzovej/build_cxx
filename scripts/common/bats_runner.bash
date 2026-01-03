@@ -85,8 +85,8 @@ function bats_runner() {
     )
 
     printf -- '-=-=-=-=-=-=-=- Executing bats tests:\n' >&2
-    "${BUILD_CXX_BATS_EXECUTABLE}" "${args[@]}" --recursive "${REPO_ROOT_DIR}/tests/system/suite"
-    #"${BUILD_CXX_BATS_EXECUTABLE}" "${args[@]}" "${REPO_ROOT_DIR}/tests/system/suite/01_suite.bats"
+    "${BUILD_CXX_BATS_EXECUTABLE}" "${args[@]}" --recursive "${REPO_ROOT_DIR}/tests/system_bats/suite"
+    #"${BUILD_CXX_BATS_EXECUTABLE}" "${args[@]}" "${REPO_ROOT_DIR}/tests/system_bats/suite/01_suite.bats"
     #"${BUILD_CXX_BATS_EXECUTABLE}" --help
     printf '\n' >&2
 }
