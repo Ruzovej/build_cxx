@@ -8,4 +8,6 @@
 
 ## TODO
 
+- Rework (or delete) `tests/integration`
 - Keep or delete `tests/system_bats`?
+- Rework `tests/unit/cases/...`
