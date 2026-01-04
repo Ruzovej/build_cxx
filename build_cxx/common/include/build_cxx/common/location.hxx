@@ -17,21 +17,16 @@
   with build_cxx. If not, see <https://www.gnu.org/licenses/>.
 */
 
-#include <iostream>
+#pragma once
 
-#include <build_cxx/client/core.hxx>
+#include <string_view>
 
-BUILD_CXX_PROJECT("BBB", "1.0.0");
+namespace build_cxx::common {
 
-BUILD_CXX_PHONY_TARGET("BBB 1st target") {
-  std::cout << "I'm happy :-) - inside target '" << current_target.name
-            << "'\n";
-}
+struct location {
+  std::string_view aFilename;
+  int aLine;
+  int aIndex;
+};
 
-BUILD_CXX_GENERIC_TARGET("Root target BBB 1") {
-  std::cout << "I'm happy :-) - inside '" << current_target.name << "'\n";
-}
-
-BUILD_CXX_GENERIC_TARGET("Root target BBB 2") {
-  std::cout << "I'm happy :-) - inside '" << current_target.name << "'\n";
-}
+} // namespace build_cxx::common

@@ -22,3 +22,7 @@
 #define BUILD_CXX_IMPL_IMPLICIT_NAME_JOIN(begin, end) begin##end
 #define BUILD_CXX_IMPL_IMPLICIT_NAME(begin, end)                               \
   BUILD_CXX_IMPL_IMPLICIT_NAME_JOIN(begin, end)
+
+#define BUILD_CXX_DLL_HIDE __attribute__((visibility("hidden")))
+#define BUILD_CXX_DLL_EXPORT __attribute__((visibility("default")))
+#define BUILD_CXX_DLL_EXPORT_C_SYMBOL extern "C" BUILD_CXX_DLL_EXPORT

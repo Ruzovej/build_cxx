@@ -25,4 +25,9 @@ BUILD_CXX_GENERIC_TARGET("   B target") {
   std::cout << "I'm happy :-) - inside '" << current_target.name << "'\n";
 }
 
+BUILD_CXX_PHONY_TARGET("AAA 2nd target") {
+  std::cout << "I'm happy :-) - inside target '" << current_target.name
+            << "'\n";
+}
+
 #include "c/build.cxx"

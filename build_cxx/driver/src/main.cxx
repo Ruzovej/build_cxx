@@ -24,6 +24,8 @@
 #include <exception>
 #include <iostream>
 
+#include <build_cxx/common/phony_target.hxx>
+#include <build_cxx/common/project.hxx>
 #include <build_cxx/common/target_builder.hxx>
 
 namespace {
@@ -35,6 +37,21 @@ struct dlopen_scoped {
       throw std::runtime_error{std::string{"dlopen failed - error: "} +
                                dlerror()};
     }
+  }
+
+  build_cxx::common::project *get_project() const {
+    static auto constexpr symbol_name{"build_cxx_get_project"};
+
+    auto symbol{dlsym(handle, symbol_name)};
+    if (symbol == nullptr) { // not mandatory ... TODO later make it so!
+      return nullptr;
+    }
+
+    using get_proj_fn = build_cxx::common::project *();
+
+    auto const fn{reinterpret_cast<get_proj_fn *>(symbol)};
+
+    return fn();
   }
 
   ~dlopen_scoped() noexcept {
@@ -62,7 +79,7 @@ int main(int argc, char *argv[]) {
       auto const arg{argv[0]};
       --argc;
       ++argv;
-      dl_handles.emplace_back(arg);
+      dl_handles.emplace_back(arg); // TODO refuse already processed *.so ...
     }
 
     auto &target_builders{::build_cxx::common::get_target_builders_vector()};
@@ -73,6 +90,26 @@ int main(int argc, char *argv[]) {
                 << "):\n";
 
       tb.update_target();
+
+      std::cout << '\n';
+    }
+
+    for (auto &dlh : dl_handles) {
+      auto const proj{dlh.get_project()};
+      if (proj != nullptr) {
+        std::cout << "Project '" << proj->name << "' version '" << proj->version
+                  << "' has targets:\n";
+      }
+
+      for (auto at{proj->first}; at != nullptr; at = at->next) {
+        std::cout << " - Target '" << at->name << "'\n";
+        auto const phony{dynamic_cast<build_cxx::common::phony_target *>(at)};
+        if (phony) {
+          std::cout << "    - is phony target: ";
+          phony->fn(*phony);
+        }
+      }
+      std::cout << '\n';
     }
 
     return EXIT_SUCCESS;
