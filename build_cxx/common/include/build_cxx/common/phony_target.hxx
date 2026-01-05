@@ -35,6 +35,10 @@ struct phony_target : abstract_target {
 
   virtual ~phony_target() = default;
 
+  // Phony target is always up to date if it has dependencies (updating it
+  // depends on them), otherwise always out of date
+  [[nodiscard]] modification_time_t last_modification_time() const override;
+
   fn_t *fn{nullptr};
 
 private:

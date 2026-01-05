@@ -19,12 +19,18 @@
 
 #include "build_cxx/common/abstract_target.hxx"
 
-#include <limits>
-#include <stdexcept>
+//#include <limits>
+//#include <stdexcept>
 
 //#include "build_cxx/common/proxy.hxx"
 
 namespace build_cxx::common {
+
+abstract_target::abstract_target(location const *const aLoc,
+                                 std::string_view const aName,
+                                 std::string_view const *const aDeps,
+                                 std::size_t const aNum_deps)
+    : loc{aLoc}, name{aName}, deps{aDeps}, num_deps{aNum_deps} {}
 
 // bool abstract_target::is_up_to_date() const {
 //   auto const my_modification_time{last_modification_time()};

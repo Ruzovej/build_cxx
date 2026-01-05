@@ -19,6 +19,7 @@
 
 #pragma once
 
+#include <limits>
 #include <string_view>
 
 #include "build_cxx/common/location.hxx"
@@ -29,23 +30,30 @@ struct abstract_target {
   explicit abstract_target(location const *const aLoc,
                            std::string_view const aName,
                            std::string_view const *const aDeps,
-                           std::size_t const aNum_deps)
-      : loc{aLoc}, name{aName}, deps{aDeps}, num_deps{aNum_deps} {}
+                           std::size_t const aNum_deps);
 
   virtual ~abstract_target() = default;
 
-  // [[nodiscard]] virtual long long last_modification_time() const = 0;
-  //
-  // [[nodiscard]] virtual bool is_up_to_date() const;
-  //
-  // virtual void update() = 0;
-
-  // non owned:
-  abstract_target *next{nullptr};
-  location const *loc;
+  // TODO
+  // - use: https://en.cppreference.com/w/cpp/filesystem/file_time_type.html
+  // - because of:
+  // https://en.cppreference.com/w/cpp/filesystem/last_write_time.html
+  // - comp. op.:
+  // https://en.cppreference.com/w/cpp/chrono/time_point/operator_cmp.html
+  // - example: https://godbolt.org/z/Enoza77Wo
+  using modification_time_t = long long;
+  static modification_time_t constexpr always_up_to_date{
+      std::numeric_limits<long long>::min()};
+  static modification_time_t constexpr never_up_to_date{
+      std::numeric_limits<long long>::max()};
+  [[nodiscard]] virtual modification_time_t last_modification_time() const = 0;
 
   // TODO private & getters, (setters?!), etc.:
-  // std::string_view target_namespace;
+  // "private":
+  abstract_target *next{nullptr}; // non owned
+
+  // "public":
+  location const *loc; // non owned
   std::string_view name;
   std::string_view const *deps;
   std::size_t num_deps;
