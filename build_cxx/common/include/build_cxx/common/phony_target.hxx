@@ -25,22 +25,17 @@
 
 namespace build_cxx::common {
 
-struct phony_target;
-
-using phony_target_fn = void(phony_target & /*current_target*/);
-
-#define BUILD_CXX_PHONY_TARGET_FN(fn_name)                                     \
-  void fn_name(::build_cxx::common::phony_target &current_target)
-
 struct phony_target : abstract_target {
+  using fn_t = void(phony_target &current_target);
+
   explicit phony_target(location const *const loc, std::string_view const name,
                         std::string_view const *const deps,
-                        std::size_t const num_deps, phony_target_fn *const aFn)
+                        std::size_t const num_deps, fn_t *const aFn)
       : abstract_target{loc, name, deps, num_deps}, fn{aFn} {}
 
   virtual ~phony_target() = default;
 
-  phony_target_fn *fn{nullptr};
+  fn_t *fn{nullptr};
 
 private:
   phony_target(phony_target const &) = delete;

@@ -49,37 +49,47 @@ struct BUILD_CXX_DLL_HIDE register_target {
     return &this_project();                                                    \
   }
 
+#define BUILD_CXX_INDEXED_TARGET_IMPL_WITH_NAMES(                              \
+    aIndex, aLocation_name, aDeps_name, aFn_name, aTarget_type_t,              \
+    aTarget_var_name, aName, aRegistrator_name, ...)                           \
+  static ::build_cxx::common::location constexpr aLocation_name{               \
+      __FILE__, __LINE__, aIndex};                                             \
+                                                                               \
+  static std::string_view constexpr aDeps_name[]{__VA_ARGS__};                 \
+                                                                               \
+  static void aFn_name(::build_cxx::common::aTarget_type_t &current_target);   \
+                                                                               \
+  static_assert(std::is_same_v<decltype(aFn_name),                             \
+                               ::build_cxx::common::aTarget_type_t::fn_t>);    \
+                                                                               \
+  static ::build_cxx::common::aTarget_type_t aTarget_var_name{                 \
+      &aLocation_name, aName, aDeps_name,                                      \
+      sizeof(aDeps_name) / sizeof(aDeps_name[0]), aFn_name};                   \
+                                                                               \
+  static ::build_cxx::common::register_target aRegistrator_name{               \
+      &aTarget_var_name};                                                      \
+                                                                               \
+  void aFn_name(::build_cxx::common::aTarget_type_t &current_target)
+
+#define BUILD_CXX_INDEXED_TARGET_IMPL(index, given_target_t, name, ...)        \
+  BUILD_CXX_INDEXED_TARGET_IMPL_WITH_NAMES(                                    \
+      index, BUILD_CXX_IMPL_IMPLICIT_NAME(BUILD_CXX_LOCATION_, index),         \
+      BUILD_CXX_IMPL_IMPLICIT_NAME(BUILD_CXX_DEPS_, index),                    \
+      BUILD_CXX_IMPL_IMPLICIT_NAME(BUILD_CXX_GIVEN_TARGET_FN_, index),         \
+      given_target_t,                                                          \
+      BUILD_CXX_IMPL_IMPLICIT_NAME(BUILD_CXX_GIVEN_TARGET_, index), name,      \
+      BUILD_CXX_IMPL_IMPLICIT_NAME(BUILD_CXX_REGISTER_GIVEN_TARGET_, index),   \
+      __VA_ARGS__)
+
 // https://gcc.gnu.org/onlinedocs/cpp/Common-Predefined-Macros.html
 // I hope others support `__COUNTER__` too
-
-#define BUILD_CXX_PHONY_TARGET_IMPL(index, name, ...)                          \
-  static ::build_cxx::common::location constexpr BUILD_CXX_IMPL_IMPLICIT_NAME( \
-      BUILD_CXX_LOCATION_, index){__FILE__, __LINE__, index};                  \
-                                                                               \
-  static std::string_view constexpr BUILD_CXX_IMPL_IMPLICIT_NAME(              \
-      BUILD_CXX_DEPS_, index)[]{__VA_ARGS__};                                  \
-                                                                               \
-  static BUILD_CXX_PHONY_TARGET_FN(                                            \
-      BUILD_CXX_IMPL_IMPLICIT_NAME(BUILD_CXX_PHONY_TARGET_FN_, index));        \
-                                                                               \
-  static ::build_cxx::common::phony_target BUILD_CXX_IMPL_IMPLICIT_NAME(       \
-      BUILD_CXX_PHONY_TARGET_,                                                 \
-      index){&BUILD_CXX_IMPL_IMPLICIT_NAME(BUILD_CXX_LOCATION_, index), name,  \
-             BUILD_CXX_IMPL_IMPLICIT_NAME(BUILD_CXX_DEPS_, index),             \
-             sizeof(BUILD_CXX_IMPL_IMPLICIT_NAME(BUILD_CXX_DEPS_, index)) /    \
-                 sizeof(std::string_view),                                     \
-             BUILD_CXX_IMPL_IMPLICIT_NAME(BUILD_CXX_PHONY_TARGET_FN_, index)}; \
-                                                                               \
-  static ::build_cxx::common::register_target BUILD_CXX_IMPL_IMPLICIT_NAME(    \
-      BUILD_CXX_REGISTER_PHONY_TARGET_,                                        \
-      index){&BUILD_CXX_IMPL_IMPLICIT_NAME(BUILD_CXX_PHONY_TARGET_, index)};   \
-                                                                               \
-  BUILD_CXX_PHONY_TARGET_FN(                                                   \
-      BUILD_CXX_IMPL_IMPLICIT_NAME(BUILD_CXX_PHONY_TARGET_FN_, index))
+#define BUILD_CXX_TARGET_IMPL(given_target_t, name, ...)                       \
+  BUILD_CXX_INDEXED_TARGET_IMPL(__COUNTER__, given_target_t, name, __VA_ARGS__)
 
 #define BUILD_CXX_PHONY_TARGET(name, ...)                                      \
-  BUILD_CXX_PHONY_TARGET_IMPL(__COUNTER__, name, __VA_ARGS__)
+  BUILD_CXX_TARGET_IMPL(phony_target, name, __VA_ARGS__)
 
+// TODO delete:
 #define BUILD_CXX_GENERIC_TARGET_IMPL(index, name, ...)                        \
   static std::string_view constexpr BUILD_CXX_IMPL_IMPLICIT_NAME(              \
       BUILD_CXX_TARGET_DEPS_, index)[]{__VA_ARGS__};                           \
@@ -98,5 +108,6 @@ struct BUILD_CXX_DLL_HIDE register_target {
   BUILD_CXX_ADJUST_TARGET_FN(                                                  \
       BUILD_CXX_IMPL_IMPLICIT_NAME(BUILD_CXX_ADJUST_TARGET_FN_, index))
 
+// TODO delete:
 #define BUILD_CXX_GENERIC_TARGET(name, ...)                                    \
   BUILD_CXX_GENERIC_TARGET_IMPL(__COUNTER__, name, __VA_ARGS__)
