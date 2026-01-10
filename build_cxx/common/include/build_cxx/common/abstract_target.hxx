@@ -29,7 +29,7 @@ namespace build_cxx::common {
 struct abstract_target {
   explicit abstract_target(location const *const aLoc,
                            std::string_view const aName,
-                           std::string_view const *const aDeps,
+                           std::string_view const *const aRaw_deps,
                            std::size_t const aNum_deps);
 
   virtual ~abstract_target() = default;
@@ -48,6 +48,8 @@ struct abstract_target {
       std::numeric_limits<long long>::max()};
   [[nodiscard]] virtual modification_time_t last_modification_time() const = 0;
 
+  virtual void build() = 0;
+
   // TODO private & getters, (setters?!), etc.:
   // "private":
   abstract_target *next{nullptr}; // non owned
@@ -55,7 +57,7 @@ struct abstract_target {
   // "public":
   location const *loc; // non owned
   std::string_view name;
-  std::string_view const *deps;
+  std::string_view const *raw_deps;
   std::size_t num_deps;
 
 private:

@@ -21,9 +21,10 @@
 
 namespace build_cxx::common {
 
-abstract_target::modification_time_t
-phony_target::last_modification_time() const {
-  return num_deps != 0 ? always_up_to_date : never_up_to_date;
-}
+phony_target::phony_target(location const *const loc,
+                           std::string_view const name,
+                           std::string_view const *const raw_deps,
+                           std::size_t const num_deps)
+    : abstract_target{loc, name, raw_deps, num_deps} {}
 
 } // namespace build_cxx::common

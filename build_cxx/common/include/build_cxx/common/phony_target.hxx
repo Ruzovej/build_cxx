@@ -26,20 +26,16 @@
 namespace build_cxx::common {
 
 struct phony_target : abstract_target {
-  using fn_t = void(phony_target &current_target);
-
   explicit phony_target(location const *const loc, std::string_view const name,
-                        std::string_view const *const deps,
-                        std::size_t const num_deps, fn_t *const aFn)
-      : abstract_target{loc, name, deps, num_deps}, fn{aFn} {}
+                        std::string_view const *const raw_deps,
+                        std::size_t const num_deps);
 
   virtual ~phony_target() = default;
 
-  // Phony target is always up to date if it has dependencies (updating it
-  // depends on them), otherwise always out of date
-  [[nodiscard]] modification_time_t last_modification_time() const override;
-
-  fn_t *fn{nullptr};
+  // Phony target is always out of date
+  [[nodiscard]] modification_time_t last_modification_time() const override {
+    return never_up_to_date;
+  }
 
 private:
   phony_target(phony_target const &) = delete;

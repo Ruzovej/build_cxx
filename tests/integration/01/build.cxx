@@ -24,7 +24,7 @@
 BUILD_CXX_PROJECT("AAA", "1.0.0");
 
 BUILD_CXX_PHONY_TARGET("AAA 1st target") {
-  std::cout << "I'm happy :-) - inside target '" << current_target.name
+  std::cout << "I'm happy :-) - inside target '" << name
             << "'\n";
 }
 

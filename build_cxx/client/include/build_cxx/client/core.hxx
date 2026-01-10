@@ -50,8 +50,8 @@ struct BUILD_CXX_DLL_HIDE register_target {
   }
 
 #define BUILD_CXX_INDEXED_TARGET_IMPL_WITH_NAMES(                              \
-    aIndex, aLocation_name, aDeps_name, aNum_deps, aFn_name, aTarget_type_t,   \
-    aTarget_var_name, aName, aRegistrator_name, ...)                           \
+    aIndex, aLocation_name, aDeps_name, aNum_deps, aTarget_type_t,             \
+    aDerived_name, aTarget_var_name, aName, aRegistrator_name, ...)            \
   static build_cxx::common::location constexpr aLocation_name{                 \
       __FILE__, __LINE__, aIndex};                                             \
                                                                                \
@@ -59,26 +59,27 @@ struct BUILD_CXX_DLL_HIDE register_target {
   static std::size_t constexpr aNum_deps{sizeof(aDeps_name) /                  \
                                          sizeof(aDeps_name[0])};               \
                                                                                \
-  static void aFn_name(build_cxx::common::aTarget_type_t &current_target);     \
+  struct BUILD_CXX_DLL_HIDE aDerived_name                                      \
+      : build_cxx::common::aTarget_type_t {                                    \
+    using aTarget_type_t::aTarget_type_t;                                      \
                                                                                \
-  static_assert(std::is_same_v<decltype(aFn_name),                             \
-                               build_cxx::common::aTarget_type_t::fn_t>);      \
+    void build() override;                                                     \
+  };                                                                           \
                                                                                \
-  static build_cxx::common::aTarget_type_t aTarget_var_name{                   \
-      &aLocation_name, aName, aDeps_name, aNum_deps, aFn_name};                \
+  static aDerived_name aTarget_var_name{&aLocation_name, aName, aDeps_name,    \
+                                        aNum_deps};                            \
                                                                                \
   static build_cxx::common::register_target aRegistrator_name{                 \
       &aTarget_var_name};                                                      \
                                                                                \
-  void aFn_name(build_cxx::common::aTarget_type_t &current_target)
+  void aDerived_name::build()
 
 #define BUILD_CXX_INDEXED_TARGET_IMPL(index, given_target_t, name, ...)        \
   BUILD_CXX_INDEXED_TARGET_IMPL_WITH_NAMES(                                    \
       index, BUILD_CXX_IMPL_IMPLICIT_NAME(BUILD_CXX_LOCATION_, index),         \
       BUILD_CXX_IMPL_IMPLICIT_NAME(BUILD_CXX_DEPS_, index),                    \
       BUILD_CXX_IMPL_IMPLICIT_NAME(BUILD_CXX_NUM_DEPS_, index),                \
-      BUILD_CXX_IMPL_IMPLICIT_NAME(BUILD_CXX_GIVEN_TARGET_FN_, index),         \
-      given_target_t,                                                          \
+      given_target_t, BUILD_CXX_IMPL_IMPLICIT_NAME(given_target_t, index),     \
       BUILD_CXX_IMPL_IMPLICIT_NAME(BUILD_CXX_GIVEN_TARGET_, index), name,      \
       BUILD_CXX_IMPL_IMPLICIT_NAME(BUILD_CXX_REGISTER_GIVEN_TARGET_, index),   \
       __VA_ARGS__)

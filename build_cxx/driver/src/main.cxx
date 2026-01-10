@@ -106,7 +106,7 @@ int main(int argc, char *argv[]) {
         auto const phony{dynamic_cast<build_cxx::common::phony_target *>(at)};
         if (phony) {
           std::cout << "    - is phony target: ";
-          phony->fn(*phony);
+          phony->build();
         }
       }
       std::cout << '\n';
