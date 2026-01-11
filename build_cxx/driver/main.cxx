@@ -29,49 +29,11 @@
 #include <build_cxx/common/phony_target.hxx>
 #include <build_cxx/common/project.hxx>
 
-namespace {
-
-struct dlopen_scoped {
-  explicit dlopen_scoped(char const *const filename)
-      : handle{dlopen(filename, RTLD_LAZY /*| RTLD_GLOBAL*/)} {
-    if (handle == nullptr) {
-      throw std::runtime_error{std::string{"dlopen failed - error: "} +
-                               dlerror()};
-    }
-  }
-
-  build_cxx::common::project *get_project() const {
-    static auto constexpr symbol_name{"build_cxx_get_project"};
-
-    auto symbol{dlsym(handle, symbol_name)};
-    if (symbol == nullptr) { // not mandatory ... TODO later make it so!
-      return nullptr;
-    }
-
-    using get_proj_fn = build_cxx::common::project *();
-
-    auto const fn{reinterpret_cast<get_proj_fn *>(symbol)};
-
-    return fn();
-  }
-
-  ~dlopen_scoped() noexcept {
-    if (handle != nullptr) {
-      if (dlclose(handle) < 0) {
-        std::cerr << "Warning: dlclose failed - error: " << dlerror() << '\n';
-      }
-    }
-  }
-
-private:
-  void *handle;
-};
-
-} // namespace
+#include "build_cxx/driver/dlopen_scoped.hxx"
 
 int main(int argc, char *argv[]) {
   try {
-    std::vector<dlopen_scoped> dl_handles;
+    std::vector<build_cxx::driver::dlopen_scoped> dl_handles;
     dl_handles.reserve(argc - 1);
 
     --argc;

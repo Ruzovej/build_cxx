@@ -26,6 +26,7 @@
 #include "build_cxx/client/macros.h"
 
 namespace build_cxx::common {
+
 struct BUILD_CXX_DLL_HIDE register_target {
   explicit register_target(abstract_target *const at);
 

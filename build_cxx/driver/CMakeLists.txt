@@ -9,20 +9,21 @@ file(
             "${CMAKE_CURRENT_LIST_DIR}/src/*.cxx"
 )
 
-add_executable(
-    build_cxx_driver
-        ${BUILD_CXX_DRIVER_SOURCES}
+add_library(
+    build_cxx_driver_impl
+        SHARED
+            ${BUILD_CXX_DRIVER_SOURCES}
 )
 target_include_directories(
-    build_cxx_driver
+    build_cxx_driver_impl
         PUBLIC
             "${CMAKE_CURRENT_LIST_DIR}/include"
         PRIVATE
             "${CMAKE_CURRENT_LIST_DIR}/src/include"
 )
 target_link_libraries(
-    build_cxx_driver
-        PRIVATE
+    build_cxx_driver_impl
+        PUBLIC
             build_cxx_common
             exec_path_args
 )
@@ -31,3 +32,13 @@ target_link_libraries(
 #        PRIVATE
 #            BUILD_CXX_INTERNAL_IMPLEMENTATION
 #)
+
+add_executable(
+    build_cxx_driver
+        "${CMAKE_CURRENT_LIST_DIR}/main.cxx"
+)
+target_link_libraries(
+    build_cxx_driver
+        PRIVATE
+            build_cxx_driver_impl
+)
