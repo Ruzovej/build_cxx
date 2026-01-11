@@ -18,6 +18,7 @@
 */
 
 #include "build_cxx/common/file_target.hxx"
+
 #include <chrono>
 
 namespace build_cxx::common {

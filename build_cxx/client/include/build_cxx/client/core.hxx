@@ -19,16 +19,26 @@
 
 #pragma once
 
+#include <build_cxx/common/file_target.hxx>
 #include <build_cxx/common/phony_target.hxx>
 #include <build_cxx/common/project.hxx>
-#include <build_cxx/common/target_builder.hxx> // TODO remove ...
 
 #include "build_cxx/client/macros.h"
-#include "build_cxx/client/registrator.hxx"
 
 namespace build_cxx::common {
 struct BUILD_CXX_DLL_HIDE register_target {
   explicit register_target(abstract_target *const at);
+
+private:
+  register_target(register_target const &) = delete;
+  register_target &operator=(register_target const &) = delete;
+  register_target(register_target &&) = delete;
+  register_target &operator=(register_target &&) = delete;
+
+  void *operator new(std::size_t) = delete;
+  void operator delete(void *) = delete;
+  void *operator new[](std::size_t) = delete;
+  void operator delete[](void *) = delete;
 };
 
 } // namespace build_cxx::common
@@ -89,28 +99,8 @@ struct BUILD_CXX_DLL_HIDE register_target {
 #define BUILD_CXX_TARGET_IMPL(given_target_t, name, ...)                       \
   BUILD_CXX_INDEXED_TARGET_IMPL(__COUNTER__, given_target_t, name, __VA_ARGS__)
 
+#define BUILD_CXX_FILE_TARGET(name, ...)                                       \
+  BUILD_CXX_TARGET_IMPL(file_target, name, __VA_ARGS__)
+
 #define BUILD_CXX_PHONY_TARGET(name, ...)                                      \
   BUILD_CXX_TARGET_IMPL(phony_target, name, __VA_ARGS__)
-
-// TODO delete:
-#define BUILD_CXX_GENERIC_TARGET_IMPL(index, name, ...)                        \
-  static std::string_view constexpr BUILD_CXX_IMPL_IMPLICIT_NAME(              \
-      BUILD_CXX_TARGET_DEPS_, index)[]{__VA_ARGS__};                           \
-  static BUILD_CXX_ADJUST_TARGET_FN(                                           \
-      BUILD_CXX_IMPL_IMPLICIT_NAME(BUILD_CXX_ADJUST_TARGET_FN_, index));       \
-  static build_cxx::client::registrator const BUILD_CXX_IMPL_IMPLICIT_NAME(    \
-      BUILD_CXX_REGISTRATOR_, index){                                          \
-      __FILE__,                                                                \
-      __LINE__,                                                                \
-      index,                                                                   \
-      name,                                                                    \
-      BUILD_CXX_IMPL_IMPLICIT_NAME(BUILD_CXX_TARGET_DEPS_, index),             \
-      sizeof(BUILD_CXX_IMPL_IMPLICIT_NAME(BUILD_CXX_TARGET_DEPS_, index)) /    \
-          sizeof(std::string_view),                                            \
-      BUILD_CXX_IMPL_IMPLICIT_NAME(BUILD_CXX_ADJUST_TARGET_FN_, index)};       \
-  BUILD_CXX_ADJUST_TARGET_FN(                                                  \
-      BUILD_CXX_IMPL_IMPLICIT_NAME(BUILD_CXX_ADJUST_TARGET_FN_, index))
-
-// TODO delete:
-#define BUILD_CXX_GENERIC_TARGET(name, ...)                                    \
-  BUILD_CXX_GENERIC_TARGET_IMPL(__COUNTER__, name, __VA_ARGS__)

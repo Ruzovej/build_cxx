@@ -17,31 +17,11 @@
   with build_cxx. If not, see <https://www.gnu.org/licenses/>.
 */
 
-#pragma once
-
-#include <string_view>
-
-#include <build_cxx/common/target_builder.hxx>
+#include "build_cxx/client/core.hxx"
 
 namespace build_cxx::client {
 
-struct registrator {
-  explicit registrator(
-      std::string_view const filename, int const line, int const idx,
-      std::string_view const name, std::string_view const *deps,
-      std::size_t const deps_size, // looking forward to `std::span` ...
-      common::adjust_target_fn *const fn);
-
-private:
-  registrator(registrator const &) = delete;
-  registrator &operator=(registrator const &) = delete;
-  registrator(registrator &&) = delete;
-  registrator &operator=(registrator &&) = delete;
-
-  void *operator new(std::size_t) = delete;
-  void operator delete(void *) = delete;
-  void *operator new[](std::size_t) = delete;
-  void operator delete[](void *) = delete;
-};
+// TODO use it somehow ... or maybe delete it and make the `client` library
+// header only?!
 
 } // namespace build_cxx::client

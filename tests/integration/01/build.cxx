@@ -23,13 +23,12 @@
 
 BUILD_CXX_PROJECT("AAA", "1.0.0");
 
-BUILD_CXX_PHONY_TARGET("AAA 1st target") {
-  std::cout << "I'm happy :-) - inside target '" << name
-            << "'\n";
+BUILD_CXX_PHONY_TARGET("1st target, root") {
+  std::cout << "I'm happy :-) - inside target '" << name << "'\n";
 }
 
-BUILD_CXX_GENERIC_TARGET("Root target") {
-  std::cout << "I'm happy :-) - inside '" << current_target.name << "'\n";
+BUILD_CXX_PHONY_TARGET("2nd target, root") {
+  std::cout << "I'm happy :-) - inside target '" << name << "'\n";
 }
 
 #include "a/build.cxx"

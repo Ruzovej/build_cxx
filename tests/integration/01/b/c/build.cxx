@@ -21,6 +21,6 @@
 
 #include <build_cxx/client/core.hxx>
 
-BUILD_CXX_GENERIC_TARGET("   C target") {
-  std::cout << "I'm happy :-) - inside '" << current_target.name << "'\n";
+BUILD_CXX_PHONY_TARGET("5th target, subdir b/c") {
+  std::cout << "I'm happy :-) - inside target '" << name << "'\n";
 }

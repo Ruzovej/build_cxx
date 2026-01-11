@@ -53,6 +53,11 @@ private:
   project &operator=(project const &) = delete;
   project(project &&) = delete;
   project &operator=(project &&) = delete;
+
+  void *operator new(std::size_t) = delete;
+  void operator delete(void *) = delete;
+  void *operator new[](std::size_t) = delete;
+  void operator delete[](void *) = delete;
 };
 
 } // namespace build_cxx::common

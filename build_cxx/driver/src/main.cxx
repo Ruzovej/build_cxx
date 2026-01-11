@@ -23,10 +23,11 @@
 
 #include <exception>
 #include <iostream>
+#include <vector>
 
+#include <build_cxx/common/file_target.hxx>
 #include <build_cxx/common/phony_target.hxx>
 #include <build_cxx/common/project.hxx>
-#include <build_cxx/common/target_builder.hxx>
 
 namespace {
 
@@ -80,18 +81,6 @@ int main(int argc, char *argv[]) {
       --argc;
       ++argv;
       dl_handles.emplace_back(arg); // TODO refuse already processed *.so ...
-    }
-
-    auto &target_builders{::build_cxx::common::get_target_builders_vector()};
-
-    for (auto &tb : target_builders) {
-      std::cout << "Processing target '" << tb.name << "' defined at '"
-                << tb.filename << ":" << tb.line << "' (index " << tb.index
-                << "):\n";
-
-      tb.update_target();
-
-      std::cout << '\n';
     }
 
     for (auto &dlh : dl_handles) {
