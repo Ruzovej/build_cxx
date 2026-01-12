@@ -17,24 +17,16 @@
   with build_cxx. If not, see <https://www.gnu.org/licenses/>.
 */
 
-#include <dlfcn.h>
-
-#include <cstdlib>
-
 #include <exception>
 #include <iostream>
 #include <vector>
 
-#include <build_cxx/common/file_target.hxx>
-#include <build_cxx/common/phony_target.hxx>
-#include <build_cxx/common/project.hxx>
-
-#include "build_cxx/driver/dlopen_scoped.hxx"
+#include "build_cxx/driver/process_input.hxx"
 
 int main(int argc, char *argv[]) {
   try {
-    std::vector<build_cxx::driver::dlopen_scoped> dl_handles;
-    dl_handles.reserve(argc - 1);
+    std::vector<char const *> input_files;
+    input_files.reserve(argc - 1);
 
     --argc;
     ++argv;
@@ -42,36 +34,20 @@ int main(int argc, char *argv[]) {
       auto const arg{argv[0]};
       --argc;
       ++argv;
-      dl_handles.emplace_back(arg); // TODO refuse already processed *.so ...
+      input_files.emplace_back(arg); // TODO refuse already processed *.so ...
     }
 
-    for (auto &dlh : dl_handles) {
-      auto const proj{dlh.get_project()};
-      if (proj != nullptr) {
-        std::cout << "Project '" << proj->name << "' version '" << proj->version
-                  << "' has targets:\n";
-      }
-
-      for (auto at{proj->first}; at != nullptr; at = at->next) {
-        std::cout << " - Target '" << at->name << "'\n";
-        auto const phony{dynamic_cast<build_cxx::common::phony_target *>(at)};
-        if (phony) {
-          std::cout << "    - is phony target: ";
-          phony->build();
-        }
-      }
-      std::cout << '\n';
-    }
+    build_cxx::driver::process_input(input_files);
 
     return EXIT_SUCCESS;
   } catch (std::exception const &e) {
-    std::cerr << "build_cxx::driver failed - error (exception): " << e.what()
+    std::cerr << "build_cxx_driver failed - error (exception): " << e.what()
               << "\n";
   } catch (char const *const msg) {
-    std::cerr << "build_cxx::driver failed - error (char const *): " << msg
+    std::cerr << "build_cxx_driver failed - error (char const *): " << msg
               << "\n";
   } catch (...) {
-    std::cerr << "build_cxx::driver failed - unknown error\n";
+    std::cerr << "build_cxx_driver failed - unknown error\n";
   }
   return EXIT_FAILURE;
 }
