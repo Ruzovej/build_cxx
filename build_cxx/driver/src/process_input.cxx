@@ -19,7 +19,6 @@
 
 #include "build_cxx/driver/process_input.hxx"
 
-//#include <exception>
 #include <iostream>
 #include <string_view>
 #include <unordered_map>
