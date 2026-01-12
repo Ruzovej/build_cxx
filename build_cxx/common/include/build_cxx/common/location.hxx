@@ -24,9 +24,9 @@
 namespace build_cxx::common {
 
 struct location {
-  std::string_view aFilename;
-  int aLine;
-  int aIndex;
+  std::string_view filename;
+  int line;
+  int index;
 };
 
 } // namespace build_cxx::common

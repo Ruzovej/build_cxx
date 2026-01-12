@@ -31,7 +31,7 @@ file_target::file_target(location const *const loc, std::string_view const name,
   if (name[0] == '/') {
     resolved_path = std::filesystem::path{name};
   } else {
-    std::filesystem::path listFolder{loc->aFilename};
+    std::filesystem::path listFolder{loc->filename};
     listFolder.remove_filename();
 
     resolved_path = listFolder / std::filesystem::path{name};
