@@ -27,7 +27,8 @@
 namespace build_cxx::common {
 
 struct file_target : abstract_target {
-  explicit file_target(location const *const loc, std::string_view const name,
+  explicit file_target(location const *const loc, bool const include_in_all,
+                       std::string_view const name,
                        std::string_view const *const raw_deps,
                        std::size_t const num_deps);
 

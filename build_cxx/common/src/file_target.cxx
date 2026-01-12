@@ -23,10 +23,11 @@
 
 namespace build_cxx::common {
 
-file_target::file_target(location const *const loc, std::string_view const name,
+file_target::file_target(location const *const loc, bool const include_in_all,
+                         std::string_view const name,
                          std::string_view const *const raw_deps,
                          std::size_t const num_deps)
-    : abstract_target{loc, name, raw_deps, num_deps} {
+    : abstract_target{loc, include_in_all, name, raw_deps, num_deps} {
   // TODO ... is it really wanted in this form?!
   if (name[0] == '/') {
     resolved_path = std::filesystem::path{name};

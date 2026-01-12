@@ -27,10 +27,12 @@
 namespace build_cxx::common {
 
 abstract_target::abstract_target(location const *const aLoc,
+                                 bool const aInclude_in_all,
                                  std::string_view const aName,
                                  std::string_view const *const aRaw_deps,
                                  std::size_t const aNum_deps)
-    : loc{aLoc}, name{aName}, raw_deps{aRaw_deps}, num_deps{aNum_deps} {}
+    : loc{aLoc}, include_in_all{aInclude_in_all}, name{aName},
+      raw_deps{aRaw_deps}, num_deps{aNum_deps} {}
 
 // bool abstract_target::is_up_to_date() const {
 //   auto const my_modification_time{last_modification_time()};

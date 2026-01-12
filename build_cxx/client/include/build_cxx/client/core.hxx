@@ -62,7 +62,8 @@ private:
 
 #define BUILD_CXX_INDEXED_TARGET_IMPL_WITH_NAMES(                              \
     aIndex, aLocation_name, aDeps_name, aNum_deps, aTarget_type_t,             \
-    aDerived_name, aTarget_var_name, aName, aRegistrator_name, ...)            \
+    aInclude_in_all, aDerived_name, aTarget_var_name, aName,                   \
+    aRegistrator_name, ...)                                                    \
   static build_cxx::common::location constexpr aLocation_name{                 \
       __FILE__, __LINE__, aIndex};                                             \
                                                                                \
@@ -77,31 +78,40 @@ private:
     void build() override;                                                     \
   };                                                                           \
                                                                                \
-  static aDerived_name aTarget_var_name{&aLocation_name, aName, aDeps_name,    \
-                                        aNum_deps};                            \
+  static aDerived_name aTarget_var_name{&aLocation_name, aInclude_in_all,      \
+                                        aName, aDeps_name, aNum_deps};         \
                                                                                \
   static build_cxx::common::register_target aRegistrator_name{                 \
       &aTarget_var_name};                                                      \
                                                                                \
   void aDerived_name::build()
 
-#define BUILD_CXX_INDEXED_TARGET_IMPL(index, given_target_t, name, ...)        \
+#define BUILD_CXX_INDEXED_TARGET_IMPL(index, include_in_all, given_target_t,   \
+                                      name, ...)                               \
   BUILD_CXX_INDEXED_TARGET_IMPL_WITH_NAMES(                                    \
       index, BUILD_CXX_IMPL_IMPLICIT_NAME(BUILD_CXX_LOCATION_, index),         \
       BUILD_CXX_IMPL_IMPLICIT_NAME(BUILD_CXX_DEPS_, index),                    \
       BUILD_CXX_IMPL_IMPLICIT_NAME(BUILD_CXX_NUM_DEPS_, index),                \
-      given_target_t, BUILD_CXX_IMPL_IMPLICIT_NAME(given_target_t, index),     \
+      given_target_t, include_in_all,                                          \
+      BUILD_CXX_IMPL_IMPLICIT_NAME(given_target_t, index),                     \
       BUILD_CXX_IMPL_IMPLICIT_NAME(BUILD_CXX_GIVEN_TARGET_, index), name,      \
       BUILD_CXX_IMPL_IMPLICIT_NAME(BUILD_CXX_REGISTER_GIVEN_TARGET_, index),   \
       __VA_ARGS__)
 
 // https://gcc.gnu.org/onlinedocs/cpp/Common-Predefined-Macros.html
 // I hope others support `__COUNTER__` too
-#define BUILD_CXX_TARGET_IMPL(given_target_t, name, ...)                       \
-  BUILD_CXX_INDEXED_TARGET_IMPL(__COUNTER__, given_target_t, name, __VA_ARGS__)
+#define BUILD_CXX_TARGET_IMPL(given_target_t, include_in_all, name, ...)       \
+  BUILD_CXX_INDEXED_TARGET_IMPL(__COUNTER__, include_in_all, given_target_t,   \
+                                name, __VA_ARGS__)
 
 #define BUILD_CXX_FILE_TARGET(name, ...)                                       \
-  BUILD_CXX_TARGET_IMPL(file_target, name, __VA_ARGS__)
+  BUILD_CXX_TARGET_IMPL(file_target, true, name, __VA_ARGS__)
+
+#define BUILD_CXX_HIDDEN_FILE_TARGET(name, ...)                                \
+  BUILD_CXX_TARGET_IMPL(file_target, false, name, __VA_ARGS__)
 
 #define BUILD_CXX_PHONY_TARGET(name, ...)                                      \
-  BUILD_CXX_TARGET_IMPL(phony_target, name, __VA_ARGS__)
+  BUILD_CXX_TARGET_IMPL(phony_target, true, name, __VA_ARGS__)
+
+#define BUILD_CXX_HIDDEN_PHONY_TARGET(name, ...)                               \
+  BUILD_CXX_TARGET_IMPL(phony_target, false, name, __VA_ARGS__)

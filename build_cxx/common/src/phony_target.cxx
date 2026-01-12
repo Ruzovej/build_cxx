@@ -21,10 +21,10 @@
 
 namespace build_cxx::common {
 
-phony_target::phony_target(location const *const loc,
+phony_target::phony_target(location const *const loc, bool const include_in_all,
                            std::string_view const name,
                            std::string_view const *const raw_deps,
                            std::size_t const num_deps)
-    : abstract_target{loc, name, raw_deps, num_deps} {}
+    : abstract_target{loc, include_in_all, name, raw_deps, num_deps} {}
 
 } // namespace build_cxx::common
