@@ -151,6 +151,14 @@ bool processed_targets::resolve_deps(common::abstract_target const *const at) {
           !try_resolve_dep(target_path{at_proj_name, "", normalized.second})) {
         all_deps_resolved = false;
       } else {
+        // clang-format off
+        // TODO fix it ...
+        // e.g. 
+        // $ build/build_cxx/driver/build_cxx_driver build/tests/integration/lib02.so build/tests/integration/lib02.so build/tests/integration/lib02.so
+        // works, but                                                            ^
+        // $ build/build_cxx/driver/build_cxx_driver build/tests/integration/lib01.so build/tests/integration/lib02.so
+        // doesn't ...                                                           ^ there's the crucial difference     ^^^... unimportant
+        // clang-format on
         [[maybe_unused]] volatile bool LR_DBG1 = true;
         [[maybe_unused]] volatile bool LR_DBG2 = true;
       }
