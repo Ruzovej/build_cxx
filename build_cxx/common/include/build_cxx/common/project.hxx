@@ -22,13 +22,15 @@
 #include <string_view>
 
 #include "build_cxx/common/abstract_target.hxx"
+#include "build_cxx/common/location.hxx"
 
 namespace build_cxx::common {
 
 struct project {
   explicit project(std::string_view const aName,
-                   std::string_view const aVersion)
-      : name{aName}, version{aVersion} {}
+                   std::string_view const aVersion,
+                   std::string_view const aRoot_file)
+      : name{aName}, version{aVersion}, root_file{aRoot_file} {}
 
   ~project() = default;
 
@@ -47,6 +49,7 @@ struct project {
   // non owned:
   abstract_target *first{nullptr};
   abstract_target *last{nullptr};
+  std::string_view root_file;
 
 private:
   project(project const &) = delete;

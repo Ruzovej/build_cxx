@@ -17,14 +17,22 @@
   with build_cxx. If not, see <https://www.gnu.org/licenses/>.
 */
 
-#include <iostream>
+#pragma once
 
-#include <build_cxx/client/core.hxx>
-#include <build_cxx/client/debug_helper.hxx>
+#include <string>
+#include <vector>
 
-BUILD_CXX_FILE_TARGET("src/AAA_2.cxx") {
-  std::cout << "I'm twice as happy :-) "
-            << build_cxx::client::print_abstract_target_build_info(this, deps);
-}
+#include <build_cxx/common/abstract_target.hxx>
 
-#include "c/build.cxx"
+#include "build_cxx/client/macros.h"
+
+namespace build_cxx::client {
+
+[[nodiscard]] BUILD_CXX_DLL_EXPORT std::string
+print_abstract_target_basic_info(common::abstract_target const *const at, bool const brief = false);
+
+[[nodiscard]] BUILD_CXX_DLL_EXPORT std::string print_abstract_target_build_info(
+    common::abstract_target const *const at,
+    std::vector<common::abstract_target const *> const &deps);
+
+} // namespace build_cxx::client

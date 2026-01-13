@@ -24,9 +24,13 @@
 namespace build_cxx::common {
 
 struct location {
+  // this should indicate that it's not tied to "baked-in" target (but to some
+  // dynamically determined one)
+  static int constexpr no_index{-1};
+
   std::string_view filename;
   int line;
-  int index;
+  int index{no_index};
 };
 
 } // namespace build_cxx::common

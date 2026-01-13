@@ -17,14 +17,10 @@
   with build_cxx. If not, see <https://www.gnu.org/licenses/>.
 */
 
-#include <iostream>
+namespace AAA {
 
-#include <build_cxx/client/core.hxx>
-#include <build_cxx/client/debug_helper.hxx>
+void foo_b_c(){
+    // ...
+};
 
-BUILD_CXX_FILE_TARGET("src/AAA_2.cxx") {
-  std::cout << "I'm twice as happy :-) "
-            << build_cxx::client::print_abstract_target_build_info(this, deps);
 }
-
-#include "c/build.cxx"

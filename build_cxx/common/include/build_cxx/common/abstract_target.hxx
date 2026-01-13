@@ -21,6 +21,7 @@
 
 #include <limits>
 #include <string_view>
+#include <vector>
 
 #include "build_cxx/common/location.hxx"
 
@@ -49,7 +50,7 @@ struct abstract_target {
       std::numeric_limits<long long>::max()};
   [[nodiscard]] virtual modification_time_t last_modification_time() const = 0;
 
-  virtual void build() = 0;
+  virtual void build(std::vector<abstract_target const *> const &deps) = 0;
 
   // TODO private & getters, (setters?!), etc.:
   // "private":

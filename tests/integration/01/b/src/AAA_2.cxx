@@ -17,11 +17,10 @@
   with build_cxx. If not, see <https://www.gnu.org/licenses/>.
 */
 
-#include "build_cxx/client/core.hxx"
+namespace AAA {
 
-namespace build_cxx::client {
+void foo_b(){
+    // ...
+};
 
-// TODO use it somehow ... or maybe delete it and make the `client` library
-// header only?!
-
-} // namespace build_cxx::client
+}

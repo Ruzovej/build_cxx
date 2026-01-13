@@ -20,7 +20,9 @@
 #include <iostream>
 
 #include <build_cxx/client/core.hxx>
+#include <build_cxx/client/debug_helper.hxx>
 
-BUILD_CXX_PHONY_TARGET("5th target, subdir b/c") {
-  std::cout << "I'm happy :-) - inside target '" << name << "'\n";
+BUILD_CXX_FILE_TARGET("src/AAA_3.cxx") {
+  std::cout << "I'm twice as happy :-) "
+            << build_cxx::client::print_abstract_target_build_info(this, deps);
 }

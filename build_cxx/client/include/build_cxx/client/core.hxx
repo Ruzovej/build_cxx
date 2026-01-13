@@ -19,6 +19,7 @@
 
 #pragma once
 
+#include <build_cxx/common/abstract_target.hxx>
 #include <build_cxx/common/file_target.hxx>
 #include <build_cxx/common/phony_target.hxx>
 #include <build_cxx/common/project.hxx>
@@ -46,7 +47,7 @@ private:
 
 #define BUILD_CXX_PROJECT(name, version)                                       \
   static build_cxx::common::project &this_project() {                          \
-    static build_cxx::common::project p{name, version};                        \
+    static build_cxx::common::project p{name, version, __FILE__};              \
     return p;                                                                  \
   }                                                                            \
                                                                                \
@@ -75,7 +76,7 @@ private:
       : build_cxx::common::aTarget_type_t {                                    \
     using aTarget_type_t::aTarget_type_t;                                      \
                                                                                \
-    void build() override;                                                     \
+    void build(std::vector<abstract_target const *> const &deps) override;     \
   };                                                                           \
                                                                                \
   static aDerived_name aTarget_var_name{&aLocation_name, aInclude_in_all,      \
@@ -84,7 +85,7 @@ private:
   static build_cxx::common::register_target aRegistrator_name{                 \
       &aTarget_var_name};                                                      \
                                                                                \
-  void aDerived_name::build()
+  void aDerived_name::build(std::vector<abstract_target const *> const &deps)
 
 #define BUILD_CXX_INDEXED_TARGET_IMPL(index, include_in_all, given_target_t,   \
                                       name, ...)                               \

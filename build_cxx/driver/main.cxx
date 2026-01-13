@@ -28,13 +28,15 @@ int main(int argc, char *argv[]) {
     std::vector<char const *> input_files;
     input_files.reserve(argc - 1);
 
+    // skip executable name ...
     --argc;
     ++argv;
     while (argc > 0) {
-      auto const arg{argv[0]};
+      // TODO refuse already processed *.so ...
+      input_files.emplace_back(argv[0]);
       --argc;
       ++argv;
-      input_files.emplace_back(arg); // TODO refuse already processed *.so ...
+      // TODO further argument kinds, switches, etc.
     }
 
     build_cxx::driver::process_input(input_files);
