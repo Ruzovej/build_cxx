@@ -21,6 +21,7 @@
 
 #include <build_cxx/common/abstract_target.hxx>
 #include <build_cxx/common/file_target.hxx>
+#include <build_cxx/common/macros.h>
 #include <build_cxx/common/phony_target.hxx>
 #include <build_cxx/common/project.hxx>
 
@@ -57,7 +58,7 @@ private:
   }                                                                            \
                                                                                \
   BUILD_CXX_DLL_EXPORT_C_SYMBOL build_cxx::common::project *                   \
-  build_cxx_get_project() {                                                    \
+  BUILD_CXX_GET_PROJECT_SYMBOL_NAME() {                                        \
     return &this_project();                                                    \
   }
 

@@ -24,6 +24,8 @@
 #include <exception>
 #include <iostream>
 
+#include <build_cxx/common/macros.h>
+
 namespace build_cxx::driver {
 
 dlopen_scoped::dlopen_scoped(char const *const filename)
@@ -35,7 +37,8 @@ dlopen_scoped::dlopen_scoped(char const *const filename)
 }
 
 build_cxx::common::project *dlopen_scoped::get_project() const {
-  static auto constexpr symbol_name{"build_cxx_get_project"};
+  static auto constexpr symbol_name{
+      BUILD_CXX_GET_PROJECT_SYMBOL_NAME_STR};
 
   auto symbol{dlsym(handle, symbol_name)};
   if (symbol == nullptr) { // not mandatory ... TODO later make it so!

@@ -54,7 +54,7 @@ void process_input(std::vector<char const *> const &input_files) {
       continue;
     }
 
-    auto const iter = processed_projects.find(proj->name);
+    auto const iter{processed_projects.find(proj->name)};
 
     if (iter == processed_projects.end()) {
       processed_projects.emplace(proj->name, proj->version);
@@ -83,30 +83,27 @@ void process_input(std::vector<char const *> const &input_files) {
         "Not all dependencies could be resolved (or no input provided)"};
   }
 
-  for (auto const &dlh : dl_handles) {
-    auto const proj{dlh.get_project()};
-
+  for (auto const [name, proj] : pt.projects_by_name) {
     // TODO real implementation:
     std::cout << "Project '" << proj->name << "' version '" << proj->version
               << "' has targets:\n";
     for (auto at{proj->first}; at != nullptr; at = at->next) {
-      std::cout << " - Target '" << at->name << "'\n";
+      std::string_view type{};
 
-      auto const phony{dynamic_cast<build_cxx::common::phony_target *>(at)};
-      if (phony) {
-        std::cout << "    - is phony target: ";
-        phony->build(pt.get_target_resolved_deps().at(phony).deps);
-        std::cout << '\n';
+      if (auto const phony{dynamic_cast<build_cxx::common::phony_target *>(at)};
+          phony != nullptr) {
+        type = "phony";
+      } else if (auto const file_like{
+                     dynamic_cast<build_cxx::common::file_target *>(at)};
+                 file_like != nullptr) {
+        type = "file-like";
+      } else {
         continue;
       }
 
-      auto const file_like{dynamic_cast<build_cxx::common::file_target *>(at)};
-      if (file_like) {
-        std::cout << "    - is file target: ";
-        file_like->build(pt.get_target_resolved_deps().at(file_like).deps);
-        std::cout << '\n';
-        continue;
-      }
+      std::cout << " - Target '" << at->name << "' is " << type << " target\n    ";
+      at->build(pt.get_target_resolved_deps().at(at).deps);
+      std::cout << '\n';
     }
     std::cout << '\n';
   }

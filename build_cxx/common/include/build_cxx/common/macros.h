@@ -19,10 +19,13 @@
 
 #pragma once
 
-#define BUILD_CXX_IMPL_IMPLICIT_NAME_JOIN(begin, end) begin##end
-#define BUILD_CXX_IMPL_IMPLICIT_NAME(begin, end)                               \
-  BUILD_CXX_IMPL_IMPLICIT_NAME_JOIN(begin, end)
+//#define BUILD_CXX_IMPL_STRINGIFY(x) #x
 
-#define BUILD_CXX_DLL_HIDE __attribute__((visibility("hidden")))
-#define BUILD_CXX_DLL_EXPORT __attribute__((visibility("default")))
-#define BUILD_CXX_DLL_EXPORT_C_SYMBOL extern "C" BUILD_CXX_DLL_EXPORT
+// TODO improve:
+#define BUILD_CXX_GET_PROJECT_SYMBOL_NAME build_cxx_get_project_v_0_1_0_beta
+#define BUILD_CXX_GET_PROJECT_SYMBOL_NAME_STR                                  \
+  "build_cxx_get_project_v_0_1_0_beta"
+//#define BUILD_CXX_GET_PROJECT_SYMBOL_NAME_STR_IMPL                             \
+//  BUILD_CXX_IMPL_STRINGIFY(BUILD_CXX_GET_PROJECT_SYMBOL_NAME)
+//#define BUILD_CXX_GET_PROJECT_SYMBOL_NAME_STR                                  \
+//  BUILD_CXX_GET_PROJECT_SYMBOL_NAME_STR_IMPL

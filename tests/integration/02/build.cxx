@@ -24,17 +24,17 @@
 
 BUILD_CXX_PROJECT("BBB", "1.0.0");
 
-/*
 BUILD_CXX_PHONY_TARGET("b_01",
                        // deps:
                        "b_02") {
-  std::cout << "I'm happy :-) - inside target '" << name << "'\n";
+  std::cout << "I'm happy :-) "
+            << build_cxx::client::abstract_target_build_info(this, deps);
 }
 
 BUILD_CXX_HIDDEN_PHONY_TARGET("b_02") {
-  std::cout << "I'm happy :-) - inside target '" << name << "'\n";
+  std::cout << "I'm happy :-) "
+            << build_cxx::client::abstract_target_build_info(this, deps);
 }
-*/
 
 // very fake ...:
 
