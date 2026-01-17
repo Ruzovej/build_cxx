@@ -98,22 +98,13 @@ BUILD_CXX_HIDDEN_FILE_TARGET("build/src/CCC.cxx.o",
 }
 
 // simulating local file:
-BUILD_CXX_HIDDEN_FILE_TARGET("src/CCC.cxx",
-                             // deps:
-                             "include/CCC.hxx") {
-  std::cout << "I'm happy :-) "
-            << build_cxx::client::abstract_target_build_info(this, deps);
-}
+BUILD_CXX_HIDDEN_READ_ONLY_FILE_TARGET("src/CCC.cxx",
+                                       // deps:
+                                       "include/CCC.hxx");
 
-BUILD_CXX_HIDDEN_FILE_TARGET("include/CCC.hxx",
-                             // deps:
-                             "/usr/include/c++/11/string_view") {
-  std::cout << "I'm happy :-) "
-            << build_cxx::client::abstract_target_build_info(this, deps);
-}
+BUILD_CXX_HIDDEN_READ_ONLY_FILE_TARGET("include/CCC.hxx",
+                                       // deps:
+                                       "/usr/include/c++/11/string_view");
 
 // simulating system file:
-BUILD_CXX_HIDDEN_FILE_TARGET("/usr/include/c++/11/string_view") {
-  std::cout << "I'm happy :-) "
-            << build_cxx::client::abstract_target_build_info(this, deps);
-}
+BUILD_CXX_HIDDEN_READ_ONLY_FILE_TARGET("/usr/include/c++/11/string_view");

@@ -17,16 +17,22 @@
   with build_cxx. If not, see <https://www.gnu.org/licenses/>.
 */
 
-#include "build_cxx/common/abstract_target.hxx"
+#include "build_cxx/common/project.hxx"
 
 namespace build_cxx::common {
 
-abstract_target::abstract_target(location const *const aLoc,
-                                 bool const aInclude_in_all,
-                                 std::string_view const aName,
-                                 std::string_view const *const aRaw_deps,
-                                 std::size_t const aNum_deps) noexcept
-    : loc{aLoc}, include_in_all{aInclude_in_all}, name{aName},
-      raw_deps{aRaw_deps}, num_deps{aNum_deps} {}
+project::project(std::string_view const aName, std::string_view const aVersion,
+                 std::string_view const aRoot_file) noexcept
+    : name{aName}, version{aVersion}, root_file{aRoot_file} {}
+
+void project::add_target(abstract_target *const target) noexcept {
+  if (first == nullptr) {
+    first = last = target;
+  } else {
+    last->next = target;
+    last = target;
+  }
+  target->parent_project = this;
+}
 
 } // namespace build_cxx::common

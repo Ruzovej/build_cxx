@@ -22,6 +22,7 @@
 #include <algorithm>
 #include <functional>
 #include <iostream>
+#include <limits>
 #include <string_view>
 #include <unordered_map>
 #include <unordered_set>
@@ -124,36 +125,42 @@ void process_input(std::vector<char const *> const &targets,
           std::cout << indent << "Building target '" << tgt->resolved_name
                     << "':\n";
 
-          if (tgt->name == "build/src/CCC.cxx.o") {
-            [[maybe_unused]] volatile bool a = false;
-            a = true;
-          }
+          // TODO remove later ...
+          // if (tgt->name == "build/src/CCC.cxx.o") {
+          //   [[maybe_unused]] volatile bool a = false;
+          //   a = true;
+          // }
 
           auto const &deps{pt.get_target_resolved_deps().at(tgt).deps};
 
-          long long highest_modification_time{
-              common::abstract_target::always_up_to_date};
+          auto highest_dep_mod_time{std::numeric_limits<
+              common::abstract_target::modification_time_t>::min()};
 
           for (auto const dep : deps) {
+            // TODO get rid of this ugly `const_cast` ...
             build_target(const_cast<common::abstract_target *>(dep),
                          indent + '\t');
-            highest_modification_time = std::max(highest_modification_time,
-                                                 dep->last_modification_time());
+
+            auto const dep_mod_time{dep->last_modification_time()};
+
+            highest_dep_mod_time = std::max(highest_dep_mod_time, dep_mod_time);
           }
 
-          auto const ftgt{dynamic_cast<common::file_target const *>(tgt)};
+          auto const last_mod_time{tgt->last_modification_time()};
 
           std::cout << indent << "-> ";
 
-          if ((highest_modification_time < tgt->last_modification_time()) &&
-              (ftgt != nullptr)) {
+          // `<` (may rebuild already up-to-date stuff) or `<=` (means `PHONY`
+          // targets are up-to-date)?!
+          // TODO figure out proper way later ...
+          if (highest_dep_mod_time < last_mod_time) {
             std::cout << "is already up to date\n";
           } else {
             tgt->build(deps);
             std::cout << '\n';
           }
 
-          built_targets.insert(tgt);
+          built_targets.emplace(tgt);
         };
 
     for (std::string_view const target : targets) {

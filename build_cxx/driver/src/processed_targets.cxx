@@ -37,7 +37,7 @@ void processed_targets::process_project(common::project const *const proj) {
   projects_by_name.emplace(proj->name, proj);
 
   for (auto at{proj->first}; at != nullptr; at = at->next) {
-    at->resolve_own_name(proj->name);
+    at->resolve_own_traits();
 
     targets_by_project[proj].emplace_back(at);
 

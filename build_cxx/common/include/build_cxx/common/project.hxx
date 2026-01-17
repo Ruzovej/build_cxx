@@ -29,20 +29,11 @@ namespace build_cxx::common {
 struct project {
   explicit project(std::string_view const aName,
                    std::string_view const aVersion,
-                   std::string_view const aRoot_file)
-      : name{aName}, version{aVersion}, root_file{aRoot_file} {}
+                   std::string_view const aRoot_file) noexcept;
 
   ~project() = default;
 
-  void add_target(abstract_target *const target) {
-    if (first == nullptr) {
-      first = last = target;
-    } else {
-      last->next = target;
-      last = target;
-    }
-    target->parent_project = this;
-  }
+  void add_target(abstract_target *const target) noexcept;
 
   // TODO private & getters, (setters?!), etc.:
   std::string_view name;

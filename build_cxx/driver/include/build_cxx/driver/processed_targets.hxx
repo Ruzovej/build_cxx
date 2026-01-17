@@ -79,6 +79,10 @@ struct processed_targets {
     return target_resolved_deps;
   }
 
+  [[nodiscard]] auto &get_target_resolved_deps() {
+    return target_resolved_deps;
+  }
+
 private:
   std::unordered_map<common::abstract_target const *, resolved_deps>
       target_resolved_deps;

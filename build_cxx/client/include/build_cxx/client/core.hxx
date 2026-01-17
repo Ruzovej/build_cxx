@@ -62,58 +62,130 @@ private:
     return &this_project();                                                    \
   }
 
-#define BUILD_CXX_INDEXED_TARGET_IMPL_WITH_NAMES(                              \
+// 01, helpers & implementation details
+
+#define BUILD_CXX_DEFINE_LOCATION(aLocation_name, aIndex)                      \
+  static build_cxx::common::location constexpr aLocation_name {                \
+    __FILE__, __LINE__, aIndex                                                 \
+  }
+
+#define BUILD_CXX_DEFINE_DEPS_ARRAY(aDeps_name, aNum_deps, ...)                \
+  static std::string_view constexpr aDeps_name[]{__VA_ARGS__};                 \
+  static std::size_t constexpr aNum_deps {                                     \
+    sizeof(aDeps_name) / sizeof(aDeps_name[0])                                 \
+  }
+
+#define BUILD_CXX_DECLARE_ABSTRACT_TARGET_CHILD(aDerived_name, aBase_name)     \
+  struct BUILD_CXX_DLL_HIDE aDerived_name : build_cxx::common::aBase_name {    \
+    using aBase_name::aBase_name;                                              \
+                                                                               \
+    void build(std::vector<abstract_target const *> const &deps) override;     \
+  }
+
+#define BUILD_CXX_DEFINE_TARGET(aTarget_type_t, aTarget_var_name,              \
+                                aLocation_name, aInclude_in_all, aName,        \
+                                aDeps_name, aNum_deps)                         \
+  static aTarget_type_t aTarget_var_name {                                     \
+    &aLocation_name, aInclude_in_all, aName, aDeps_name, aNum_deps             \
+  }
+
+#define BUILD_CXX_DEFINE_REGISTRATOR(aRegistrator_name, aTarget_var_name)      \
+  static build_cxx::common::register_target aRegistrator_name {                \
+    &aTarget_var_name                                                          \
+  }
+
+#define BUILD_CXX_DEFINE_TARGET_BUILD_METHOD(aDerived_name)                    \
+  void aDerived_name::build(                                                   \
+      std::vector<build_cxx::common::abstract_target const *> const &deps)
+
+// 02
+
+#define BUILD_CXX_INDEXED_FINAL_TARGET_WITH_NAMES(                             \
+    aIndex, aLocation_name, aDeps_name, aNum_deps, aTarget_type_t,             \
+    aInclude_in_all, aTarget_var_name, aName, aRegistrator_name, ...)          \
+  BUILD_CXX_DEFINE_LOCATION(aLocation_name, aIndex);                           \
+                                                                               \
+  BUILD_CXX_DEFINE_DEPS_ARRAY(aDeps_name, aNum_deps, __VA_ARGS__);             \
+                                                                               \
+  BUILD_CXX_DEFINE_TARGET(aTarget_type_t, aTarget_var_name, aLocation_name,    \
+                          aInclude_in_all, aName, aDeps_name, aNum_deps);      \
+                                                                               \
+  BUILD_CXX_DEFINE_REGISTRATOR(aRegistrator_name, aTarget_var_name)
+
+// 02.5
+
+#define BUILD_CXX_INDEXED_CUSTOM_TARGET_WITH_NAMES(                            \
     aIndex, aLocation_name, aDeps_name, aNum_deps, aTarget_type_t,             \
     aInclude_in_all, aDerived_name, aTarget_var_name, aName,                   \
     aRegistrator_name, ...)                                                    \
-  static build_cxx::common::location constexpr aLocation_name{                 \
-      __FILE__, __LINE__, aIndex};                                             \
+  BUILD_CXX_DECLARE_ABSTRACT_TARGET_CHILD(aDerived_name, aTarget_type_t);      \
                                                                                \
-  static std::string_view constexpr aDeps_name[]{__VA_ARGS__};                 \
-  static std::size_t constexpr aNum_deps{sizeof(aDeps_name) /                  \
-                                         sizeof(aDeps_name[0])};               \
+  BUILD_CXX_INDEXED_FINAL_TARGET_WITH_NAMES(                                   \
+      aIndex, aLocation_name, aDeps_name, aNum_deps, aDerived_name,            \
+      aInclude_in_all, aTarget_var_name, aName, aRegistrator_name,             \
+      __VA_ARGS__);                                                            \
                                                                                \
-  struct BUILD_CXX_DLL_HIDE aDerived_name                                      \
-      : build_cxx::common::aTarget_type_t {                                    \
-    using aTarget_type_t::aTarget_type_t;                                      \
-                                                                               \
-    void build(std::vector<abstract_target const *> const &deps) override;     \
-  };                                                                           \
-                                                                               \
-  static aDerived_name aTarget_var_name{&aLocation_name, aInclude_in_all,      \
-                                        aName, aDeps_name, aNum_deps};         \
-                                                                               \
-  static build_cxx::common::register_target aRegistrator_name{                 \
-      &aTarget_var_name};                                                      \
-                                                                               \
-  void aDerived_name::build(std::vector<abstract_target const *> const &deps)
+  BUILD_CXX_DEFINE_TARGET_BUILD_METHOD(aDerived_name)
 
-#define BUILD_CXX_INDEXED_TARGET_IMPL(index, include_in_all, given_target_t,   \
-                                      name, ...)                               \
-  BUILD_CXX_INDEXED_TARGET_IMPL_WITH_NAMES(                                    \
+// 03
+
+#define BUILD_CXX_INDEXED_CUSTOM_TARGET(index, include_in_all, given_target_t, \
+                                        name, ...)                             \
+  BUILD_CXX_INDEXED_CUSTOM_TARGET_WITH_NAMES(                                  \
       index, BUILD_CXX_IMPL_IMPLICIT_NAME(BUILD_CXX_LOCATION_, index),         \
       BUILD_CXX_IMPL_IMPLICIT_NAME(BUILD_CXX_DEPS_, index),                    \
       BUILD_CXX_IMPL_IMPLICIT_NAME(BUILD_CXX_NUM_DEPS_, index),                \
       given_target_t, include_in_all,                                          \
       BUILD_CXX_IMPL_IMPLICIT_NAME(given_target_t, index),                     \
-      BUILD_CXX_IMPL_IMPLICIT_NAME(BUILD_CXX_GIVEN_TARGET_, index), name,      \
-      BUILD_CXX_IMPL_IMPLICIT_NAME(BUILD_CXX_REGISTER_GIVEN_TARGET_, index),   \
+      BUILD_CXX_IMPL_IMPLICIT_NAME(BUILD_CXX_CUSTOM_TARGET_, index), name,     \
+      BUILD_CXX_IMPL_IMPLICIT_NAME(BUILD_CXX_REGISTER_CUSTOM_TARGET_, index),  \
       __VA_ARGS__)
+
+#define BUILD_CXX_INDEXED_FINAL_TARGET(index, include_in_all, given_target_t,  \
+                                       name, ...)                              \
+  BUILD_CXX_INDEXED_FINAL_TARGET_WITH_NAMES(                                   \
+      index, BUILD_CXX_IMPL_IMPLICIT_NAME(BUILD_CXX_LOCATION_, index),         \
+      BUILD_CXX_IMPL_IMPLICIT_NAME(BUILD_CXX_DEPS_, index),                    \
+      BUILD_CXX_IMPL_IMPLICIT_NAME(BUILD_CXX_NUM_DEPS_, index),                \
+      build_cxx::common::given_target_t, include_in_all,                       \
+      BUILD_CXX_IMPL_IMPLICIT_NAME(BUILD_CXX_FINAL_TARGET_, index), name,      \
+      BUILD_CXX_IMPL_IMPLICIT_NAME(BUILD_CXX_REGISTER_FINAL_TARGET_, index),   \
+      __VA_ARGS__)
+
+// 04
 
 // https://gcc.gnu.org/onlinedocs/cpp/Common-Predefined-Macros.html
 // I hope others support `__COUNTER__` too
-#define BUILD_CXX_TARGET_IMPL(given_target_t, include_in_all, name, ...)       \
-  BUILD_CXX_INDEXED_TARGET_IMPL(__COUNTER__, include_in_all, given_target_t,   \
-                                name, __VA_ARGS__)
+#define BUILD_CXX_CUSTOM_TARGET(given_target_t, include_in_all, name, ...)     \
+  BUILD_CXX_INDEXED_CUSTOM_TARGET(__COUNTER__, include_in_all, given_target_t, \
+                                  name, __VA_ARGS__)
+
+#define BUILD_CXX_FINAL_TARGET(given_target_t, include_in_all, name, ...)      \
+  BUILD_CXX_INDEXED_FINAL_TARGET(__COUNTER__, include_in_all, given_target_t,  \
+                                 name, __VA_ARGS__)
+
+// 05, macros for users
+
+// 05.1
 
 #define BUILD_CXX_FILE_TARGET(name, ...)                                       \
-  BUILD_CXX_TARGET_IMPL(file_target, true, name, __VA_ARGS__)
+  BUILD_CXX_CUSTOM_TARGET(file_target, true, name, __VA_ARGS__)
 
 #define BUILD_CXX_HIDDEN_FILE_TARGET(name, ...)                                \
-  BUILD_CXX_TARGET_IMPL(file_target, false, name, __VA_ARGS__)
+  BUILD_CXX_CUSTOM_TARGET(file_target, false, name, __VA_ARGS__)
+
+// 05.2
+
+#define BUILD_CXX_READ_ONLY_FILE_TARGET(name, ...)                             \
+  BUILD_CXX_FINAL_TARGET(read_only_file_target, true, name, __VA_ARGS__)
+
+#define BUILD_CXX_HIDDEN_READ_ONLY_FILE_TARGET(name, ...)                      \
+  BUILD_CXX_FINAL_TARGET(read_only_file_target, false, name, __VA_ARGS__)
+
+// 05.3
 
 #define BUILD_CXX_PHONY_TARGET(name, ...)                                      \
-  BUILD_CXX_TARGET_IMPL(phony_target, true, name, __VA_ARGS__)
+  BUILD_CXX_CUSTOM_TARGET(phony_target, true, name, __VA_ARGS__)
 
 #define BUILD_CXX_HIDDEN_PHONY_TARGET(name, ...)                               \
-  BUILD_CXX_TARGET_IMPL(phony_target, false, name, __VA_ARGS__)
+  BUILD_CXX_CUSTOM_TARGET(phony_target, false, name, __VA_ARGS__)

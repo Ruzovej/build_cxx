@@ -19,7 +19,6 @@
 
 #pragma once
 
-#include <limits>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -35,7 +34,7 @@ struct abstract_target {
                            bool const aInclude_in_all,
                            std::string_view const aName,
                            std::string_view const *const aRaw_deps,
-                           std::size_t const aNum_deps);
+                           std::size_t const aNum_deps) noexcept;
 
   virtual ~abstract_target() = default;
 
@@ -47,13 +46,10 @@ struct abstract_target {
   // https://en.cppreference.com/w/cpp/chrono/time_point/operator_cmp.html
   // - example: https://godbolt.org/z/Enoza77Wo
   using modification_time_t = long long;
-  static modification_time_t constexpr always_up_to_date{
-      std::numeric_limits<long long>::min()};
-  static modification_time_t constexpr never_up_to_date{
-      std::numeric_limits<long long>::max()};
+
   [[nodiscard]] virtual modification_time_t last_modification_time() const = 0;
 
-  virtual void resolve_own_name(std::string_view const project_name) = 0;
+  virtual void resolve_own_traits() = 0;
 
   virtual void build(std::vector<abstract_target const *> const &deps) = 0;
 
@@ -62,11 +58,11 @@ struct abstract_target {
   abstract_target *next{nullptr}; // non owned
 
   // "public":
-  project *parent_project{nullptr}; // non owned
-  location const *loc;              // non owned
+  project const *parent_project{nullptr}; // non owned
+  location const *loc;                    // non owned
   bool include_in_all;
   std::string_view name;
-  std::string_view const *raw_deps;
+  std::string_view const *raw_deps; // non owned
   std::size_t num_deps;
 
   std::string_view resolved_kind;

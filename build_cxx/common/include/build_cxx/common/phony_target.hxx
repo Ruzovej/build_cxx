@@ -26,22 +26,15 @@
 namespace build_cxx::common {
 
 struct phony_target : abstract_target {
-  explicit phony_target(location const *const loc, bool const include_in_all,
-                        std::string_view const name,
-                        std::string_view const *const raw_deps,
-                        std::size_t const num_deps);
-
-  virtual ~phony_target() = default;
+  using abstract_target::abstract_target;
 
   // Phony target is always out of date
-  [[nodiscard]] modification_time_t last_modification_time() const override {
-    return never_up_to_date;
-  }
+  [[nodiscard]] modification_time_t last_modification_time() const override;
 
   static std::string resolve_name(std::string_view const project_name,
                                   std::string_view const target_name);
 
-  void resolve_own_name(std::string_view const project_name) override final;
+  void resolve_own_traits() override final;
 
 private:
   phony_target(phony_target const &) = delete;

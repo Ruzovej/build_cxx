@@ -20,6 +20,7 @@
 #pragma once
 
 #include <filesystem>
+#include <limits>
 #include <string_view>
 
 #include "build_cxx/common/abstract_target.hxx"
@@ -27,12 +28,7 @@
 namespace build_cxx::common {
 
 struct file_target : abstract_target {
-  explicit file_target(location const *const loc, bool const include_in_all,
-                       std::string_view const name,
-                       std::string_view const *const raw_deps,
-                       std::size_t const num_deps);
-
-  virtual ~file_target() = default;
+  using abstract_target::abstract_target;
 
   [[nodiscard]] modification_time_t last_modification_time() const override;
 
@@ -40,7 +36,7 @@ struct file_target : abstract_target {
   resolve_path(std::string_view const source_filename,
                std::string_view const target_name);
 
-  void resolve_own_name(std::string_view const /*project_name*/) override final;
+  void resolve_own_traits() override final;
 
 private:
   file_target(file_target const &) = delete;
@@ -49,6 +45,18 @@ private:
   file_target &operator=(file_target &&) = delete;
 
   std::filesystem::path resolved_path;
+};
+
+struct read_only_file_target : file_target {
+  using file_target::file_target;
+
+  [[nodiscard]] modification_time_t last_modification_time() const override;
+
+  void build(std::vector<abstract_target const *> const &deps) override;
+
+private:
+  modification_time_t highest_mod_time{
+      std::numeric_limits<modification_time_t>::min()};
 };
 
 } // namespace build_cxx::common

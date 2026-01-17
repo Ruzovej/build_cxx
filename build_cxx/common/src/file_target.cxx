@@ -20,29 +20,23 @@
 #include "build_cxx/common/file_target.hxx"
 
 #include <chrono>
+#include <stdexcept>
 
 namespace build_cxx::common {
-
-file_target::file_target(location const *const loc, bool const include_in_all,
-                         std::string_view const name,
-                         std::string_view const *const raw_deps,
-                         std::size_t const num_deps)
-    : abstract_target{loc, include_in_all, name, raw_deps, num_deps} {}
 
 abstract_target::modification_time_t
 file_target::last_modification_time() const {
   if (!std::filesystem::exists(resolved_path)) {
-    return never_up_to_date;
+    // throw std::runtime_error{
+    //     "file_target::last_modification_time failed, because target file '" +
+    //     resolved_path.string() + "' does not exist"};
+    return std::numeric_limits<modification_time_t>::min();
   }
 
-  try {
-    auto const ftime{
-        std::filesystem::last_write_time(resolved_path).time_since_epoch()};
-    return static_cast<modification_time_t>(
-        std::chrono::duration_cast<std::chrono::nanoseconds>(ftime).count());
-  } catch (std::filesystem::filesystem_error const &) {
-    return never_up_to_date;
-  }
+  auto const ftime{
+      std::filesystem::last_write_time(resolved_path).time_since_epoch()};
+  return static_cast<modification_time_t>(
+      std::chrono::duration_cast<std::chrono::nanoseconds>(ftime).count());
 }
 
 std::filesystem::path
@@ -60,10 +54,26 @@ file_target::resolve_path(std::string_view const source_filename,
   }
 }
 
-void file_target::resolve_own_name(std::string_view const /*project_name*/) {
+void file_target::resolve_own_traits() {
   resolved_kind = "file";
   resolved_path = resolve_path(loc->filename, name);
   resolved_name = resolved_path.string();
+}
+
+abstract_target::modification_time_t
+read_only_file_target::last_modification_time() const {
+  auto const my_mod_time{file_target::last_modification_time()};
+
+  return std::max(highest_mod_time, my_mod_time);
+}
+
+void read_only_file_target::build(
+    std::vector<abstract_target const *> const &deps) {
+  for (auto const dep : deps) {
+    auto const dep_mod_time{dep->last_modification_time()};
+
+    highest_mod_time = std::max(highest_mod_time, dep_mod_time);
+  }
 }
 
 } // namespace build_cxx::common
