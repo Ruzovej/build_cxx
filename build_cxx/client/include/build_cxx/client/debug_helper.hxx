@@ -29,9 +29,10 @@
 namespace build_cxx::client {
 
 [[nodiscard]] BUILD_CXX_DLL_EXPORT std::string
-print_abstract_target_basic_info(common::abstract_target const *const at, bool const brief = false);
+abstract_target_basic_info(common::abstract_target const *const at,
+                           bool const brief = false);
 
-[[nodiscard]] BUILD_CXX_DLL_EXPORT std::string print_abstract_target_build_info(
+[[nodiscard]] BUILD_CXX_DLL_EXPORT std::string abstract_target_build_info(
     common::abstract_target const *const at,
     std::vector<common::abstract_target const *> const &deps);
 

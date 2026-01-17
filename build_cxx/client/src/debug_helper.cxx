@@ -21,9 +21,8 @@
 
 namespace build_cxx::client {
 
-std::string
-print_abstract_target_basic_info(common::abstract_target const *const at,
-                                 bool const brief) {
+std::string abstract_target_basic_info(common::abstract_target const *const at,
+                                       bool const brief) {
   std::string res{at->name};
 
   if (!brief) {
@@ -34,10 +33,10 @@ print_abstract_target_basic_info(common::abstract_target const *const at,
   return res;
 }
 
-std::string print_abstract_target_build_info(
+std::string abstract_target_build_info(
     common::abstract_target const *const at,
     std::vector<common::abstract_target const *> const &deps) {
-  std::string res{print_abstract_target_basic_info(at, true) + " has deps {"};
+  std::string res{abstract_target_basic_info(at, true) + " has deps {"};
 
   bool first{true};
   for (auto const dep : deps) {
@@ -47,7 +46,7 @@ std::string print_abstract_target_build_info(
       first = false;
     }
 
-    res += print_abstract_target_basic_info(dep, false);
+    res += abstract_target_basic_info(dep, false);
   }
 
   return res + '}';

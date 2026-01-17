@@ -24,7 +24,7 @@
 
 BUILD_CXX_FILE_TARGET("src/AAA_2.cxx") {
   std::cout << "I'm twice as happy :-) "
-            << build_cxx::client::print_abstract_target_build_info(this, deps);
+            << build_cxx::client::abstract_target_build_info(this, deps);
 }
 
 #include "c/build.cxx"

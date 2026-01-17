@@ -42,38 +42,38 @@ BUILD_CXX_PHONY_TARGET("BBB",
                        // deps:
                        "bin/libBBB.a", "bin/libBBB.so") {
   std::cout << "I'm happy :-) "
-            << build_cxx::client::print_abstract_target_build_info(this, deps);
+            << build_cxx::client::abstract_target_build_info(this, deps);
 }
 
 BUILD_CXX_FILE_TARGET("bin/libBBB.a",
                       // deps:
                       "build/src/BBB.cxx.o") {
   std::cout << "I'm happy :-) "
-            << build_cxx::client::print_abstract_target_build_info(this, deps);
+            << build_cxx::client::abstract_target_build_info(this, deps);
 }
 
 BUILD_CXX_FILE_TARGET("bin/libBBB.so",
                       // deps:
                       "build/src/BBB.cxx.o") {
   std::cout << "I'm happy :-) "
-            << build_cxx::client::print_abstract_target_build_info(this, deps);
+            << build_cxx::client::abstract_target_build_info(this, deps);
 }
 
 BUILD_CXX_HIDDEN_FILE_TARGET("build/src/BBB.cxx.o",
                              // deps:
                              "src/BBB.cxx", "/usr/include/string_view") {
   std::cout << "I'm happy :-) "
-            << build_cxx::client::print_abstract_target_build_info(this, deps);
+            << build_cxx::client::abstract_target_build_info(this, deps);
 }
 
 // simulating local file:
 BUILD_CXX_HIDDEN_FILE_TARGET("src/BBB.cxx") {
   std::cout << "I'm happy :-) "
-            << build_cxx::client::print_abstract_target_build_info(this, deps);
+            << build_cxx::client::abstract_target_build_info(this, deps);
 }
 
 // simulating system file:
 BUILD_CXX_HIDDEN_FILE_TARGET("/usr/include/string_view") {
   std::cout << "I'm happy :-) "
-            << build_cxx::client::print_abstract_target_build_info(this, deps);
+            << build_cxx::client::abstract_target_build_info(this, deps);
 }
