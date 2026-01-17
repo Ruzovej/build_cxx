@@ -24,22 +24,44 @@
 #include "build_cxx/driver/process_input.hxx"
 
 int main(int argc, char *argv[]) {
-  try {
-    std::vector<char const *> input_files;
-    input_files.reserve(argc - 1);
-
-    // skip executable name ...
-    --argc;
-    ++argv;
-    while (argc > 0) {
-      // TODO refuse already processed *.so ...
-      input_files.emplace_back(argv[0]);
+  auto consume_arg = [&argc, &argv](bool const mandatory,
+                                    std::string_view const err_msg =
+                                        "") -> char const * {
+    if (argc <= 0) {
+      if (mandatory) {
+        throw std::runtime_error("Insufficient arguments: " +
+                                 std::string{err_msg});
+      } else {
+        return nullptr;
+      }
+    } else {
+      char const *const res{argv[0]};
       --argc;
       ++argv;
-      // TODO further argument kinds, switches, etc.
+      return res;
+    }
+  };
+
+  try {
+    std::vector<char const *> targets;
+    std::vector<char const *> input_files;
+
+    // skip executable name ...
+    static_cast<void>(consume_arg(true, "missing executable filename"));
+
+    while (argc > 0) {
+      auto const next_arg_cstr{consume_arg(true, "argc mismatch")};
+      std::string_view const next_arg{next_arg_cstr};
+
+      if (next_arg == "--target" || next_arg == "-t") {
+        targets.emplace_back(
+            consume_arg(true, "missing target name after --target/-t"));
+      } else {
+        input_files.emplace_back(next_arg_cstr);
+      }
     }
 
-    build_cxx::driver::process_input(input_files);
+    build_cxx::driver::process_input(targets, input_files);
 
     return EXIT_SUCCESS;
   } catch (std::exception const &e) {
@@ -51,5 +73,6 @@ int main(int argc, char *argv[]) {
   } catch (...) {
     std::cerr << "build_cxx_driver failed - unknown error\n";
   }
+
   return EXIT_FAILURE;
 }

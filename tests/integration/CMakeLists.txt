@@ -45,3 +45,19 @@ target_link_libraries(
         PRIVATE
             build_cxx_client
 )
+
+add_library(
+    03
+        SHARED
+            "${CMAKE_CURRENT_LIST_DIR}/03/build.cxx"
+)
+target_include_directories(
+    03
+        PRIVATE
+            "${CMAKE_CURRENT_LIST_DIR}/03"
+)
+target_link_libraries(
+    03
+        PRIVATE
+            build_cxx_client
+)

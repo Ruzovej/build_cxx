@@ -17,72 +17,103 @@
   with build_cxx. If not, see <https://www.gnu.org/licenses/>.
 */
 
+#include <filesystem>
+#include <fstream>
 #include <iostream>
 
 #include <build_cxx/client/core.hxx>
 #include <build_cxx/client/debug_helper.hxx>
+#include <build_cxx/common/location.hxx>
+//#include <exec_path_args/exec_path_args.hxx>
 
-BUILD_CXX_PROJECT("BBB", "1.0.0");
+namespace {
 
-BUILD_CXX_PHONY_TARGET("b_01",
+void touch_file(std::filesystem::path const &p) {
+  if (!std::filesystem::exists(p)) {
+    auto const ppath{p.parent_path()};
+    if (!std::filesystem::exists(ppath)) {
+      std::filesystem::create_directories(ppath);
+    }
+    std::ofstream ofs{p};
+    ofs.close();
+  } else {
+    std::filesystem::last_write_time(
+        p, std::filesystem::file_time_type::clock::now());
+  }
+}
+
+auto const current_dir{
+    std::filesystem::path{BUILD_CXX_CURRENT_LOCATION.filename}.parent_path()};
+
+} // namespace
+
+BUILD_CXX_PROJECT("CCC", "1.0.0");
+
+BUILD_CXX_PHONY_TARGET("c1",
                        // deps:
-                       "b_02") {
+                       "c2", "c3") {
   std::cout << "I'm happy :-) "
             << build_cxx::client::abstract_target_build_info(this, deps);
 }
 
-BUILD_CXX_HIDDEN_PHONY_TARGET("b_02") {
+BUILD_CXX_HIDDEN_PHONY_TARGET("c2") {
+  std::cout << "I'm happy :-) "
+            << build_cxx::client::abstract_target_build_info(this, deps);
+}
+
+BUILD_CXX_HIDDEN_PHONY_TARGET("c3",
+                              // deps:
+                              "build/libCCC.a", "build/libCCC.so") {
   std::cout << "I'm happy :-) "
             << build_cxx::client::abstract_target_build_info(this, deps);
 }
 
 // very fake ...:
 
-BUILD_CXX_PHONY_TARGET("BBB",
-                       // deps:
-                       "bin/libBBB.a", "bin/libBBB.so") {
-  std::cout << "I'm happy :-) "
-            << build_cxx::client::abstract_target_build_info(this, deps);
-}
-
-BUILD_CXX_FILE_TARGET("bin/libBBB.a",
+BUILD_CXX_FILE_TARGET("build/libCCC.a",
                       // deps:
-                      "build/src/BBB.cxx.o") {
+                      "build/src/CCC.cxx.o") {
   std::cout << "I'm happy :-) "
             << build_cxx::client::abstract_target_build_info(this, deps);
+
+  touch_file(current_dir / this->name);
 }
 
-BUILD_CXX_FILE_TARGET("bin/libBBB.so",
+BUILD_CXX_FILE_TARGET("build/libCCC.so",
                       // deps:
-                      "build/src/BBB.cxx.o") {
+                      "build/src/CCC.cxx.o") {
   std::cout << "I'm happy :-) "
             << build_cxx::client::abstract_target_build_info(this, deps);
+
+  touch_file(current_dir / this->name);
 }
 
-BUILD_CXX_HIDDEN_FILE_TARGET("build/src/BBB.cxx.o",
+BUILD_CXX_HIDDEN_FILE_TARGET("build/src/CCC.cxx.o",
                              // deps:
-                             "src/BBB.cxx") {
+                             "src/CCC.cxx") {
   std::cout << "I'm happy :-) "
             << build_cxx::client::abstract_target_build_info(this, deps);
+
+  touch_file(current_dir / this->name);
 }
 
 // simulating local file:
-BUILD_CXX_HIDDEN_FILE_TARGET("src/BBB.cxx",
+BUILD_CXX_HIDDEN_FILE_TARGET("src/CCC.cxx",
                              // deps:
-                             "src/BBB.hxx") {
+                             "include/CCC.hxx") {
   std::cout << "I'm happy :-) "
             << build_cxx::client::abstract_target_build_info(this, deps);
 }
 
-BUILD_CXX_HIDDEN_FILE_TARGET("src/BBB.hxx",
+BUILD_CXX_HIDDEN_FILE_TARGET("include/CCC.hxx",
                              // deps:
-                             "/usr/include/string_view") {
+                             "/usr/include/c++/11/string_view") {
   std::cout << "I'm happy :-) "
             << build_cxx::client::abstract_target_build_info(this, deps);
 }
 
 // simulating system file:
-BUILD_CXX_HIDDEN_FILE_TARGET("/usr/include/string_view") {
+BUILD_CXX_HIDDEN_FILE_TARGET("/usr/include/c++/11/string_view") {
   std::cout << "I'm happy :-) "
             << build_cxx::client::abstract_target_build_info(this, deps);
 }

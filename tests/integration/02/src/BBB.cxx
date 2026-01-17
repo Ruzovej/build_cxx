@@ -17,7 +17,7 @@
   with build_cxx. If not, see <https://www.gnu.org/licenses/>.
 */
 
-#include <string_view>
+#include "BBB.hxx"
 
 namespace BBB {
 

@@ -28,6 +28,8 @@
 
 namespace build_cxx::common {
 
+struct project;
+
 struct abstract_target {
   explicit abstract_target(location const *const aLoc,
                            bool const aInclude_in_all,
@@ -60,12 +62,14 @@ struct abstract_target {
   abstract_target *next{nullptr}; // non owned
 
   // "public":
-  location const *loc; // non owned
+  project *parent_project{nullptr}; // non owned
+  location const *loc;              // non owned
   bool include_in_all;
   std::string_view name;
   std::string_view const *raw_deps;
   std::size_t num_deps;
 
+  std::string_view resolved_kind;
   std::string resolved_name;
 
 private:

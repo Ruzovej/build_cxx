@@ -17,14 +17,12 @@
   with build_cxx. If not, see <https://www.gnu.org/licenses/>.
 */
 
-#pragma once
+#include "CCC.hxx"
 
-#include <vector>
+namespace CCC {
 
-namespace build_cxx::driver {
+int foo() { return 42; }
 
-// TODO other args, ...
-void process_input(std::vector<char const *> const &targets,
-                   std::vector<char const *> const &input_files);
+std::string_view bar() { return "Hello from CCC"; }
 
-} // namespace build_cxx::driver
+} // namespace CCC

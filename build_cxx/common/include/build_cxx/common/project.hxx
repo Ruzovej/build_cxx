@@ -41,6 +41,7 @@ struct project {
       last->next = target;
       last = target;
     }
+    target->parent_project = this;
   }
 
   // TODO private & getters, (setters?!), etc.:

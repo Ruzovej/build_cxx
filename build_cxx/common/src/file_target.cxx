@@ -31,6 +31,10 @@ file_target::file_target(location const *const loc, bool const include_in_all,
 
 abstract_target::modification_time_t
 file_target::last_modification_time() const {
+  if (!std::filesystem::exists(resolved_path)) {
+    return never_up_to_date;
+  }
+
   try {
     auto const ftime{
         std::filesystem::last_write_time(resolved_path).time_since_epoch()};
@@ -57,6 +61,7 @@ file_target::resolve_path(std::string_view const source_filename,
 }
 
 void file_target::resolve_own_name(std::string_view const /*project_name*/) {
+  resolved_kind = "file";
   resolved_path = resolve_path(loc->filename, name);
   resolved_name = resolved_path.string();
 }

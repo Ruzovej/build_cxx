@@ -33,6 +33,7 @@ std::string phony_target::resolve_name(std::string_view const project_name,
 }
 
 void phony_target::resolve_own_name(std::string_view const project_name) {
+  resolved_kind = "phony";
   resolved_name = resolve_name(project_name, name);
 }
 

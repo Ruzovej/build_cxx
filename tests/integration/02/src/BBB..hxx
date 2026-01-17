@@ -17,14 +17,12 @@
   with build_cxx. If not, see <https://www.gnu.org/licenses/>.
 */
 
-#pragma once
+#include <string_view>
 
-#include <vector>
+namespace BBB {
 
-namespace build_cxx::driver {
+int foo();
 
-// TODO other args, ...
-void process_input(std::vector<char const *> const &targets,
-                   std::vector<char const *> const &input_files);
+std::string_view bar();
 
-} // namespace build_cxx::driver
+} // namespace BBB

@@ -22,7 +22,6 @@
 #include <filesystem>
 #include <iostream>
 #include <string_view>
-#include <unordered_map>
 #include <utility>
 
 #include <build_cxx/common/file_target.hxx>
@@ -89,6 +88,7 @@ bool processed_targets::resolve_deps(common::abstract_target const *const at) {
     for (std::size_t idx{0}; idx < at->num_deps; ++idx) {
       std::string_view const dep{at->raw_deps[idx]};
 
+      // TODO simplify
       auto const try_resolve_dep =
           [&](std::string_view const candidate_resolved_name) {
             auto const iter{
@@ -101,6 +101,7 @@ bool processed_targets::resolve_deps(common::abstract_target const *const at) {
             return false;
           };
 
+      // TODO simplify
       if (try_resolve_dep(dep)) {
         // unchanged name -> phony target from other project
       } else if (try_resolve_dep(

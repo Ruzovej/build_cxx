@@ -19,20 +19,24 @@
 
 #include "build_cxx/driver/process_input.hxx"
 
+#include <algorithm>
+#include <functional>
 #include <iostream>
 #include <string_view>
 #include <unordered_map>
+#include <unordered_set>
 
 #include <build_cxx/common/file_target.hxx>
 #include <build_cxx/common/phony_target.hxx>
 #include <build_cxx/common/project.hxx>
 
+#include "build_cxx/common/abstract_target.hxx"
 #include "build_cxx/driver/dlopen_scoped.hxx"
 #include "build_cxx/driver/processed_targets.hxx"
-
 namespace build_cxx::driver {
 
-void process_input(std::vector<char const *> const &input_files) {
+void process_input(std::vector<char const *> const &targets,
+                   std::vector<char const *> const &input_files) {
   std::vector<build_cxx::driver::dlopen_scoped> dl_handles;
   dl_handles.reserve(input_files.size());
 
@@ -42,7 +46,7 @@ void process_input(std::vector<char const *> const &input_files) {
 
   std::unordered_map<std::string_view, std::string_view> processed_projects;
 
-  processed_targets pt;
+  processed_targets pt{};
 
   bool all_resolved{false};
 
@@ -83,29 +87,85 @@ void process_input(std::vector<char const *> const &input_files) {
         "Not all dependencies could be resolved (or no input provided)"};
   }
 
-  for (auto const [name, proj] : pt.projects_by_name) {
-    // TODO real implementation:
-    std::cout << "Project '" << proj->name << "' version '" << proj->version
-              << "' has targets:\n";
-    for (auto at{proj->first}; at != nullptr; at = at->next) {
-      std::string_view type{};
-
-      if (auto const phony{dynamic_cast<build_cxx::common::phony_target *>(at)};
-          phony != nullptr) {
-        type = "phony";
-      } else if (auto const file_like{
-                     dynamic_cast<build_cxx::common::file_target *>(at)};
-                 file_like != nullptr) {
-        type = "file-like";
-      } else {
-        continue;
+  if (targets.empty()) {
+    for (auto const [name, proj] : pt.projects_by_name) {
+      // TODO real implementation:
+      std::cout << "Project '" << proj->name << "' version '" << proj->version
+                << "' has targets:\n";
+      for (auto given_abstract_target{proj->first};
+           given_abstract_target != nullptr;
+           given_abstract_target = given_abstract_target->next) {
+        std::cout << " - Target '" << given_abstract_target->name << "' ("
+                  << given_abstract_target->resolved_name << ") is "
+                  << given_abstract_target->resolved_kind << " target\n    ";
+        given_abstract_target->build(
+            pt.get_target_resolved_deps().at(given_abstract_target).deps);
+        std::cout << '\n';
       }
-
-      std::cout << " - Target '" << at->name << "' is " << type << " target\n    ";
-      at->build(pt.get_target_resolved_deps().at(at).deps);
       std::cout << '\n';
     }
-    std::cout << '\n';
+  } else {
+    // clang-format off
+    // test by e.g.:
+    // $ build/build_cxx/driver/build_cxx_driver build/tests/integration/lib01.so build/tests/integration/lib02.so --target BBB::b_01 --target AAA::a_phony_2
+    // or
+    // $ build/build_cxx/driver/build_cxx_driver build/tests/integration/lib03.so --target CCC::c1
+    // clang-format on
+
+    std::unordered_set<common::abstract_target const *> built_targets;
+
+    std::function<void(common::abstract_target *, std::string const &)> const
+        build_target = [&](common::abstract_target *const tgt,
+                           std::string const &indent) {
+          if (built_targets.find(tgt) != built_targets.cend()) {
+            return;
+          }
+
+          std::cout << indent << "Building target '" << tgt->resolved_name
+                    << "':\n";
+
+          if (tgt->name == "build/src/CCC.cxx.o") {
+            [[maybe_unused]] volatile bool a = false;
+            a = true;
+          }
+
+          auto const &deps{pt.get_target_resolved_deps().at(tgt).deps};
+
+          long long highest_modification_time{
+              common::abstract_target::always_up_to_date};
+
+          for (auto const dep : deps) {
+            build_target(const_cast<common::abstract_target *>(dep),
+                         indent + '\t');
+            highest_modification_time = std::max(highest_modification_time,
+                                                 dep->last_modification_time());
+          }
+
+          auto const ftgt{dynamic_cast<common::file_target const *>(tgt)};
+
+          std::cout << indent << "-> ";
+
+          if ((highest_modification_time < tgt->last_modification_time()) &&
+              (ftgt != nullptr)) {
+            std::cout << "is already up to date\n";
+          } else {
+            tgt->build(deps);
+            std::cout << '\n';
+          }
+
+          built_targets.insert(tgt);
+        };
+
+    for (std::string_view const target : targets) {
+      auto const iter{pt.targets_by_resolved_name.find(target)};
+
+      if (iter == pt.targets_by_resolved_name.cend()) {
+        throw std::runtime_error{"Requested target '" + std::string{target} +
+                                 "' not found"};
+      }
+
+      build_target(iter->second, "");
+    }
   }
 }
 

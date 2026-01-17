@@ -21,6 +21,9 @@
 
 #include <string_view>
 
+#define BUILD_CXX_CURRENT_LOCATION                                             \
+  build_cxx::common::location { __FILE__, __LINE__ }
+
 namespace build_cxx::common {
 
 struct location {
