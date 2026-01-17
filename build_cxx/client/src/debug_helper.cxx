@@ -46,7 +46,8 @@ std::string abstract_target_build_info(
       first = false;
     }
 
-    res += abstract_target_basic_info(dep, false);
+    // res += abstract_target_basic_info(dep, false);
+    res += dep->resolved_name;
   }
 
   return res + '}';

@@ -27,8 +27,6 @@
 #include <build_cxx/common/abstract_target.hxx>
 #include <build_cxx/common/project.hxx>
 
-#include "build_cxx/driver/target_path.hxx"
-
 namespace build_cxx::driver {
 
 struct processed_targets {
@@ -53,9 +51,9 @@ struct processed_targets {
   std::unordered_map<common::abstract_target const *, common::project const *>
       project_of_target;
 
-  std::unordered_map<target_path, common::abstract_target *,
-                     target_path::hasher>
-      targets_by_path;
+  // not owning any pointer(s):
+  std::unordered_map<std::string_view, common::abstract_target *>
+      targets_by_resolved_name;
 
   // TODO use later, or delete ...
   // (values) obviously owned here; targets implied by user-defined ones (e.g.

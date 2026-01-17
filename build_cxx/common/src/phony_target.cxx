@@ -27,4 +27,13 @@ phony_target::phony_target(location const *const loc, bool const include_in_all,
                            std::size_t const num_deps)
     : abstract_target{loc, include_in_all, name, raw_deps, num_deps} {}
 
+std::string phony_target::resolve_name(std::string_view const project_name,
+                                       std::string_view const target_name) {
+  return std::string{project_name} + "::" + std::string{target_name};
+}
+
+void phony_target::resolve_own_name(std::string_view const project_name) {
+  resolved_name = resolve_name(project_name, name);
+}
+
 } // namespace build_cxx::common

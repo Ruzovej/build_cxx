@@ -31,7 +31,7 @@ BUILD_CXX_PHONY_TARGET("a_phony_1") {
 
 BUILD_CXX_PHONY_TARGET("a_phony_2",
                        // deps:
-                       "BBB:BBB") {
+                       "BBB::BBB") {
   std::cout << "I'm twice as happy :-) "
             << build_cxx::client::abstract_target_build_info(this, deps);
 }

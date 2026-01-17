@@ -36,6 +36,12 @@ struct file_target : abstract_target {
 
   [[nodiscard]] modification_time_t last_modification_time() const override;
 
+  static std::filesystem::path
+  resolve_path(std::string_view const source_filename,
+               std::string_view const target_name);
+
+  void resolve_own_name(std::string_view const /*project_name*/) override final;
+
 private:
   file_target(file_target const &) = delete;
   file_target &operator=(file_target const &) = delete;

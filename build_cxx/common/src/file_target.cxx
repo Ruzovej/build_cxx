@@ -27,17 +27,7 @@ file_target::file_target(location const *const loc, bool const include_in_all,
                          std::string_view const name,
                          std::string_view const *const raw_deps,
                          std::size_t const num_deps)
-    : abstract_target{loc, include_in_all, name, raw_deps, num_deps} {
-  // TODO ... is it really wanted in this form?!
-  if (name[0] == '/') {
-    resolved_path = std::filesystem::path{name};
-  } else {
-    std::filesystem::path listFolder{loc->filename};
-    listFolder.remove_filename();
-
-    resolved_path = listFolder / std::filesystem::path{name};
-  }
-}
+    : abstract_target{loc, include_in_all, name, raw_deps, num_deps} {}
 
 abstract_target::modification_time_t
 file_target::last_modification_time() const {
@@ -49,6 +39,26 @@ file_target::last_modification_time() const {
   } catch (std::filesystem::filesystem_error const &) {
     return never_up_to_date;
   }
+}
+
+std::filesystem::path
+file_target::resolve_path(std::string_view const source_filename,
+                          std::string_view const target_name) {
+  std::filesystem::path resolved_path;
+
+  if (target_name.at(0) == '/') {
+    return target_name;
+  } else {
+    std::filesystem::path listFolder{source_filename};
+    listFolder.remove_filename();
+
+    return listFolder / std::filesystem::path{target_name};
+  }
+}
+
+void file_target::resolve_own_name(std::string_view const /*project_name*/) {
+  resolved_path = resolve_path(loc->filename, name);
+  resolved_name = resolved_path.string();
 }
 
 } // namespace build_cxx::common

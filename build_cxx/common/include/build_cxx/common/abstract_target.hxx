@@ -20,6 +20,7 @@
 #pragma once
 
 #include <limits>
+#include <string>
 #include <string_view>
 #include <vector>
 
@@ -50,6 +51,8 @@ struct abstract_target {
       std::numeric_limits<long long>::max()};
   [[nodiscard]] virtual modification_time_t last_modification_time() const = 0;
 
+  virtual void resolve_own_name(std::string_view const project_name) = 0;
+
   virtual void build(std::vector<abstract_target const *> const &deps) = 0;
 
   // TODO private & getters, (setters?!), etc.:
@@ -62,6 +65,8 @@ struct abstract_target {
   std::string_view name;
   std::string_view const *raw_deps;
   std::size_t num_deps;
+
+  std::string resolved_name;
 
 private:
   abstract_target(abstract_target const &) = delete;

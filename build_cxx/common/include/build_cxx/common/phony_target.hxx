@@ -38,6 +38,11 @@ struct phony_target : abstract_target {
     return never_up_to_date;
   }
 
+  static std::string resolve_name(std::string_view const project_name,
+                                  std::string_view const target_name);
+
+  void resolve_own_name(std::string_view const project_name) override final;
+
 private:
   phony_target(phony_target const &) = delete;
   phony_target &operator=(phony_target const &) = delete;
