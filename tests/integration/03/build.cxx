@@ -30,9 +30,9 @@ namespace {
 
 void touch_file(std::filesystem::path const &p) {
   if (!std::filesystem::exists(p)) {
-    auto const ppath{p.parent_path()};
-    if (!std::filesystem::exists(ppath)) {
-      std::filesystem::create_directories(ppath);
+    auto const parent_path{p.parent_path()};
+    if (!std::filesystem::exists(parent_path)) {
+      std::filesystem::create_directories(parent_path);
     }
     std::ofstream ofs{p};
     ofs.close();

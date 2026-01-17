@@ -24,7 +24,9 @@
 
 BUILD_CXX_PROJECT("AAA", "1.0.0");
 
-BUILD_CXX_PHONY_TARGET("a_phony_1") {
+BUILD_CXX_PHONY_TARGET("a_phony_1",
+                       // deps:
+                       "a_phony_2", "a_phony_3", "bin/libAAA.a") {
   std::cout << "I'm happy :-) "
             << build_cxx::client::abstract_target_build_info(this, deps);
 }

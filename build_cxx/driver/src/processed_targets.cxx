@@ -56,7 +56,7 @@ bool processed_targets::resolve_deps(common::abstract_target const *const at) {
     if (unresolved != 0) {
       for (auto &[key, val] : target_resolved_deps) {
         if (!val.resolved) {
-          // internaly decrements by one `unresolved` in case of "success"
+          // internally decrements by one `unresolved` in case of "success"
           val.resolved = resolve_deps(key);
         }
       }
@@ -66,8 +66,9 @@ bool processed_targets::resolve_deps(common::abstract_target const *const at) {
 
   auto const iter{target_resolved_deps.find(at)};
   if (iter == target_resolved_deps.cend()) {
-    // TODO better type
-    throw "Internal error: trying to resolve deps for unknown target";
+    throw std::runtime_error{
+        "Internal error: trying to resolve deps for unknown target " +
+        std::string{at->name}};
   }
 
   if (iter->second.resolved) {

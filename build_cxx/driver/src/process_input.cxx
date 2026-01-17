@@ -90,7 +90,7 @@ void process_input(std::vector<char const *> const &targets,
 
   if (targets.empty()) {
     for (auto const [name, proj] : pt.projects_by_name) {
-      // TODO real implementation:
+      // TODO build implicit target `all`:
       std::cout << "Project '" << proj->name << "' version '" << proj->version
                 << "' has targets:\n";
       for (auto given_abstract_target{proj->first};
@@ -111,6 +111,8 @@ void process_input(std::vector<char const *> const &targets,
     // $ build/build_cxx/driver/build_cxx_driver build/tests/integration/lib01.so build/tests/integration/lib02.so --target BBB::b_01 --target AAA::a_phony_2
     // or
     // $ build/build_cxx/driver/build_cxx_driver build/tests/integration/lib03.so --target CCC::c1
+    // or
+    // $ build/build_cxx/driver/build_cxx_driver build/tests/integration/lib01.so build/tests/integration/lib02.so --target BBB::BBB -t AAA::a_phony_1
     // clang-format on
 
     std::unordered_set<common::abstract_target const *> built_targets;
@@ -126,10 +128,10 @@ void process_input(std::vector<char const *> const &targets,
                     << "':\n";
 
           // TODO remove later ...
-          if (tgt->name == "build/src/CCC.cxx.o") {
-            [[maybe_unused]] volatile bool a = false;
-            a = true;
-          }
+          // if (tgt->name == "build/src/CCC.cxx.o") {
+          //  [[maybe_unused]] volatile bool a = false;
+          //  a = true;
+          //}
 
           auto const &deps{pt.get_target_resolved_deps().at(tgt).deps};
 

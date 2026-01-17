@@ -22,14 +22,7 @@ add_executable(
     build_cxx_unit_tests
         "${CMAKE_CURRENT_LIST_DIR}/doctest_main.cxx"
         ${BUILD_CXX_UNIT_TEST_SOURCES}
-        #${BUILD_CXX_SOURCES}
 )
-#target_include_directories(
-#    build_cxx_unit_tests
-#        PRIVATE
-#            "${CMAKE_CURRENT_LIST_DIR}/../../include"
-#            "${CMAKE_CURRENT_LIST_DIR}/../../src/include"
-#)
 target_link_libraries(
     build_cxx_unit_tests
         PRIVATE

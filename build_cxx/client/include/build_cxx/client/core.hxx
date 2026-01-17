@@ -69,6 +69,7 @@ private:
     __FILE__, __LINE__, aIndex                                                 \
   }
 
+// This will fail with zero deps & when compiled with `-Wpedantic`, etc.:
 #define BUILD_CXX_DEFINE_DEPS_ARRAY(aDeps_name, aNum_deps, ...)                \
   static std::string_view constexpr aDeps_name[]{__VA_ARGS__};                 \
   static std::size_t constexpr aNum_deps {                                     \

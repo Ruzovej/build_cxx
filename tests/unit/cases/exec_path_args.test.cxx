@@ -40,7 +40,7 @@ std::string space_to_newline(std::string str) {
 // TODO delete this later ...
 TEST_CASE("exec_path_args") {
   using exec_path_args::os_wrapper::exec_path_args;
-  
+
   SUBCASE("simple shell command") {
     static auto constexpr shell_cmd = [](std::string &&cmd_str) {
       exec_path_args cmd{"/usr/bin/env", {"sh", "-c", std::move(cmd_str)}};
@@ -161,7 +161,7 @@ TEST_CASE("exec_path_args") {
       }
 
       SUBCASE("not updating the status after kill") {
-        // is expetected to be equivalent ...
+        // is expected to be equivalent ...
       }
 
       REQUIRE(cmd.is_finished());
@@ -172,7 +172,7 @@ TEST_CASE("exec_path_args") {
     }
 
     SUBCASE("various operations") {
-      SUBCASE("move opearations") {
+      SUBCASE("move operations") {
         std::optional<exec_path_args> cmd{shell_cmd("echo Hello")};
         REQUIRE_FALSE(cmd->manages_process());
 
@@ -203,9 +203,9 @@ TEST_CASE("exec_path_args") {
 
           exec_path_args cmd2{std::move(*cmd)};
 
-          SUBCASE("without imediate reset") {}
+          SUBCASE("without immediate reset") {}
 
-          SUBCASE("with imediate reset") { cmd.reset(); }
+          SUBCASE("with immediate reset") { cmd.reset(); }
 
           REQUIRE(cmd2.manages_process());
           REQUIRE_FALSE(cmd->manages_process());
@@ -232,9 +232,9 @@ TEST_CASE("exec_path_args") {
 
           exec_path_args cmd2{std::move(*cmd)};
 
-          SUBCASE("without imediate reset") {}
+          SUBCASE("without immediate reset") {}
 
-          SUBCASE("with imediate reset") { cmd.reset(); }
+          SUBCASE("with immediate reset") { cmd.reset(); }
 
           REQUIRE(cmd2.manages_process());
           REQUIRE_FALSE(cmd->manages_process());

@@ -87,8 +87,6 @@ private:
   std::unordered_map<common::abstract_target const *, resolved_deps>
       target_resolved_deps;
 
-  // TODO use this (cached value) later (and set/clear it properly, etc.), or
-  // delete it:
   long long unresolved{0};
 
 private:

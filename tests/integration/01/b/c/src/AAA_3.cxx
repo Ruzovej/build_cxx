@@ -19,8 +19,8 @@
 
 namespace AAA {
 
-void foo_b_c(){
-    // ...
-};
-
+void foo_b_c() {
+  // ...
 }
+
+} // namespace AAA
