@@ -113,6 +113,8 @@ void process_input(std::vector<char const *> const &targets,
     // $ build/build_cxx/driver/build_cxx_driver build/tests/integration/lib03.so --target CCC::c1
     // or
     // $ build/build_cxx/driver/build_cxx_driver build/tests/integration/lib01.so build/tests/integration/lib02.so --target BBB::BBB -t AAA::a_phony_1
+    // or
+    // $ build/build_cxx/driver/build_cxx_driver build/tests/integration/lib01.so build/tests/integration/lib02.so -t AAA::a_phony_1
     // clang-format on
 
     std::unordered_set<common::abstract_target const *> built_targets;
