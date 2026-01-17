@@ -1,5 +1,5 @@
 /*
-  Copyright 2025 Lukáš Růžička
+  Copyright 2026 Lukáš Růžička
 
   This file is part of build_cxx.
 
@@ -126,10 +126,10 @@ void process_input(std::vector<char const *> const &targets,
                     << "':\n";
 
           // TODO remove later ...
-          // if (tgt->name == "build/src/CCC.cxx.o") {
-          //   [[maybe_unused]] volatile bool a = false;
-          //   a = true;
-          // }
+          if (tgt->name == "build/src/CCC.cxx.o") {
+            [[maybe_unused]] volatile bool a = false;
+            a = true;
+          }
 
           auto const &deps{pt.get_target_resolved_deps().at(tgt).deps};
 
