@@ -19,7 +19,6 @@
 
 #include "build_cxx/driver/process_input.hxx"
 
-#include <algorithm>
 #include <functional>
 #include <iostream>
 #include <limits>
@@ -27,13 +26,14 @@
 #include <unordered_map>
 #include <unordered_set>
 
+#include <build_cxx/common/abstract_target.hxx>
 #include <build_cxx/common/file_target.hxx>
 #include <build_cxx/common/phony_target.hxx>
 #include <build_cxx/common/project.hxx>
 
-#include "build_cxx/common/abstract_target.hxx"
 #include "build_cxx/driver/dlopen_scoped.hxx"
 #include "build_cxx/driver/processed_targets.hxx"
+
 namespace build_cxx::driver {
 
 void process_input(std::vector<char const *> const &targets,
