@@ -23,10 +23,11 @@
 
 #include "build_cxx/common/abstract_target.hxx"
 #include "build_cxx/common/location.hxx"
+#include "build_cxx/common/macros.h"
 
 namespace build_cxx::common {
 
-struct project {
+struct BUILD_CXX_DLL_EXPORT project {
   explicit project(std::string_view const aName,
                    std::string_view const aVersion,
                    std::string_view const aRoot_file) noexcept;

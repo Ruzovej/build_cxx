@@ -21,10 +21,13 @@
 
 #include <vector>
 
+#include <build_cxx/common/macros.h>
+
 namespace build_cxx::driver {
 
 // TODO other args, ...
-void process_input(std::vector<char const *> const &targets,
-                   std::vector<char const *> const &input_files);
+BUILD_CXX_DLL_EXPORT void
+process_input(std::vector<char const *> const &targets,
+              std::vector<char const *> const &input_files);
 
 } // namespace build_cxx::driver

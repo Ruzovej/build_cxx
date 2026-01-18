@@ -25,12 +25,12 @@
 #include <build_cxx/common/phony_target.hxx>
 #include <build_cxx/common/project.hxx>
 
-#include "build_cxx/client/macros.h"
+#include "build_cxx/client/name_macros.h"
 
-namespace build_cxx::common {
+namespace build_cxx::client {
 
 struct BUILD_CXX_DLL_HIDE register_target {
-  explicit register_target(abstract_target *const at);
+  explicit register_target(common::abstract_target *const at);
 
 private:
   register_target(register_target const &) = delete;
@@ -44,7 +44,7 @@ private:
   void operator delete[](void *) = delete;
 };
 
-} // namespace build_cxx::common
+} // namespace build_cxx::client
 
 #define BUILD_CXX_PROJECT(name, version)                                       \
   static build_cxx::common::project &this_project() {                          \
@@ -52,8 +52,8 @@ private:
     return p;                                                                  \
   }                                                                            \
                                                                                \
-  build_cxx::common::register_target::register_target(                         \
-      abstract_target *const at) {                                             \
+  build_cxx::client::register_target::register_target(                         \
+      build_cxx::common::abstract_target *const at) {                          \
     this_project().add_target(at);                                             \
   }                                                                            \
                                                                                \
@@ -91,7 +91,7 @@ private:
   }
 
 #define BUILD_CXX_DEFINE_REGISTRATOR(aRegistrator_name, aTarget_var_name)      \
-  static build_cxx::common::register_target aRegistrator_name {                \
+  static build_cxx::client::register_target aRegistrator_name {                \
     &aTarget_var_name                                                          \
   }
 

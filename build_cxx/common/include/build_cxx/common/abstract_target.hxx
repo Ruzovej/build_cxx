@@ -24,12 +24,13 @@
 #include <vector>
 
 #include "build_cxx/common/location.hxx"
+#include "build_cxx/common/macros.h"
 
 namespace build_cxx::common {
 
 struct project;
 
-struct abstract_target {
+struct BUILD_CXX_DLL_EXPORT abstract_target {
   explicit abstract_target(location const *const aLoc,
                            bool const aInclude_in_all,
                            std::string_view const aName,

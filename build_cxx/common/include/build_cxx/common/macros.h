@@ -28,3 +28,7 @@
 #define BUILD_CXX_GET_PROJECT_SYMBOL_NAME_STR                                  \
   BUILD_CXX_IMPL_GET_PROJECT_SYMBOL_NAME_STR(                                  \
       BUILD_CXX_IMPL_IDENTITY(BUILD_CXX_GET_PROJECT_SYMBOL_NAME))
+
+#define BUILD_CXX_DLL_HIDE __attribute__((visibility("hidden")))
+#define BUILD_CXX_DLL_EXPORT __attribute__((visibility("default")))
+#define BUILD_CXX_DLL_EXPORT_C_SYMBOL extern "C" BUILD_CXX_DLL_EXPORT

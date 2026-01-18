@@ -25,11 +25,12 @@
 #include <vector>
 
 #include <build_cxx/common/abstract_target.hxx>
+#include <build_cxx/common/macros.h>
 #include <build_cxx/common/project.hxx>
 
 namespace build_cxx::driver {
 
-struct processed_targets {
+struct BUILD_CXX_DLL_HIDE processed_targets {
   // "loader" should ensure that projects are unique, and if same project is
   // required/loaded twice, it has exactly same version
   processed_targets() = default;

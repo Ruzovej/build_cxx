@@ -19,11 +19,12 @@
 
 #pragma once
 
+#include <build_cxx/common/macros.h>
 #include <build_cxx/common/project.hxx>
 
 namespace build_cxx::driver {
 
-struct dlopen_scoped {
+struct BUILD_CXX_DLL_HIDE dlopen_scoped {
   explicit dlopen_scoped(char const *const filename);
 
   build_cxx::common::project *get_project() const;
