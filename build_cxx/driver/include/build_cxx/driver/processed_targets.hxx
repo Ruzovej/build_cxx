@@ -22,6 +22,7 @@
 #include <memory>
 #include <string_view>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 #include <build_cxx/common/abstract_target.hxx>
@@ -71,20 +72,30 @@ struct BUILD_CXX_DLL_HIDE processed_targets {
   };
 
   // resolve as many deps as possible for either provided `at` or for all
-  // "known";
+  // "known" by default;
   // returned value indicates whether all is resolved
   [[nodiscard]] bool
   resolve_deps(common::abstract_target const *const at = nullptr);
 
+  // TODO remove later ...
   [[nodiscard]] auto const &get_target_resolved_deps() const {
     return target_resolved_deps;
   }
 
-  [[nodiscard]] auto &get_target_resolved_deps() {
-    return target_resolved_deps;
-  }
+  //[[nodiscard]] auto &get_target_resolved_deps() {
+  //  return target_resolved_deps;
+  //}
+
+  // TODO
+  // - parallelize
+  // - accept more targets at once
+  void build_target(common::abstract_target *const tgt);
 
 private:
+  void build_target_impl(
+      std::unordered_set<common::abstract_target const *> &built_targets,
+      common::abstract_target *const tgt, std::string &indent);
+
   std::unordered_map<common::abstract_target const *, resolved_deps>
       target_resolved_deps;
 

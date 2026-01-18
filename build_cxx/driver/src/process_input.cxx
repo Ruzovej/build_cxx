@@ -106,67 +106,6 @@ void process_input(std::vector<char const *> const &targets,
       std::cout << '\n';
     }
   } else {
-    // clang-format off
-    // test by e.g.:
-    // $ build/build_cxx/driver/build_cxx_driver build/tests/integration/lib01.so build/tests/integration/lib02.so --target BBB::b_01 --target AAA::a_phony_2
-    // or
-    // $ build/build_cxx/driver/build_cxx_driver build/tests/integration/lib03.so --target CCC::c1
-    // or
-    // $ build/build_cxx/driver/build_cxx_driver build/tests/integration/lib01.so build/tests/integration/lib02.so --target BBB::BBB -t AAA::a_phony_1
-    // or
-    // $ build/build_cxx/driver/build_cxx_driver build/tests/integration/lib01.so build/tests/integration/lib02.so -t AAA::a_phony_1
-    // clang-format on
-
-    std::unordered_set<common::abstract_target const *> built_targets;
-
-    std::function<void(common::abstract_target *, std::string const &)> const
-        build_target = [&](common::abstract_target *const tgt,
-                           std::string const &indent) {
-          if (built_targets.find(tgt) != built_targets.cend()) {
-            return;
-          }
-
-          std::cout << indent << "Building target '" << tgt->resolved_name
-                    << "':\n";
-
-          // TODO remove later ...
-          // if (tgt->name == "build/src/CCC.cxx.o") {
-          //  [[maybe_unused]] volatile bool a = false;
-          //  a = true;
-          //}
-
-          auto const &deps{pt.get_target_resolved_deps().at(tgt).deps};
-
-          auto highest_dep_mod_time{std::numeric_limits<
-              common::abstract_target::modification_time_t>::min()};
-
-          for (auto const dep : deps) {
-            // TODO get rid of this ugly `const_cast` ...
-            build_target(const_cast<common::abstract_target *>(dep),
-                         indent + '\t');
-
-            auto const dep_mod_time{dep->last_modification_time()};
-
-            highest_dep_mod_time = std::max(highest_dep_mod_time, dep_mod_time);
-          }
-
-          auto const last_mod_time{tgt->last_modification_time()};
-
-          std::cout << indent << "-> ";
-
-          // `<` (may rebuild already up-to-date stuff) or `<=` (means `PHONY`
-          // targets are up-to-date)?!
-          // TODO figure out proper way later ...
-          if (highest_dep_mod_time < last_mod_time) {
-            std::cout << "is already up to date\n";
-          } else {
-            tgt->build(deps);
-            std::cout << '\n';
-          }
-
-          built_targets.emplace(tgt);
-        };
-
     for (std::string_view const target : targets) {
       auto const iter{pt.targets_by_resolved_name.find(target)};
 
@@ -175,7 +114,7 @@ void process_input(std::vector<char const *> const &targets,
                                  "' not found"};
       }
 
-      build_target(iter->second, "");
+      pt.build_target(iter->second);
     }
   }
 }

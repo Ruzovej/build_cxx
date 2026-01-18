@@ -130,4 +130,59 @@ bool processed_targets::resolve_deps(common::abstract_target const *const at) {
   return all_deps_resolved;
 }
 
+void processed_targets::build_target(common::abstract_target *const tgt) {
+  std::unordered_set<common::abstract_target const *> built_targets;
+  std::string indent{};
+  build_target_impl(built_targets, tgt, indent);
+}
+
+void processed_targets::build_target_impl(
+    std::unordered_set<common::abstract_target const *> &built_targets,
+    common::abstract_target *const tgt, std::string &indent) {
+  if (built_targets.find(tgt) != built_targets.cend()) {
+    return;
+  }
+
+  std::cout << indent << "Building target '" << tgt->resolved_name << "':\n";
+
+  // TODO remove later ...
+  // if (tgt->name == "build/src/CCC.cxx.o") {
+  //  [[maybe_unused]] volatile bool a = false;
+  //  a = true;
+  //}
+
+  auto const &deps{target_resolved_deps.at(tgt).deps};
+
+  auto highest_dep_mod_time{
+      std::numeric_limits<common::abstract_target::modification_time_t>::min()};
+
+  indent += '\t';
+  for (auto const dep : deps) {
+    // TODO get rid of this ugly `const_cast` ...
+    build_target_impl(built_targets, const_cast<common::abstract_target *>(dep),
+                      indent);
+
+    auto const dep_mod_time{dep->last_modification_time()};
+
+    highest_dep_mod_time = std::max(highest_dep_mod_time, dep_mod_time);
+  }
+  indent.pop_back();
+
+  auto const last_mod_time{tgt->last_modification_time()};
+
+  std::cout << indent << "-> ";
+
+  // `<` (may rebuild already up-to-date stuff) or `<=` (means `PHONY`
+  // targets are up-to-date)?!
+  // TODO figure out proper way later ...
+  if (highest_dep_mod_time < last_mod_time) {
+    std::cout << "is already up to date\n";
+  } else {
+    tgt->build(deps);
+    std::cout << '\n';
+  }
+
+  built_targets.emplace(tgt);
+}
+
 } // namespace build_cxx::driver
