@@ -19,13 +19,12 @@
 
 #pragma once
 
-//#define BUILD_CXX_IMPL_STRINGIFY(x) #x
+#define BUILD_CXX_IMPL_IDENTITY(x) x
+#define BUILD_CXX_IMPL_STRINGIFY(x) #x
+#define BUILD_CXX_IMPL_GET_PROJECT_SYMBOL_NAME_STR(x)                          \
+  BUILD_CXX_IMPL_STRINGIFY(x)
 
-// TODO improve:
 #define BUILD_CXX_GET_PROJECT_SYMBOL_NAME build_cxx_get_project_v_0_1_0_beta
 #define BUILD_CXX_GET_PROJECT_SYMBOL_NAME_STR                                  \
-  "build_cxx_get_project_v_0_1_0_beta"
-//#define BUILD_CXX_GET_PROJECT_SYMBOL_NAME_STR_IMPL                             \
-//  BUILD_CXX_IMPL_STRINGIFY(BUILD_CXX_GET_PROJECT_SYMBOL_NAME)
-//#define BUILD_CXX_GET_PROJECT_SYMBOL_NAME_STR                                  \
-//  BUILD_CXX_GET_PROJECT_SYMBOL_NAME_STR_IMPL
+  BUILD_CXX_IMPL_GET_PROJECT_SYMBOL_NAME_STR(                                  \
+      BUILD_CXX_IMPL_IDENTITY(BUILD_CXX_GET_PROJECT_SYMBOL_NAME))
