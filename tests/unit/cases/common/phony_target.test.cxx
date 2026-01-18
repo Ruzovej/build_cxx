@@ -19,25 +19,35 @@
 
 #include "build_cxx/common/phony_target.hxx"
 
-#include <limits>
+#include <doctest/doctest.h>
 
-#include "build_cxx/common/project.hxx"
+#include "build_cxx/client/core.hxx"
+#include "build_cxx/test_helpers/test_phony_target.hxx"
 
 namespace build_cxx::common {
+namespace {
 
-abstract_target::modification_time_t
-phony_target::last_modification_time() const {
-  return std::numeric_limits<modification_time_t>::min();
+TEST_CASE("phony_target") {
+  common::project test_project{"pttp", "0.1.0", __FILE__};
+
+  BUILD_CXX_DEFINE_LOCATION(loc, -1);
+  BUILD_CXX_DEFINE_DEPS_ARRAY(deps_arr, deps_n);
+
+  test_phony_target pt{&loc, true, "tpt", deps_arr, deps_n};
+
+  test_project.add_target(&pt);
+
+  REQUIRE(pt.resolved_kind.empty());
+  REQUIRE(pt.resolved_name.empty());
+
+  REQUIRE_NOTHROW(pt.resolve_own_traits());
+
+  REQUIRE_EQ(pt.resolved_kind, common::phony_target::kind);
+  REQUIRE_EQ(pt.resolved_name,
+             std::string{test_project.name} + "::" + std::string{pt.name});
+  REQUIRE_EQ(pt.resolved_name,
+             phony_target::resolve_name(test_project.name, pt.name));
 }
 
-std::string phony_target::resolve_name(std::string_view const project_name,
-                                       std::string_view const target_name) {
-  return std::string{project_name} + "::" + std::string{target_name};
-}
-
-void phony_target::resolve_own_traits() {
-  resolved_kind = kind;
-  resolved_name = resolve_name(parent_project->name, name);
-}
-
+} // namespace
 } // namespace build_cxx::common

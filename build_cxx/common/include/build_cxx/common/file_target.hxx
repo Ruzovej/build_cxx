@@ -37,6 +37,8 @@ struct BUILD_CXX_DLL_EXPORT file_target : abstract_target {
   resolve_path(std::string_view const source_filename,
                std::string_view const target_name);
 
+  static std::string_view constexpr kind{"file"};
+
   void resolve_own_traits() override final;
 
 private:

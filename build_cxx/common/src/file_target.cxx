@@ -55,7 +55,7 @@ file_target::resolve_path(std::string_view const source_filename,
 }
 
 void file_target::resolve_own_traits() {
-  resolved_kind = "file";
+  resolved_kind = kind;
   resolved_path = resolve_path(loc->filename, name);
   resolved_name = resolved_path.string();
 }
