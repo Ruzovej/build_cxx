@@ -19,6 +19,7 @@
 
 #include "build_cxx/driver/processed_targets.hxx"
 
+#include <algorithm>
 #include <filesystem>
 #include <iostream>
 #include <string_view>
