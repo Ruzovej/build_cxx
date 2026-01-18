@@ -22,10 +22,11 @@
 #include <string_view>
 
 #include "build_cxx/common/abstract_target.hxx"
+#include "build_cxx/common/macros.h"
 
 namespace build_cxx::common {
 
-struct phony_target : abstract_target {
+struct BUILD_CXX_DLL_EXPORT phony_target : abstract_target {
   using abstract_target::abstract_target;
 
   // Phony target is always out of date

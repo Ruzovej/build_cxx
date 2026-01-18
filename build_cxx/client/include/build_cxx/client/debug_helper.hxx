@@ -23,8 +23,7 @@
 #include <vector>
 
 #include <build_cxx/common/abstract_target.hxx>
-
-#include "build_cxx/client/macros.h"
+#include <build_cxx/common/macros.h>
 
 namespace build_cxx::client {
 

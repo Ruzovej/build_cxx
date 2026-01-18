@@ -21,12 +21,14 @@
 
 #include <string_view>
 
+#include "build_cxx/common/macros.h"
+
 #define BUILD_CXX_CURRENT_LOCATION                                             \
   build_cxx::common::location { __FILE__, __LINE__ }
 
 namespace build_cxx::common {
 
-struct location {
+struct BUILD_CXX_DLL_EXPORT location {
   // this should indicate that it's not tied to "baked-in" target (but to some
   // dynamically determined one)
   static int constexpr no_index{-1};

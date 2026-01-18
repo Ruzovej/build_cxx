@@ -24,10 +24,11 @@
 #include <string_view>
 
 #include "build_cxx/common/abstract_target.hxx"
+#include "build_cxx/common/macros.h"
 
 namespace build_cxx::common {
 
-struct file_target : abstract_target {
+struct BUILD_CXX_DLL_EXPORT file_target : abstract_target {
   using abstract_target::abstract_target;
 
   [[nodiscard]] modification_time_t last_modification_time() const override;
@@ -47,7 +48,7 @@ private:
   std::filesystem::path resolved_path;
 };
 
-struct read_only_file_target : file_target {
+struct BUILD_CXX_DLL_EXPORT read_only_file_target : file_target {
   using file_target::file_target;
 
   [[nodiscard]] modification_time_t last_modification_time() const override;
