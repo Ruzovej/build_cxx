@@ -65,12 +65,6 @@ struct BUILD_CXX_DLL_HIDE processed_targets {
                      std::vector<std::unique_ptr<common::abstract_target>>>
       intermediate_targets;
 
-  // not owning any pointer(s):
-  struct resolved_deps {
-    bool resolved{false};
-    std::vector<common::abstract_target const *> deps;
-  };
-
   // resolve as many deps as possible for either provided `at` or for all
   // "known" by default;
   // returned value indicates whether all is resolved
@@ -93,6 +87,12 @@ private:
 
   // not owning any pointer(s):
   std::unordered_set<common::abstract_target const *> built_targets;
+
+  struct resolved_deps {
+    bool resolved{false};
+    // not owning any pointer(s):
+    std::vector<common::abstract_target const *> deps;
+  };
 
   // not owning any pointer(s):
   std::unordered_map<common::abstract_target const *, resolved_deps>
