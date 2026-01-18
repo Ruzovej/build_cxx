@@ -22,6 +22,7 @@
 #include <doctest/doctest.h>
 
 #include "build_cxx/client/core.hxx"
+#include "build_cxx/common/location.hxx"
 #include "build_cxx/test_helpers/test_phony_target.hxx"
 
 namespace build_cxx::client {
@@ -30,39 +31,33 @@ namespace {
 TEST_CASE("debug_helper") {
   common::project test_project{"dhtp", "0.1.0", __FILE__};
 
+  BUILD_CXX_DEFINE_LOCATION(loc, common::location::no_index);
+  // testing it on single "isolated" target should be enough:
+  BUILD_CXX_DEFINE_DEPS_ARRAY(deps_arr, deps_n);
+
   // testing it on dummy test_phony_target should be enough
+  common::test_phony_target pt{&loc, true, "test_phony_target", deps_arr,
+                               deps_n};
 
-  SUBCASE("without deps") {
-    BUILD_CXX_DEFINE_LOCATION(loc, -1);
-    BUILD_CXX_DEFINE_DEPS_ARRAY(deps_arr, deps_n);
+  test_project.add_target(&pt);
 
-    common::test_phony_target pt{&loc, true, "test_phony_target", deps_arr,
-                                 deps_n};
+  REQUIRE_NOTHROW(pt.resolve_own_traits());
 
-    test_project.add_target(&pt);
+  std::string res;
 
-    REQUIRE_NOTHROW(pt.resolve_own_traits());
+  // this is very fragile ... but on te other hand, I don't expect this to be
+  // used much, nor shouldn't it change often and/or drastically:
 
-    std::string res;
+  REQUIRE_NOTHROW(res = abstract_target_basic_info(&pt, true));
+  REQUIRE_EQ(res, pt.name);
 
-    // this is very fragile ... but on te other hand, I don't expect this to be
-    // used much, nor shouldn't it change often and/or drastically:
+  REQUIRE_NOTHROW(res = abstract_target_basic_info(&pt, false));
+  REQUIRE_EQ(res, std::string{pt.name} + " defined in '" +
+                      std::string{loc.filename} + ':' +
+                      std::to_string(loc.line) + '\'');
 
-    REQUIRE_NOTHROW(res = abstract_target_basic_info(&pt, true));
-    REQUIRE_EQ(res, pt.name);
-
-    REQUIRE_NOTHROW(res = abstract_target_basic_info(&pt, false));
-    REQUIRE_EQ(res, std::string{pt.name} + " defined in '" +
-                        std::string{loc.filename} + ':' +
-                        std::to_string(loc.line) + '\'');
-
-    REQUIRE_NOTHROW(res = abstract_target_build_info(&pt, {}));
-    REQUIRE_EQ(res, std::string{pt.name} + " has deps {}");
-  }
-
-  SUBCASE("with dep(s)") {
-    // TODO
-  }
+  REQUIRE_NOTHROW(res = abstract_target_build_info(&pt, {}));
+  REQUIRE_EQ(res, std::string{pt.name} + " has deps {}");
 }
 
 } // namespace

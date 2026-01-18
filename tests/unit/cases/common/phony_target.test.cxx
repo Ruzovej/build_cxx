@@ -28,9 +28,10 @@ namespace build_cxx::common {
 namespace {
 
 TEST_CASE("phony_target") {
-  common::project test_project{"pttp", "0.1.0", __FILE__};
+  project test_project{"pttp", "0.1.0", __FILE__};
 
-  BUILD_CXX_DEFINE_LOCATION(loc, -1);
+  BUILD_CXX_DEFINE_LOCATION(loc, location::no_index);
+  // testing it on single "isolated" target should be enough:
   BUILD_CXX_DEFINE_DEPS_ARRAY(deps_arr, deps_n);
 
   test_phony_target pt{&loc, true, "tpt", deps_arr, deps_n};
@@ -42,11 +43,13 @@ TEST_CASE("phony_target") {
 
   REQUIRE_NOTHROW(pt.resolve_own_traits());
 
-  REQUIRE_EQ(pt.resolved_kind, common::phony_target::kind);
+  REQUIRE_EQ(pt.resolved_kind, phony_target::kind);
   REQUIRE_EQ(pt.resolved_name,
              std::string{test_project.name} + "::" + std::string{pt.name});
   REQUIRE_EQ(pt.resolved_name,
              phony_target::resolve_name(test_project.name, pt.name));
+
+  // TODO test `last_modification_time` ...
 }
 
 } // namespace

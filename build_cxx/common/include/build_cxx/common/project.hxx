@@ -22,7 +22,6 @@
 #include <string_view>
 
 #include "build_cxx/common/abstract_target.hxx"
-#include "build_cxx/common/location.hxx"
 #include "build_cxx/common/macros.h"
 
 namespace build_cxx::common {

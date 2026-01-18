@@ -24,7 +24,6 @@
 #include <build_cxx/client/core.hxx>
 #include <build_cxx/client/debug_helper.hxx>
 #include <build_cxx/common/location.hxx>
-//#include <exec_path_args/exec_path_args.hxx>
 
 namespace {
 
