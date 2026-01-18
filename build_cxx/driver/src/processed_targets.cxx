@@ -131,16 +131,22 @@ bool processed_targets::resolve_deps(common::abstract_target const *const at) {
 }
 
 void processed_targets::build_target(common::abstract_target *const tgt) {
-  std::unordered_set<common::abstract_target const *> built_targets;
   std::string indent{};
-  build_target_impl(built_targets, tgt, indent);
+  build_target_impl(tgt, indent);
 }
 
-void processed_targets::build_target_impl(
-    std::unordered_set<common::abstract_target const *> &built_targets,
-    common::abstract_target *const tgt, std::string &indent) {
+void processed_targets::build_target_impl(common::abstract_target *const tgt,
+                                          std::string &indent) {
   if (built_targets.find(tgt) != built_targets.cend()) {
     return;
+  } else if (target_resolved_deps.find(tgt) == target_resolved_deps.cend()) {
+    throw std::runtime_error{
+        "Internal error: trying to build unknown target '" +
+        std::string{tgt->name} + "'"};
+  } else if (!target_resolved_deps.at(tgt).resolved) {
+    throw std::runtime_error{"Internal error: trying to build target '" +
+                             std::string{tgt->name} +
+                             "' with unresolved dependencies"};
   }
 
   std::cout << indent << "Building target '" << tgt->resolved_name << "':\n";
@@ -159,8 +165,7 @@ void processed_targets::build_target_impl(
   indent += '\t';
   for (auto const dep : deps) {
     // TODO get rid of this ugly `const_cast` ...
-    build_target_impl(built_targets, const_cast<common::abstract_target *>(dep),
-                      indent);
+    build_target_impl(const_cast<common::abstract_target *>(dep), indent);
 
     auto const dep_mod_time{dep->last_modification_time()};
 

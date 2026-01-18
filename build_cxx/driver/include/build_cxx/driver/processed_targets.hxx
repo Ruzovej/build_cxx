@@ -92,9 +92,10 @@ struct BUILD_CXX_DLL_HIDE processed_targets {
   void build_target(common::abstract_target *const tgt);
 
 private:
-  void build_target_impl(
-      std::unordered_set<common::abstract_target const *> &built_targets,
-      common::abstract_target *const tgt, std::string &indent);
+  void build_target_impl(common::abstract_target *const tgt,
+                         std::string &indent);
+
+  std::unordered_set<common::abstract_target const *> built_targets;
 
   std::unordered_map<common::abstract_target const *, resolved_deps>
       target_resolved_deps;
