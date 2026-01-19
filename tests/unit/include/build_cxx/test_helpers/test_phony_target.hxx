@@ -19,6 +19,8 @@
 
 #pragma once
 
+#include <unordered_set>
+
 #include "build_cxx/common/phony_target.hxx"
 
 namespace build_cxx::common {
@@ -26,9 +28,12 @@ namespace build_cxx::common {
 struct test_phony_target : phony_target {
   using phony_target::phony_target;
 
-  void build(std::vector<abstract_target const *> const & // deps
-             ) override {
-    // no-op
+  std::unordered_set<abstract_target const *> *built_targets{nullptr};
+
+  void build(std::vector<abstract_target const *> const & /*deps*/) override {
+    if (built_targets) {
+      built_targets->emplace(this);
+    }
   }
 };
 

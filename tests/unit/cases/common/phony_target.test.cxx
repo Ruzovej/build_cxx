@@ -27,8 +27,8 @@
 namespace build_cxx::common {
 namespace {
 
-TEST_CASE("phony_target") {
-  project test_project{"pttp", "0.1.0", __FILE__};
+TEST_CASE("common::phony_target") {
+  project test_project{"cpttp", "0.1.0", __FILE__};
 
   BUILD_CXX_DEFINE_LOCATION(loc, location::no_index);
   // testing it on single "isolated" target should be enough:
@@ -49,7 +49,14 @@ TEST_CASE("phony_target") {
   REQUIRE_EQ(pt.resolved_name,
              phony_target::resolve_name(test_project.name, pt.name));
 
-  // TODO test `last_modification_time` ...
+  std::unordered_set<abstract_target const *> built_targets;
+  pt.built_targets = &built_targets;
+
+  REQUIRE_NOTHROW(pt.build({}));
+  REQUIRE_EQ(built_targets.size(), 1);
+  REQUIRE_EQ(*built_targets.begin(), &pt);
+
+  // TODO test that value of `last_modification_time` means "always out of date"
 }
 
 } // namespace

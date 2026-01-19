@@ -41,13 +41,14 @@ struct BUILD_CXX_DLL_EXPORT file_target : abstract_target {
 
   void resolve_own_traits() override final;
 
+protected:
+  std::filesystem::path resolved_path;
+
 private:
   file_target(file_target const &) = delete;
   file_target &operator=(file_target const &) = delete;
   file_target(file_target &&) = delete;
   file_target &operator=(file_target &&) = delete;
-
-  std::filesystem::path resolved_path;
 };
 
 struct BUILD_CXX_DLL_EXPORT read_only_file_target : file_target {
@@ -57,7 +58,7 @@ struct BUILD_CXX_DLL_EXPORT read_only_file_target : file_target {
 
   void build(std::vector<abstract_target const *> const &deps) override;
 
-private:
+protected:
   modification_time_t highest_mod_time{
       std::numeric_limits<modification_time_t>::min()};
 };

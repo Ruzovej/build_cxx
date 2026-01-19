@@ -28,8 +28,8 @@
 namespace build_cxx::client {
 namespace {
 
-TEST_CASE("debug_helper") {
-  common::project test_project{"dhtp", "0.1.0", __FILE__};
+TEST_CASE("client::debug_helper") {
+  common::project test_project{"cdhtp", "0.1.0", __FILE__};
 
   BUILD_CXX_DEFINE_LOCATION(loc, common::location::no_index);
   // testing it on single "isolated" target should be enough:

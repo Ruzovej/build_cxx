@@ -27,15 +27,17 @@
 namespace build_cxx::common {
 namespace {
 
-TEST_CASE("file_target") {
+TEST_CASE("common::file_target") {
   static std::string_view constexpr fake_filename{
       "/fake/dir/file_target.test.cxx"};
 
-  project test_project{"fttp", "0.1.0", fake_filename};
+  project test_project{"cfttp", "0.1.0", fake_filename};
 
   static location constexpr loc{fake_filename, __LINE__, location::no_index};
   // testing it on single "isolated" target should be enough:
   BUILD_CXX_DEFINE_DEPS_ARRAY(deps_arr, deps_n);
+
+  std::unordered_set<abstract_target const *> built_targets;
 
   SUBCASE("relative path") {
     test_file_target ft{&loc, true, "tft", deps_arr, deps_n};
@@ -51,6 +53,12 @@ TEST_CASE("file_target") {
     REQUIRE_EQ(ft.resolved_name, "/fake/dir/tft");
     REQUIRE_EQ(std::filesystem::path{"/fake/dir/tft"},
                file_target::resolve_path(ft.loc->filename, ft.name));
+
+    ft.built_targets = &built_targets;
+
+    REQUIRE_NOTHROW(ft.build({}));
+    REQUIRE_EQ(built_targets.size(), 1);
+    REQUIRE_EQ(*built_targets.begin(), &ft);
 
     // TODO test `last_modification_time` ...
   }
@@ -69,6 +77,12 @@ TEST_CASE("file_target") {
     REQUIRE_EQ(ft.resolved_name, "/another/fake/dir/tft");
     REQUIRE_EQ(std::filesystem::path{"/another/fake/dir/tft"},
                file_target::resolve_path(ft.loc->filename, ft.name));
+
+    ft.built_targets = &built_targets;
+
+    REQUIRE_NOTHROW(ft.build({}));
+    REQUIRE_EQ(built_targets.size(), 1);
+    REQUIRE_EQ(*built_targets.begin(), &ft);
 
     // TODO test `last_modification_time` ...
   }
