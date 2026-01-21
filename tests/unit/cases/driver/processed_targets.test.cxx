@@ -57,6 +57,9 @@ TEST_CASE("driver::processed_targets") {
     bool all_resolved{false};
     REQUIRE_NOTHROW(all_resolved = driver_pt.resolve_deps());
     REQUIRE(all_resolved);
+
+    REQUIRE_NOTHROW(driver_pt.build_all_targets(false));
+    REQUIRE_EQ(built_targets.size(), 0);
   }
 
   SUBCASE("2 non-empty projects") {
@@ -85,6 +88,9 @@ TEST_CASE("driver::processed_targets") {
 
       REQUIRE_EQ(driver_pt.projects_by_name.size(), 2);
       REQUIRE_EQ(driver_pt.targets_by_project.size(), 2);
+      REQUIRE_EQ(driver_pt.targets_by_project.begin()->second.size(), 1);
+      REQUIRE_EQ(std::next(driver_pt.targets_by_project.begin())->second.size(),
+                 1);
       REQUIRE_EQ(driver_pt.project_of_target.size(), 2);
       REQUIRE_EQ(driver_pt.targets_by_resolved_name.size(), 2);
       REQUIRE_EQ(driver_pt.intermediate_targets.size(), 0);
