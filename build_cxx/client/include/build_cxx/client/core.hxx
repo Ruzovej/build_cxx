@@ -80,7 +80,8 @@ private:
   struct BUILD_CXX_DLL_HIDE aDerived_name : build_cxx::common::aBase_name {    \
     using aBase_name::aBase_name;                                              \
                                                                                \
-    void recipe(std::vector<abstract_target const *> const &deps) override;    \
+    void recipe(std::vector<build_cxx::common::abstract_target const *> const  \
+                    &resolved_deps) override;                                  \
   }
 
 #define BUILD_CXX_DEFINE_TARGET(aTarget_type_t, aTarget_var_name,              \
@@ -97,7 +98,8 @@ private:
 
 #define BUILD_CXX_DEFINE_TARGET_RECIPE(aDerived_name)                          \
   void aDerived_name::recipe(                                                  \
-      std::vector<build_cxx::common::abstract_target const *> const &deps)
+      std::vector<build_cxx::common::abstract_target const *> const            \
+          &resolved_deps)
 
 // 02
 
