@@ -41,6 +41,8 @@ struct mock_file_target : common::file_target {
 
   void set_exists(bool const exists) { simulated_existence = exists; }
 
+  void set_read_only(bool const read_only) { simulated_read_only = read_only; }
+
   [[nodiscard]] modification_time_t last_modification_time() const override {
     if (!simulated_existence) {
       return std::numeric_limits<modification_time_t>::min();
@@ -51,7 +53,7 @@ struct mock_file_target : common::file_target {
 
   void build(
       std::vector<common::abstract_target const *> const & /*deps*/) override {
-    if (built_targets) {
+    if (!simulated_read_only && built_targets) {
       built_targets->emplace(this);
     }
   }
@@ -59,6 +61,7 @@ struct mock_file_target : common::file_target {
 protected:
   modification_time_t simulated_mod_time{0};
   bool simulated_existence{true};
+  bool simulated_read_only{false};
 };
 
 } // namespace build_cxx::test_helpers

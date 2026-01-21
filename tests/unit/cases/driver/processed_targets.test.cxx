@@ -167,205 +167,200 @@ TEST_CASE("driver::processed_targets") {
   }
 
   SUBCASE("more nontrivial dependencies") {
-    SUBCASE("chain of 3 files, first 2 read-only") {
-      auto *const f1{test_project1.add_mock_file_target(
-          fake_root_file1, false, "/usr/include/foo.h", {})};
+    SUBCASE("file targets only") {
+      SUBCASE("chain of 3 files, first 2 read-only") {
+        auto *const f1{test_project1.add_mock_file_target(
+            fake_root_file1, false, "/usr/include/foo.h", true, {})};
 
-      auto *const f2{test_project1.add_mock_file_target(
-          fake_root_file1, false, "src/fake.c", {"/usr/include/foo.h"})};
+        auto *const f2{test_project1.add_mock_file_target(
+            fake_root_file1, false, "src/fake.c", true,
+            {"/usr/include/foo.h"})};
 
-      auto *const f3{test_project1.add_mock_file_target(
-          fake_root_file1, true, "bin/fake", {"src/fake.c"})};
+        auto *const f3{test_project1.add_mock_file_target(
+            fake_root_file1, true, "bin/fake", false, {"src/fake.c"})};
 
-      REQUIRE_NOTHROW(driver_pt.process_project(&test_project1));
+        REQUIRE_NOTHROW(driver_pt.process_project(&test_project1));
 
-      bool all_resolved{false};
-      REQUIRE_NOTHROW(all_resolved = driver_pt.resolve_deps());
-      REQUIRE(all_resolved);
+        bool all_resolved{false};
+        REQUIRE_NOTHROW(all_resolved = driver_pt.resolve_deps());
+        REQUIRE(all_resolved);
 
-      SUBCASE("all up-to date") {
-        f1->touch(1);
+        SUBCASE("all up-to date") {
+          f1->touch(1);
 
-        f2->touch(2);
+          f2->touch(2);
 
-        f3->touch(3);
+          f3->touch(3);
 
-        REQUIRE_NOTHROW(driver_pt.build_all_targets(false));
-        REQUIRE_EQ(built_targets.size(), 0);
+          REQUIRE_NOTHROW(driver_pt.build_all_targets(false));
+          REQUIRE_EQ(built_targets.size(), 0);
+        }
+
+        SUBCASE("first newest") {
+          f1->touch(3);
+
+          f2->touch(1);
+
+          f3->touch(2);
+
+          REQUIRE_NOTHROW(driver_pt.build_all_targets(false));
+          // TODO when the mod. time is properly propagated, change expected to
+          // 1:
+          REQUIRE_EQ(built_targets.size(), 0);
+        }
+
+        SUBCASE("second newest") {
+          f1->touch(1);
+
+          f2->touch(3);
+
+          f3->touch(2);
+
+          REQUIRE_NOTHROW(driver_pt.build_all_targets(false));
+          REQUIRE_EQ(built_targets.size(), 1);
+        }
+
+        SUBCASE("third doesn't exist") {
+          f1->touch(1);
+
+          f2->touch(2);
+
+          f3->set_exists(false);
+
+          REQUIRE_NOTHROW(driver_pt.build_all_targets(false));
+          REQUIRE_EQ(built_targets.size(), 1);
+        }
+
+        SUBCASE("same modification times") {
+          f1->touch(1);
+
+          f2->touch(1);
+
+          f3->touch(1);
+
+          REQUIRE_NOTHROW(driver_pt.build_all_targets(false));
+          REQUIRE_EQ(built_targets.size(), 1);
+        }
+
+        SUBCASE("third doesn't exist, otherwise same modification times") {
+          f1->touch(1);
+
+          f2->touch(1);
+
+          f3->set_exists(false);
+
+          REQUIRE_NOTHROW(driver_pt.build_all_targets(false));
+          REQUIRE_EQ(built_targets.size(), 1);
+        }
       }
 
-      SUBCASE("first newest") {
-        f1->touch(2);
+      SUBCASE("build-like tree ...") {
+        auto *const f1s{test_project1.add_mock_file_target(
+            fake_root_file1, false, "src/foo.c", true, {})};
 
-        f2->touch(1);
+        auto *const f1l{test_project1.add_mock_file_target(
+            fake_root_file1, true, "bin/libfoo.a", false, {"src/foo.c"})};
 
-        f3->touch(3);
+        auto *const f2s{test_project1.add_mock_file_target(
+            fake_root_file1, false, "src/bar.c", true, {})};
 
-        REQUIRE_NOTHROW(driver_pt.build_all_targets(false));
-        REQUIRE_EQ(built_targets.size(), 1);
-      }
+        auto *const f2l{test_project1.add_mock_file_target(
+            fake_root_file1, true, "bin/libbar.a", false, {"src/bar.c"})};
 
-      SUBCASE("second newest") {
-        f1->touch(1);
+        auto *const f3{test_project1.add_mock_file_target(
+            fake_root_file1, true, "bin/fake", false,
+            {"bin/libfoo.a", "bin/libbar.a"})};
 
-        f2->touch(3);
+        REQUIRE_NOTHROW(driver_pt.process_project(&test_project1));
 
-        f3->touch(2);
+        bool all_resolved{false};
+        REQUIRE_NOTHROW(all_resolved = driver_pt.resolve_deps());
+        REQUIRE(all_resolved);
 
-        REQUIRE_NOTHROW(driver_pt.build_all_targets(false));
-        REQUIRE_EQ(built_targets.size(), 1);
-      }
+        REQUIRE(built_targets.empty());
 
-      SUBCASE("third doesn't exist") {
-        f1->touch(1);
+        SUBCASE("all up-to date") {
+          f1s->touch(1);
+          f1l->touch(2);
 
-        f2->touch(2);
+          f2s->touch(1);
+          f2l->touch(2);
 
-        f3->set_exists(false);
+          f3->touch(3);
 
-        REQUIRE_NOTHROW(driver_pt.build_all_targets(false));
-        REQUIRE_EQ(built_targets.size(), 1);
-      }
+          REQUIRE_NOTHROW(driver_pt.build_all_targets(false));
+          REQUIRE_EQ(built_targets.size(), 0);
+        }
 
-      SUBCASE("same modification times") {
-        f1->touch(1);
+        SUBCASE("first newest") {
+          f1s->touch(4);
+          f1l->touch(2);
 
-        f2->touch(1);
+          f2s->touch(1);
+          f2l->touch(2);
 
-        f3->touch(1);
+          f3->touch(3);
 
-        REQUIRE_NOTHROW(driver_pt.build_all_targets(false));
-        // TODO when the "read-only" property is handled properly, reduce the
-        // expected to 1:
-        REQUIRE_EQ(built_targets.size(), 2);
-      }
+          REQUIRE_NOTHROW(driver_pt.build_all_targets(false));
+          // TODO fix this one ... expected should be 2:
+          REQUIRE_EQ(built_targets.size(), 1);
+        }
 
-      SUBCASE("third doesn't exist, otherwise same modification times") {
-        f1->touch(1);
+        SUBCASE("second newest") {
+          f1s->touch(1);
+          f1l->touch(4);
 
-        f2->touch(1);
+          f2s->touch(1);
+          f2l->touch(2);
 
-        f3->set_exists(false);
+          f3->touch(3);
 
-        REQUIRE_NOTHROW(driver_pt.build_all_targets(false));
-        // TODO when the "read-only" property is handled properly, reduce the
-        // expected to 1:
-        REQUIRE_EQ(built_targets.size(), 2);
-      }
+          REQUIRE_NOTHROW(driver_pt.build_all_targets(false));
+          REQUIRE_EQ(built_targets.size(), 1);
+        }
 
-      // ...
-      built_targets.clear();
+        SUBCASE("third doesn't exist") {
+          f1s->touch(1);
+          f1l->touch(2);
 
-      REQUIRE_NOTHROW(driver_pt.build_all_targets(false));
-      // all already up to date:
-      REQUIRE_EQ(built_targets.size(), 0);
-    }
+          f2s->touch(1);
+          f2l->touch(2);
 
-    SUBCASE("build-like tree ...") {
-      auto *const f1s{test_project1.add_mock_file_target(fake_root_file1, false,
-                                                         "src/foo.c", {})};
+          f3->set_exists(false);
 
-      auto *const f1l{test_project1.add_mock_file_target(
-          fake_root_file1, true, "bin/libfoo.a", {"src/foo.c"})};
+          REQUIRE_NOTHROW(driver_pt.build_all_targets(false));
+          REQUIRE_EQ(built_targets.size(), 1);
+        }
 
-      auto *const f2s{test_project1.add_mock_file_target(fake_root_file1, false,
-                                                         "src/bar.c", {})};
+        SUBCASE("same modification times") {
+          f1s->touch(1);
+          f1l->touch(1);
 
-      auto *const f2l{test_project1.add_mock_file_target(
-          fake_root_file1, true, "bin/libbar.a", {"src/bar.c"})};
+          f2s->touch(1);
+          f2l->touch(1);
 
-      auto *const f3{test_project1.add_mock_file_target(
-          fake_root_file1, true, "bin/fake", {"bin/libfoo.a", "bin/libbar.a"})};
+          f3->touch(1);
 
-      REQUIRE_NOTHROW(driver_pt.process_project(&test_project1));
+          REQUIRE_NOTHROW(driver_pt.build_all_targets(false));
+          // TODO when the "read-only" property is handled properly, reduce the
+          // expected to 1:
+          REQUIRE_EQ(built_targets.size(), 3);
+        }
 
-      bool all_resolved{false};
-      REQUIRE_NOTHROW(all_resolved = driver_pt.resolve_deps());
-      REQUIRE(all_resolved);
+        SUBCASE("third doesn't exist, otherwise same modification times") {
+          f1s->touch(1);
+          f1l->touch(1);
 
-      REQUIRE(built_targets.empty());
+          f2s->touch(1);
+          f2l->touch(1);
 
-      SUBCASE("all up-to date") {
-        f1s->touch(1);
-        f1l->touch(2);
+          f3->set_exists(false);
 
-        f2s->touch(1);
-        f2l->touch(2);
-
-        f3->touch(3);
-
-        REQUIRE_NOTHROW(driver_pt.build_all_targets(false));
-        REQUIRE_EQ(built_targets.size(), 0);
-      }
-
-      SUBCASE("first newest") {
-        f1s->touch(4);
-        f1l->touch(2);
-
-        f2s->touch(1);
-        f2l->touch(2);
-
-        f3->touch(3);
-
-        REQUIRE_NOTHROW(driver_pt.build_all_targets(false));
-        // TODO fix this one ... expected should be 2:
-        REQUIRE_EQ(built_targets.size(), 1);
-      }
-
-      SUBCASE("second newest") {
-        f1s->touch(1);
-        f1l->touch(4);
-
-        f2s->touch(1);
-        f2l->touch(2);
-
-        f3->touch(3);
-
-        REQUIRE_NOTHROW(driver_pt.build_all_targets(false));
-        REQUIRE_EQ(built_targets.size(), 1);
-      }
-
-      SUBCASE("third doesn't exist") {
-        f1s->touch(1);
-        f1l->touch(2);
-
-        f2s->touch(1);
-        f2l->touch(2);
-
-        f3->set_exists(false);
-
-        REQUIRE_NOTHROW(driver_pt.build_all_targets(false));
-        REQUIRE_EQ(built_targets.size(), 1);
-      }
-
-      SUBCASE("same modification times") {
-        f1s->touch(1);
-        f1l->touch(1);
-
-        f2s->touch(1);
-        f2l->touch(1);
-
-        f3->touch(1);
-
-        REQUIRE_NOTHROW(driver_pt.build_all_targets(false));
-        // TODO when the "read-only" property is handled properly, reduce the
-        // expected to 1:
-        REQUIRE_EQ(built_targets.size(), 3);
-      }
-
-      SUBCASE("third doesn't exist, otherwise same modification times") {
-        f1s->touch(1);
-        f1l->touch(1);
-
-        f2s->touch(1);
-        f2l->touch(1);
-
-        f3->set_exists(false);
-
-        REQUIRE_NOTHROW(driver_pt.build_all_targets(false));
-        // TODO when the "read-only" property is handled properly, reduce the
-        // expected to 1:
-        REQUIRE_EQ(built_targets.size(), 3);
+          REQUIRE_NOTHROW(driver_pt.build_all_targets(false));
+          // TODO when the "read-only" property is handled properly, reduce the
+          // expected to 1:
+          REQUIRE_EQ(built_targets.size(), 3);
+        }
       }
 
       // ...

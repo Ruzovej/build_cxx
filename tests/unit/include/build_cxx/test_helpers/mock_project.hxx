@@ -34,11 +34,17 @@ namespace build_cxx::test_helpers {
 struct mock_project : common::project {
   using project::project;
 
-  [[nodiscard]] mock_file_target *add_mock_file_target(
-      std::string_view const fake_loc_filename, bool const include_in_all,
-      std::string_view const tgt_name, std::vector<std::string_view> &&deps) {
-    return add_mock_target<mock_file_target>(fake_loc_filename, include_in_all,
-                                             tgt_name, std::move(deps));
+  [[nodiscard]] mock_file_target *
+  add_mock_file_target(std::string_view const fake_loc_filename,
+                       bool const include_in_all,
+                       std::string_view const tgt_name, bool const read_only,
+                       std::vector<std::string_view> &&deps) {
+    auto *const res{add_mock_target<mock_file_target>(
+        fake_loc_filename, include_in_all, tgt_name, std::move(deps))};
+
+    res->set_read_only(read_only);
+
+    return res;
   }
 
   [[nodiscard]] mock_phony_target *add_mock_phony_target(

@@ -37,8 +37,8 @@ TEST_CASE("common::file_target") {
   test_project.built_targets = &built_targets;
 
   SUBCASE("relative path") {
-    auto *const ft{
-        test_project.add_mock_file_target(fake_filename, true, "tft", {})};
+    auto *const ft{test_project.add_mock_file_target(fake_filename, true, "tft",
+                                                     false, {})};
 
     REQUIRE(ft->resolved_kind.empty());
     REQUIRE(ft->resolved_name.empty());
@@ -59,7 +59,7 @@ TEST_CASE("common::file_target") {
 
   SUBCASE("absolute path") {
     auto *const ft{test_project.add_mock_file_target(
-        fake_filename, true, "/another/fake/dir/tft", {})};
+        fake_filename, true, "/another/fake/dir/tft", true, {})};
 
     REQUIRE(ft->resolved_kind.empty());
     REQUIRE(ft->resolved_name.empty());
@@ -74,8 +74,8 @@ TEST_CASE("common::file_target") {
     ft->built_targets = &built_targets;
 
     REQUIRE_NOTHROW(ft->build({}));
-    REQUIRE_EQ(built_targets.size(), 1);
-    REQUIRE_EQ(*built_targets.begin(), ft);
+    // expect 0 because it's marked as read-only ...:
+    REQUIRE_EQ(built_targets.size(), 0);
 
     // TODO test `last_modification_time` ...
   }
