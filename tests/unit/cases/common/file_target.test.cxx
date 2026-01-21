@@ -50,7 +50,7 @@ TEST_CASE("common::file_target") {
     REQUIRE_EQ(std::filesystem::path{"/fake/dir/tft"},
                common::file_target::resolve_path(ft->loc->filename, ft->name));
 
-    REQUIRE_NOTHROW(ft->build({}));
+    REQUIRE_NOTHROW(ft->recipe({}));
     REQUIRE_EQ(built_targets.size(), 1);
     REQUIRE_EQ(*built_targets.begin(), ft);
 
@@ -73,7 +73,7 @@ TEST_CASE("common::file_target") {
 
     ft->built_targets = &built_targets;
 
-    REQUIRE_NOTHROW(ft->build({}));
+    REQUIRE_NOTHROW(ft->recipe({}));
     // expect 0 because it's marked as read-only ...:
     REQUIRE_EQ(built_targets.size(), 0);
 

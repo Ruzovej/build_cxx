@@ -67,9 +67,9 @@ read_only_file_target::last_modification_time() const {
   return std::max(highest_mod_time, my_mod_time);
 }
 
-void read_only_file_target::build(
-    std::vector<abstract_target const *> const &deps) {
-  for (auto const dep : deps) {
+void read_only_file_target::recipe(
+    std::vector<abstract_target const *> const &resolved_deps) {
+  for (auto const dep : resolved_deps) {
     auto const dep_mod_time{dep->last_modification_time()};
 
     highest_mod_time = std::max(highest_mod_time, dep_mod_time);

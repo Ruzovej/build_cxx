@@ -52,7 +52,8 @@ struct BUILD_CXX_DLL_EXPORT abstract_target {
 
   virtual void resolve_own_traits() = 0;
 
-  virtual void build(std::vector<abstract_target const *> const &deps) = 0;
+  virtual void
+  recipe(std::vector<abstract_target const *> const &resolved_deps) = 0;
 
   // TODO private & getters, (setters?!), etc.:
   // "private":

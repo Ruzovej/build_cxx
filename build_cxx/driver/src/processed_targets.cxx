@@ -201,7 +201,7 @@ void processed_targets::build_target_impl(common::abstract_target *const tgt,
       std::cout << "is already up to date\n";
     }
   } else {
-    tgt->build(deps);
+    tgt->recipe(deps);
     if (verbose) {
       std::cout << '\n';
     }

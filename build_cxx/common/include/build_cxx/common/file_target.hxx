@@ -56,7 +56,8 @@ struct BUILD_CXX_DLL_EXPORT read_only_file_target : file_target {
 
   [[nodiscard]] modification_time_t last_modification_time() const override;
 
-  void build(std::vector<abstract_target const *> const &deps) override;
+  void
+  recipe(std::vector<abstract_target const *> const &resolved_deps) override;
 
 protected:
   modification_time_t highest_mod_time{
