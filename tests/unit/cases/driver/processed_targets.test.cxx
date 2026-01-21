@@ -370,9 +370,98 @@ TEST_CASE("driver::processed_targets") {
       // all already up to date:
       REQUIRE_EQ(built_targets.size(), 0);
     }
+
+    SUBCASE("relation between phony and file targets") {
+      auto *const fro{test_project1.add_mock_file_target(
+          fake_root_file1, false, "src/fake.c", true, {})};
+
+      auto *const f1{test_project1.add_mock_file_target(
+          fake_root_file1, true, "bin/fake", false, {"src/fake.c"})};
+
+      auto *const p1{test_project1.add_mock_phony_target(
+          fake_root_file1, true, "phony_alias", {"bin/fake"})};
+
+      auto *const f2{test_project1.add_mock_file_target(
+          fake_root_file1, true, "bin/fake", false,
+          {"src/fake.c", "fake_phony"})};
+
+      auto *const p2{test_project1.add_mock_phony_target(fake_root_file1, true,
+                                                         "fake_phony", {})};
+
+      REQUIRE_NOTHROW(driver_pt.process_project(&test_project1));
+
+      bool all_resolved{false};
+      REQUIRE_NOTHROW(all_resolved = driver_pt.resolve_deps());
+      REQUIRE(all_resolved);
+
+      REQUIRE(built_targets.empty());
+
+      SUBCASE("first, up to date") {
+        fro->touch(1);
+        f1->touch(2);
+
+        REQUIRE_NOTHROW(driver_pt.build_target(p1, false));
+        REQUIRE_EQ(built_targets.count(p1), 1);
+        REQUIRE_EQ(built_targets.size(), 1);
+      }
+
+      SUBCASE("first, out of date") {
+        fro->touch(2);
+        f1->touch(1);
+
+        REQUIRE_NOTHROW(driver_pt.build_target(p1, false));
+        REQUIRE_EQ(built_targets.count(p1), 1);
+        REQUIRE_EQ(built_targets.count(f1), 1);
+        REQUIRE_EQ(built_targets.size(), 2);
+      }
+
+      SUBCASE("first, nonexistent") {
+        fro->touch(1);
+        f1->set_exists(false);
+
+        REQUIRE_NOTHROW(driver_pt.build_target(p1, false));
+        REQUIRE_EQ(built_targets.count(p1), 1);
+        REQUIRE_EQ(built_targets.count(f1), 1);
+        REQUIRE_EQ(built_targets.size(), 2);
+      }
+
+      SUBCASE("second, up to date") {
+        fro->touch(1);
+        f2->touch(2);
+
+        REQUIRE_NOTHROW(driver_pt.build_target(f2, false));
+        REQUIRE_EQ(built_targets.count(p2), 1);
+        // TODO when it gets fixed ... uncomment those:
+        // REQUIRE_EQ(built_targets.count(f2), 1);
+        // REQUIRE_EQ(built_targets.size(), 2);
+        // ... and delete this one:
+        REQUIRE_EQ(built_targets.size(), 1);
+      }
+
+      SUBCASE("second, out of date") {
+        fro->touch(2);
+        f2->touch(1);
+
+        REQUIRE_NOTHROW(driver_pt.build_target(f2, false));
+        REQUIRE_EQ(built_targets.count(p2), 1);
+        REQUIRE_EQ(built_targets.count(f2), 1);
+        REQUIRE_EQ(built_targets.size(), 2);
+      }
+
+      SUBCASE("second, nonexistent") {
+        fro->touch(1);
+        f2->set_exists(false);
+
+        REQUIRE_NOTHROW(driver_pt.build_target(f2, false));
+        REQUIRE_EQ(built_targets.count(p2), 1);
+        REQUIRE_EQ(built_targets.count(f2), 1);
+        REQUIRE_EQ(built_targets.size(), 2);
+      }
+    }
   }
 
-  // TODO write cases for various nontrivial "graphs" of dependencies, etc.
+  // TODO verify: above cases for various nontrivial "graphs" of dependencies
+  // should be "enough"
 }
 
 } // namespace
