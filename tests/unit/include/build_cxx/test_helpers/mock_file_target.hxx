@@ -51,8 +51,8 @@ struct mock_file_target : common::file_target {
     return simulated_mod_time;
   }
 
-  void build(
-      std::vector<common::abstract_target const *> const & /*deps*/) override {
+  void recipe(std::vector<common::abstract_target const *> const
+                  & /*resolved_deps*/) override {
     if (!simulated_read_only && built_targets) {
       built_targets->emplace(this);
     }

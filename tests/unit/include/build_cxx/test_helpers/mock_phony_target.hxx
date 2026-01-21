@@ -31,8 +31,8 @@ struct mock_phony_target : common::phony_target {
 
   built_targets_t *built_targets{nullptr};
 
-  void build(
-      std::vector<common::abstract_target const *> const & /*deps*/) override {
+  void recipe(std::vector<common::abstract_target const *> const
+                  & /*resolved_deps*/) override {
     if (built_targets) {
       built_targets->emplace(this);
     }

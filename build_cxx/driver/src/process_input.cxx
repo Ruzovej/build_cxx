@@ -99,7 +99,7 @@ void process_input(std::vector<char const *> const &targets,
         std::cout << " - Target '" << given_abstract_target->name << "' ("
                   << given_abstract_target->resolved_name << ") is "
                   << given_abstract_target->resolved_kind << " target\n    ";
-        given_abstract_target->build(
+        given_abstract_target->recipe(
             pt.get_target_resolved_deps().at(given_abstract_target).deps);
         std::cout << '\n';
       }

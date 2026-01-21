@@ -47,7 +47,7 @@ TEST_CASE("common::phony_target") {
   REQUIRE_EQ(pt->resolved_name,
              common::phony_target::resolve_name(test_project.name, pt->name));
 
-  REQUIRE_NOTHROW(pt->build({}));
+  REQUIRE_NOTHROW(pt->recipe({}));
   REQUIRE_EQ(built_targets.size(), 1);
   REQUIRE_EQ(*built_targets.begin(), pt);
 
