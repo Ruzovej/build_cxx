@@ -11,11 +11,11 @@ input=(
     build/tests/unit/build_cxx_unit_tests
     --no-intro=true
     --no-version=true
-    "$@"
 )
 
 if [[ "$1" == "--gdb" ]]; then
-    gdb --args "${input[@]}"
+    shift
+    gdb --args "${input[@]}" "$@"
 else
-    time "${input[@]}"
+    time "${input[@]}" "$@"
 fi

@@ -45,7 +45,7 @@ TEST_CASE("client::debug_helper") {
 
   std::string res;
 
-  // this is very fragile ... but on te other hand, I don't expect this to be
+  // this is very fragile ... but on the other hand, I don't expect this to be
   // used much, nor shouldn't it change often and/or drastically:
 
   REQUIRE_NOTHROW(res = client::abstract_target_basic_info(&pt, true));
