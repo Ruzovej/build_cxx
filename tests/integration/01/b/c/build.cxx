@@ -26,4 +26,6 @@ BUILD_CXX_FILE_TARGET("src/AAA_3.cxx") {
   std::cout << "I'm twice as happy :-) "
             << build_cxx::client::abstract_target_build_info(this,
                                                              resolved_deps);
+
+  touch_file(current_dir / name);
 }

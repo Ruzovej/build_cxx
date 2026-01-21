@@ -30,7 +30,8 @@ struct BUILD_CXX_DLL_EXPORT phony_target : abstract_target {
   using abstract_target::abstract_target;
 
   // Phony target is always out of date
-  [[nodiscard]] modification_time_t last_modification_time() const override;
+  [[nodiscard]] std::optional<modification_time_t>
+  last_modification_time() const override;
 
   static std::string resolve_name(std::string_view const project_name,
                                   std::string_view const target_name);
@@ -38,6 +39,9 @@ struct BUILD_CXX_DLL_EXPORT phony_target : abstract_target {
   static std::string_view constexpr kind{"phony"};
 
   void resolve_own_traits() override final;
+
+  void build(
+      std::vector<abstract_target const *> const &resolved_deps) override final;
 
 private:
   phony_target(phony_target const &) = delete;

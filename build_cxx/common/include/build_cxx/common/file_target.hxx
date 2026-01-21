@@ -31,7 +31,8 @@ namespace build_cxx::common {
 struct BUILD_CXX_DLL_EXPORT file_target : abstract_target {
   using abstract_target::abstract_target;
 
-  [[nodiscard]] modification_time_t last_modification_time() const override;
+  [[nodiscard]] std::optional<modification_time_t>
+  last_modification_time() const override;
 
   static std::filesystem::path
   resolve_path(std::string_view const source_filename,
@@ -41,8 +42,18 @@ struct BUILD_CXX_DLL_EXPORT file_target : abstract_target {
 
   void resolve_own_traits() override final;
 
+  void build(
+      std::vector<abstract_target const *> const &resolved_deps) override final;
+
 protected:
   std::filesystem::path resolved_path;
+
+  std::optional<modification_time_t> highest_mod_time{
+      std::numeric_limits<modification_time_t>::min()};
+
+  bool read_only{false};
+
+  virtual void post_recipe_check() const;
 
 private:
   file_target(file_target const &) = delete;
@@ -52,16 +63,16 @@ private:
 };
 
 struct BUILD_CXX_DLL_EXPORT read_only_file_target : file_target {
-  using file_target::file_target;
-
-  [[nodiscard]] modification_time_t last_modification_time() const override;
+  explicit read_only_file_target(location const *const aLoc,
+                                 bool const aInclude_in_all,
+                                 std::string_view const aName,
+                                 std::string_view const *const aRaw_deps,
+                                 std::size_t const aNum_deps) noexcept;
 
   void
-  recipe(std::vector<abstract_target const *> const &resolved_deps) override;
-
-protected:
-  modification_time_t highest_mod_time{
-      std::numeric_limits<modification_time_t>::min()};
+  recipe(std::vector<abstract_target const *> const &resolved_deps) override {
+    // nothing to do ...
+  }
 };
 
 } // namespace build_cxx::common

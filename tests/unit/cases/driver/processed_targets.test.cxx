@@ -204,9 +204,7 @@ TEST_CASE("driver::processed_targets") {
           f3->touch(2);
 
           REQUIRE_NOTHROW(driver_pt.build_all_targets(false));
-          // TODO when the mod. time is properly propagated, change expected to
-          // 1:
-          REQUIRE_EQ(built_targets.size(), 0);
+          REQUIRE_EQ(built_targets.size(), 1);
         }
 
         SUBCASE("second newest") {
@@ -239,7 +237,7 @@ TEST_CASE("driver::processed_targets") {
           f3->touch(1);
 
           REQUIRE_NOTHROW(driver_pt.build_all_targets(false));
-          REQUIRE_EQ(built_targets.size(), 1);
+          REQUIRE_EQ(built_targets.size(), 0);
         }
 
         SUBCASE("third doesn't exist, otherwise same modification times") {
@@ -302,8 +300,7 @@ TEST_CASE("driver::processed_targets") {
           f3->touch(3);
 
           REQUIRE_NOTHROW(driver_pt.build_all_targets(false));
-          // TODO fix this one ... expected should be 2:
-          REQUIRE_EQ(built_targets.size(), 1);
+          REQUIRE_EQ(built_targets.size(), 2);
         }
 
         SUBCASE("second newest") {
@@ -342,9 +339,7 @@ TEST_CASE("driver::processed_targets") {
           f3->touch(1);
 
           REQUIRE_NOTHROW(driver_pt.build_all_targets(false));
-          // TODO when the "read-only" property is handled properly, reduce the
-          // expected to 1:
-          REQUIRE_EQ(built_targets.size(), 3);
+          REQUIRE_EQ(built_targets.size(), 0);
         }
 
         SUBCASE("third doesn't exist, otherwise same modification times") {
@@ -357,9 +352,7 @@ TEST_CASE("driver::processed_targets") {
           f3->set_exists(false);
 
           REQUIRE_NOTHROW(driver_pt.build_all_targets(false));
-          // TODO when the "read-only" property is handled properly, reduce the
-          // expected to 1:
-          REQUIRE_EQ(built_targets.size(), 3);
+          REQUIRE_EQ(built_targets.size(), 1);
         }
       }
 
@@ -431,11 +424,8 @@ TEST_CASE("driver::processed_targets") {
 
         REQUIRE_NOTHROW(driver_pt.build_target(f2, false));
         REQUIRE_EQ(built_targets.count(p2), 1);
-        // TODO when it gets fixed ... uncomment those:
-        // REQUIRE_EQ(built_targets.count(f2), 1);
-        // REQUIRE_EQ(built_targets.size(), 2);
-        // ... and delete this one:
-        REQUIRE_EQ(built_targets.size(), 1);
+        REQUIRE_EQ(built_targets.count(f2), 1);
+        REQUIRE_EQ(built_targets.size(), 2);
       }
 
       SUBCASE("second, out of date") {

@@ -19,6 +19,7 @@
 
 #pragma once
 
+#include <optional>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -48,12 +49,16 @@ struct BUILD_CXX_DLL_EXPORT abstract_target {
   // - example: https://godbolt.org/z/Enoza77Wo
   using modification_time_t = long long;
 
-  [[nodiscard]] virtual modification_time_t last_modification_time() const = 0;
+  [[nodiscard]] virtual std::optional<modification_time_t>
+  last_modification_time() const = 0;
 
   virtual void resolve_own_traits() = 0;
 
   virtual void
   recipe(std::vector<abstract_target const *> const &resolved_deps) = 0;
+
+  virtual void
+  build(std::vector<abstract_target const *> const &resolved_deps) = 0;
 
   // TODO private & getters, (setters?!), etc.:
   // "private":
