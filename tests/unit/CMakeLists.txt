@@ -41,5 +41,5 @@ target_compile_definitions(
     build_cxx_unit_tests
         PRIVATE
             DOCTEST_CONFIG_SUPER_FAST_ASSERTS
-            DOCTEST_CONFIG_NO_TRY_CATCH_IN_ASSERTS
+            #DOCTEST_CONFIG_NO_TRY_CATCH_IN_ASSERTS
 )

@@ -24,40 +24,37 @@
 #include "build_cxx/client/core.hxx"
 #include "build_cxx/common/location.hxx"
 #include "build_cxx/test_helpers/mock_phony_target.hxx"
+#include "build_cxx/test_helpers/mock_project.hxx"
 
 namespace build_cxx {
 namespace {
 
 TEST_CASE("client::debug_helper") {
-  common::project test_project{"cdhtp", "0.1.0", __FILE__};
+  test_helpers::built_targets_t built_targets;
+  test_helpers::mock_project test_project{"cdhtp", "0.1.0", __FILE__};
+  test_project.built_targets = &built_targets;
 
-  BUILD_CXX_DEFINE_LOCATION(loc, common::location::no_index);
   // testing it on single "isolated" target should be enough:
-  BUILD_CXX_DEFINE_DEPS_ARRAY(deps_arr, deps_n);
+  auto *const pt{test_project.add_mock_phony_target(__FILE__, true,
+                                                    "test_phony_target", {})};
 
-  // testing it on dummy test_phony_target should be enough
-  test_helpers::mock_phony_target pt{&loc, true, "test_phony_target", deps_arr,
-                                     deps_n};
-
-  test_project.add_target(&pt);
-
-  REQUIRE_NOTHROW(pt.resolve_own_traits());
+  REQUIRE_NOTHROW(pt->resolve_own_traits());
 
   std::string res;
 
   // this is very fragile ... but on the other hand, I don't expect this to be
   // used much, nor shouldn't it change often and/or drastically:
 
-  REQUIRE_NOTHROW(res = client::abstract_target_basic_info(&pt, true));
-  REQUIRE_EQ(res, pt.name);
+  REQUIRE_NOTHROW(res = client::abstract_target_basic_info(pt, true));
+  REQUIRE_EQ(res, pt->name);
 
-  REQUIRE_NOTHROW(res = client::abstract_target_basic_info(&pt, false));
-  REQUIRE_EQ(res, std::string{pt.name} + " defined in '" +
-                      std::string{loc.filename} + ':' +
-                      std::to_string(loc.line) + '\'');
+  REQUIRE_NOTHROW(res = client::abstract_target_basic_info(pt, false));
+  REQUIRE_EQ(res, std::string{pt->name} + " defined in '" +
+                      std::string{pt->loc->filename} + ':' +
+                      std::to_string(pt->loc->line) + '\'');
 
-  REQUIRE_NOTHROW(res = client::abstract_target_build_info(&pt, {}));
-  REQUIRE_EQ(res, std::string{pt.name} + " has deps {}");
+  REQUIRE_NOTHROW(res = client::abstract_target_build_info(pt, {}));
+  REQUIRE_EQ(res, std::string{pt->name} + " has deps {}");
 }
 
 } // namespace
