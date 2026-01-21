@@ -52,19 +52,22 @@ BUILD_CXX_PHONY_TARGET("c1",
                        // deps:
                        "c2", "c3") {
   std::cout << "I'm happy :-) "
-            << build_cxx::client::abstract_target_build_info(this, deps);
+            << build_cxx::client::abstract_target_build_info(this,
+                                                             resolved_deps);
 }
 
 BUILD_CXX_HIDDEN_PHONY_TARGET("c2") {
   std::cout << "I'm happy :-) "
-            << build_cxx::client::abstract_target_build_info(this, deps);
+            << build_cxx::client::abstract_target_build_info(this,
+                                                             resolved_deps);
 }
 
 BUILD_CXX_HIDDEN_PHONY_TARGET("c3",
                               // deps:
                               "build/libCCC.a", "build/libCCC.so") {
   std::cout << "I'm happy :-) "
-            << build_cxx::client::abstract_target_build_info(this, deps);
+            << build_cxx::client::abstract_target_build_info(this,
+                                                             resolved_deps);
 }
 
 // very fake ...:
@@ -73,7 +76,8 @@ BUILD_CXX_FILE_TARGET("build/libCCC.a",
                       // deps:
                       "build/src/CCC.cxx.o") {
   std::cout << "I'm happy :-) "
-            << build_cxx::client::abstract_target_build_info(this, deps);
+            << build_cxx::client::abstract_target_build_info(this,
+                                                             resolved_deps);
 
   touch_file(current_dir / this->name);
 }
@@ -82,7 +86,8 @@ BUILD_CXX_FILE_TARGET("build/libCCC.so",
                       // deps:
                       "build/src/CCC.cxx.o") {
   std::cout << "I'm happy :-) "
-            << build_cxx::client::abstract_target_build_info(this, deps);
+            << build_cxx::client::abstract_target_build_info(this,
+                                                             resolved_deps);
 
   touch_file(current_dir / this->name);
 }
@@ -91,7 +96,8 @@ BUILD_CXX_HIDDEN_FILE_TARGET("build/src/CCC.cxx.o",
                              // deps:
                              "src/CCC.cxx") {
   std::cout << "I'm happy :-) "
-            << build_cxx::client::abstract_target_build_info(this, deps);
+            << build_cxx::client::abstract_target_build_info(this,
+                                                             resolved_deps);
 
   touch_file(current_dir / this->name);
 }
