@@ -17,27 +17,26 @@
   with build_cxx. If not, see <https://www.gnu.org/licenses/>.
 */
 
+#pragma once
+
+#include <unordered_set>
+
 #include "build_cxx/common/phony_target.hxx"
+#include "build_cxx/test_helpers/built_targets_t.hxx"
 
-#include <limits>
+namespace build_cxx::test_helpers {
 
-#include "build_cxx/common/project.hxx"
+struct mock_phony_target : common::phony_target {
+  using phony_target::phony_target;
 
-namespace build_cxx::common {
+  built_targets_t *built_targets{nullptr};
 
-abstract_target::modification_time_t
-phony_target::last_modification_time() const {
-  return std::numeric_limits<modification_time_t>::min();
-}
+  void build(
+      std::vector<common::abstract_target const *> const & /*deps*/) override {
+    if (built_targets) {
+      built_targets->emplace(this);
+    }
+  }
+};
 
-std::string phony_target::resolve_name(std::string_view const project_name,
-                                       std::string_view const target_name) {
-  return std::string{project_name} + "::" + std::string{target_name};
-}
-
-void phony_target::resolve_own_traits() {
-  resolved_kind = kind;
-  resolved_name = resolve_name(parent_project->name, name);
-}
-
-} // namespace build_cxx::common
+} // namespace build_cxx::test_helpers

@@ -17,27 +17,14 @@
   with build_cxx. If not, see <https://www.gnu.org/licenses/>.
 */
 
-#include "build_cxx/common/phony_target.hxx"
+#pragma once
 
-#include <limits>
+#include <unordered_set>
 
-#include "build_cxx/common/project.hxx"
+#include "build_cxx/common/abstract_target.hxx"
 
-namespace build_cxx::common {
+namespace build_cxx::test_helpers {
 
-abstract_target::modification_time_t
-phony_target::last_modification_time() const {
-  return std::numeric_limits<modification_time_t>::min();
-}
+using built_targets_t = std::unordered_set<common::abstract_target const *>;
 
-std::string phony_target::resolve_name(std::string_view const project_name,
-                                       std::string_view const target_name) {
-  return std::string{project_name} + "::" + std::string{target_name};
-}
-
-void phony_target::resolve_own_traits() {
-  resolved_kind = kind;
-  resolved_name = resolve_name(parent_project->name, name);
-}
-
-} // namespace build_cxx::common
+} // namespace build_cxx::test_helpers

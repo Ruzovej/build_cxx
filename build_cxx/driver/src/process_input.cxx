@@ -114,7 +114,7 @@ void process_input(std::vector<char const *> const &targets,
                                  "' not found"};
       }
 
-      pt.build_target(iter->second);
+      pt.build_target(iter->second, true);
     }
   }
 }

@@ -31,7 +31,8 @@
 
 namespace build_cxx::driver {
 
-struct BUILD_CXX_DLL_HIDE processed_targets {
+// TODO should be BUILD_CXX_DLL_HIDE, but then unit tests won't compile ...
+struct BUILD_CXX_DLL_EXPORT processed_targets {
   // "loader" should ensure that projects are unique, and if same project is
   // required/loaded twice, it has exactly same version
   processed_targets() = default;
@@ -79,11 +80,14 @@ struct BUILD_CXX_DLL_HIDE processed_targets {
   // TODO
   // - parallelize
   // - accept more targets at once
-  void build_target(common::abstract_target *const tgt);
+  // - switch for turning on/off logging to `stdout`, etc.
+  void build_target(common::abstract_target *const tgt, bool const verbose);
+
+  void build_all_targets(bool const verbose);
 
 private:
   void build_target_impl(common::abstract_target *const tgt,
-                         std::string &indent);
+                         std::string &indent, bool const verbose);
 
   // not owning any pointer(s):
   std::unordered_set<common::abstract_target const *> built_targets;

@@ -22,7 +22,6 @@
 #include <string_view>
 
 #include "build_cxx/common/abstract_target.hxx"
-#include "build_cxx/common/location.hxx"
 #include "build_cxx/common/macros.h"
 
 namespace build_cxx::common {
@@ -39,10 +38,10 @@ struct BUILD_CXX_DLL_EXPORT project {
   // TODO private & getters, (setters?!), etc.:
   std::string_view name;
   std::string_view version;
+  std::string_view root_file;
   // non owned:
   abstract_target *first{nullptr};
   abstract_target *last{nullptr};
-  std::string_view root_file;
 
 private:
   project(project const &) = delete;
