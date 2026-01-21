@@ -58,7 +58,9 @@ private:
     std::unique_ptr<common::abstract_target> tgt;
   };
 
-  std::vector<target_holder> fake_tgts;
+  // `unique_ptr` is needed to prevent dangling pointers to `location` member
+  // ... kind of a hackish solution, good enough for now:
+  std::vector<std::unique_ptr<target_holder>> fake_tgts;
 
   template <typename target_t>
   [[nodiscard]] target_t *
@@ -68,10 +70,10 @@ private:
     auto const fake_ind{static_cast<int>(fake_tgts.size() + 1)};
 
     fake_tgts.emplace_back(
-        target_holder{common::location{fake_loc_filename, 42, fake_ind},
-                      std::move(deps), nullptr});
+        new target_holder{common::location{fake_loc_filename, 42, fake_ind},
+                          std::move(deps), nullptr});
 
-    auto &last{fake_tgts.back()};
+    auto &last{*fake_tgts.back()};
 
     auto uptr{std::make_unique<target_t>(&last.fake_loc, include_in_all,
                                          tgt_name, last.deps.data(),

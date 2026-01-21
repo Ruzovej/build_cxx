@@ -7,8 +7,15 @@ set -e
 scripts/build.bash \
     --target build_cxx_unit_tests
 
-time \
-    build/tests/unit/build_cxx_unit_tests \
-        --no-intro=true \
-        --no-version=true \
-        "$@"
+input=(
+    build/tests/unit/build_cxx_unit_tests
+    --no-intro=true
+    --no-version=true
+    "$@"
+)
+
+if [[ "$1" == "--gdb" ]]; then
+    gdb --args "${input[@]}"
+else
+    time "${input[@]}"
+fi
