@@ -26,7 +26,7 @@
 
 namespace build_cxx::test_helpers {
 
-struct test_file_target : common::file_target {
+struct mock_file_target : common::file_target {
   using file_target::file_target;
 
   built_targets_t *built_targets{nullptr};

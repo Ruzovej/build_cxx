@@ -26,25 +26,25 @@
 #include "build_cxx/common/location.hxx"
 #include "build_cxx/common/project.hxx"
 #include "build_cxx/test_helpers/built_targets_t.hxx"
-#include "build_cxx/test_helpers/test_file_target.hxx"
-#include "build_cxx/test_helpers/test_phony_target.hxx"
+#include "build_cxx/test_helpers/mock_file_target.hxx"
+#include "build_cxx/test_helpers/mock_phony_target.hxx"
 
 namespace build_cxx::test_helpers {
 
 struct mock_project : common::project {
   using project::project;
 
-  [[nodiscard]] test_file_target *add_mock_file_target(
+  [[nodiscard]] mock_file_target *add_mock_file_target(
       std::string_view const fake_loc_filename, bool const include_in_all,
       std::string_view const tgt_name, std::vector<std::string_view> &&deps) {
-    return add_mock_target<test_file_target>(fake_loc_filename, include_in_all,
+    return add_mock_target<mock_file_target>(fake_loc_filename, include_in_all,
                                              tgt_name, std::move(deps));
   }
 
-  [[nodiscard]] test_phony_target *add_mock_phony_target(
+  [[nodiscard]] mock_phony_target *add_mock_phony_target(
       std::string_view const fake_loc_filename, bool const include_in_all,
       std::string_view const tgt_name, std::vector<std::string_view> &&deps) {
-    return add_mock_target<test_phony_target>(fake_loc_filename, include_in_all,
+    return add_mock_target<mock_phony_target>(fake_loc_filename, include_in_all,
                                               tgt_name, std::move(deps));
   }
 

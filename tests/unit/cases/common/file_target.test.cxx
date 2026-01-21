@@ -22,8 +22,8 @@
 #include <doctest/doctest.h>
 
 #include "build_cxx/client/core.hxx"
+#include "build_cxx/test_helpers/mock_file_target.hxx"
 #include "build_cxx/test_helpers/mock_project.hxx"
-#include "build_cxx/test_helpers/test_file_target.hxx"
 
 namespace build_cxx {
 namespace {

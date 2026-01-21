@@ -23,7 +23,7 @@
 
 #include "build_cxx/client/core.hxx"
 #include "build_cxx/common/location.hxx"
-#include "build_cxx/test_helpers/test_phony_target.hxx"
+#include "build_cxx/test_helpers/mock_phony_target.hxx"
 
 namespace build_cxx {
 namespace {
@@ -36,7 +36,7 @@ TEST_CASE("client::debug_helper") {
   BUILD_CXX_DEFINE_DEPS_ARRAY(deps_arr, deps_n);
 
   // testing it on dummy test_phony_target should be enough
-  test_helpers::test_phony_target pt{&loc, true, "test_phony_target", deps_arr,
+  test_helpers::mock_phony_target pt{&loc, true, "test_phony_target", deps_arr,
                                      deps_n};
 
   test_project.add_target(&pt);

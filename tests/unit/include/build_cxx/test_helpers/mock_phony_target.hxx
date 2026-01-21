@@ -26,7 +26,7 @@
 
 namespace build_cxx::test_helpers {
 
-struct test_phony_target : common::phony_target {
+struct mock_phony_target : common::phony_target {
   using phony_target::phony_target;
 
   built_targets_t *built_targets{nullptr};
