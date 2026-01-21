@@ -22,42 +22,37 @@
 #include <doctest/doctest.h>
 
 #include "build_cxx/client/core.hxx"
+#include "build_cxx/test_helpers/mock_project.hxx"
 #include "build_cxx/test_helpers/test_phony_target.hxx"
 
-namespace build_cxx::common {
+namespace build_cxx {
 namespace {
 
 TEST_CASE("common::phony_target") {
-  project test_project{"cpttp", "0.1.0", __FILE__};
+  test_helpers::built_targets_t built_targets;
+  test_helpers::mock_project test_project{"cpttp", "0.1.0", __FILE__};
+  test_project.built_targets = &built_targets;
 
-  BUILD_CXX_DEFINE_LOCATION(loc, location::no_index);
-  // testing it on single "isolated" target should be enough:
-  BUILD_CXX_DEFINE_DEPS_ARRAY(deps_arr, deps_n);
+  auto *const pt{test_project.add_mock_phony_target(__FILE__, true,
+                                                    "test_phony_target", {})};
 
-  test_phony_target pt{&loc, true, "tpt", deps_arr, deps_n};
+  REQUIRE(pt->resolved_kind.empty());
+  REQUIRE(pt->resolved_name.empty());
 
-  test_project.add_target(&pt);
+  REQUIRE_NOTHROW(pt->resolve_own_traits());
 
-  REQUIRE(pt.resolved_kind.empty());
-  REQUIRE(pt.resolved_name.empty());
+  REQUIRE_EQ(pt->resolved_kind, common::phony_target::kind);
+  REQUIRE_EQ(pt->resolved_name,
+             std::string{test_project.name} + "::" + std::string{pt->name});
+  REQUIRE_EQ(pt->resolved_name,
+             common::phony_target::resolve_name(test_project.name, pt->name));
 
-  REQUIRE_NOTHROW(pt.resolve_own_traits());
-
-  REQUIRE_EQ(pt.resolved_kind, phony_target::kind);
-  REQUIRE_EQ(pt.resolved_name,
-             std::string{test_project.name} + "::" + std::string{pt.name});
-  REQUIRE_EQ(pt.resolved_name,
-             phony_target::resolve_name(test_project.name, pt.name));
-
-  std::unordered_set<abstract_target const *> built_targets;
-  pt.built_targets = &built_targets;
-
-  REQUIRE_NOTHROW(pt.build({}));
+  REQUIRE_NOTHROW(pt->build({}));
   REQUIRE_EQ(built_targets.size(), 1);
-  REQUIRE_EQ(*built_targets.begin(), &pt);
+  REQUIRE_EQ(*built_targets.begin(), pt);
 
   // TODO test that value of `last_modification_time` means "always out of date"
 }
 
 } // namespace
-} // namespace build_cxx::common
+} // namespace build_cxx

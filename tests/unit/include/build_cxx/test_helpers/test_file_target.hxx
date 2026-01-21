@@ -22,13 +22,14 @@
 #include <unordered_set>
 
 #include "build_cxx/common/file_target.hxx"
+#include "build_cxx/test_helpers/built_targets_t.hxx"
 
-namespace build_cxx::common {
+namespace build_cxx::test_helpers {
 
-struct test_file_target : file_target {
+struct test_file_target : common::file_target {
   using file_target::file_target;
 
-  std::unordered_set<abstract_target const *> *built_targets{nullptr};
+  built_targets_t *built_targets{nullptr};
 
   void touch(modification_time_t const new_time) {
     simulated_mod_time = new_time;
@@ -48,7 +49,8 @@ struct test_file_target : file_target {
     return simulated_mod_time;
   }
 
-  void build(std::vector<abstract_target const *> const & /*deps*/) override {
+  void build(
+      std::vector<common::abstract_target const *> const & /*deps*/) override {
     if (built_targets) {
       built_targets->emplace(this);
     }
@@ -59,4 +61,4 @@ protected:
   bool simulated_existence{true};
 };
 
-} // namespace build_cxx::common
+} // namespace build_cxx::test_helpers

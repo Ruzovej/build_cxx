@@ -21,22 +21,10 @@
 
 #include <unordered_set>
 
-#include "build_cxx/common/phony_target.hxx"
-#include "build_cxx/test_helpers/built_targets_t.hxx"
+#include "build_cxx/common/abstract_target.hxx"
 
 namespace build_cxx::test_helpers {
 
-struct test_phony_target : common::phony_target {
-  using phony_target::phony_target;
-
-  built_targets_t *built_targets{nullptr};
-
-  void build(
-      std::vector<common::abstract_target const *> const & /*deps*/) override {
-    if (built_targets) {
-      built_targets->emplace(this);
-    }
-  }
-};
+using built_targets_t = std::unordered_set<common::abstract_target const *>;
 
 } // namespace build_cxx::test_helpers

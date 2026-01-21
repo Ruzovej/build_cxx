@@ -25,7 +25,7 @@
 #include "build_cxx/common/location.hxx"
 #include "build_cxx/test_helpers/test_phony_target.hxx"
 
-namespace build_cxx::client {
+namespace build_cxx {
 namespace {
 
 TEST_CASE("client::debug_helper") {
@@ -36,8 +36,8 @@ TEST_CASE("client::debug_helper") {
   BUILD_CXX_DEFINE_DEPS_ARRAY(deps_arr, deps_n);
 
   // testing it on dummy test_phony_target should be enough
-  common::test_phony_target pt{&loc, true, "test_phony_target", deps_arr,
-                               deps_n};
+  test_helpers::test_phony_target pt{&loc, true, "test_phony_target", deps_arr,
+                                     deps_n};
 
   test_project.add_target(&pt);
 
@@ -48,17 +48,17 @@ TEST_CASE("client::debug_helper") {
   // this is very fragile ... but on te other hand, I don't expect this to be
   // used much, nor shouldn't it change often and/or drastically:
 
-  REQUIRE_NOTHROW(res = abstract_target_basic_info(&pt, true));
+  REQUIRE_NOTHROW(res = client::abstract_target_basic_info(&pt, true));
   REQUIRE_EQ(res, pt.name);
 
-  REQUIRE_NOTHROW(res = abstract_target_basic_info(&pt, false));
+  REQUIRE_NOTHROW(res = client::abstract_target_basic_info(&pt, false));
   REQUIRE_EQ(res, std::string{pt.name} + " defined in '" +
                       std::string{loc.filename} + ':' +
                       std::to_string(loc.line) + '\'');
 
-  REQUIRE_NOTHROW(res = abstract_target_build_info(&pt, {}));
+  REQUIRE_NOTHROW(res = client::abstract_target_build_info(&pt, {}));
   REQUIRE_EQ(res, std::string{pt.name} + " has deps {}");
 }
 
 } // namespace
-} // namespace build_cxx::client
+} // namespace build_cxx

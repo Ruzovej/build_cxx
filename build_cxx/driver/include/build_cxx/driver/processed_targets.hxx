@@ -81,11 +81,13 @@ struct BUILD_CXX_DLL_EXPORT processed_targets {
   // - parallelize
   // - accept more targets at once
   // - switch for turning on/off logging to `stdout`, etc.
-  void build_target(common::abstract_target *const tgt);
+  void build_target(common::abstract_target *const tgt, bool const verbose);
+
+  void build_all_targets(bool const verbose);
 
 private:
   void build_target_impl(common::abstract_target *const tgt,
-                         std::string &indent);
+                         std::string &indent, bool const verbose);
 
   // not owning any pointer(s):
   std::unordered_set<common::abstract_target const *> built_targets;
