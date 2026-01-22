@@ -35,40 +35,44 @@ struct mock_file_target : common::file_target {
     simulated_mod_time = new_time;
   }
 
-  void touch_inc(modification_time_t const inc_time = 1) {
-    simulated_mod_time += inc_time;
+  void rm() { simulated_mod_time.reset(); }
+
+  void set_read_only(bool const aRead_only) {
+    simulated_read_only = aRead_only;
   }
-
-  void set_exists(bool const exists) { simulated_existence = exists; }
-
-  void set_read_only(bool const aRead_only) { read_only = aRead_only; }
 
   [[nodiscard]] std::optional<modification_time_t>
   last_modification_time() const override {
-    if (!simulated_existence || (read_only && !highest_mod_time.has_value())) {
+    if (!simulated_mod_time.has_value() ||
+        (simulated_read_only && !highest_dep_mod_time.has_value())) {
       return std::nullopt;
     }
 
-    return read_only ? std::max(*highest_mod_time, simulated_mod_time)
-                     : simulated_mod_time;
+    return simulated_read_only
+               ? std::max(*highest_dep_mod_time, *simulated_mod_time)
+               : *simulated_mod_time;
   }
 
   void recipe(std::vector<common::abstract_target const *> const &resolved_deps)
       override {
-    if (!read_only) {
+    if (!simulated_read_only) {
       if (built_targets) {
         built_targets->emplace(this);
       }
 
       // simulate creating the file by updating its mod. time to be larger than
-      // any of its dependencies
+      // any of its dependencies; this is only semi-working hack - in reality,
+      // the dep. chain can be longer, and this heuristic may fail to provide
+      // new enough file - newer than some of it's "children" - failing to
+      // detect some file (indirectly) depending on this one to be marked as
+      // outdated
       for (auto *const dep : resolved_deps) {
         auto const dep_mod_time{dep->last_modification_time()};
 
         if (dep_mod_time.has_value()) {
-          simulated_mod_time = std::max(simulated_mod_time, *dep_mod_time + 1);
+          simulated_mod_time = std::max(*simulated_mod_time, *dep_mod_time + 1);
         } else {
-          simulated_mod_time = 0;
+          simulated_mod_time.reset();
           break;
         }
       }
@@ -76,8 +80,9 @@ struct mock_file_target : common::file_target {
   }
 
 protected:
-  modification_time_t simulated_mod_time{0};
-  bool simulated_existence{true};
+  // `std::nullopt` means nonexistent file
+  std::optional<modification_time_t> simulated_mod_time{0};
+  bool simulated_read_only{false};
 
   void post_recipe_check() const override {}
 };

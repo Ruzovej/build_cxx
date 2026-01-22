@@ -49,6 +49,7 @@ struct BUILD_CXX_DLL_EXPORT abstract_target {
   // - example: https://godbolt.org/z/Enoza77Wo
   using modification_time_t = long long;
 
+  // nullopt means "always out of date"
   [[nodiscard]] virtual std::optional<modification_time_t>
   last_modification_time() const = 0;
 

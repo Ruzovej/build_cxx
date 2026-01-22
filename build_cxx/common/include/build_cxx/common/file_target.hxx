@@ -45,15 +45,13 @@ struct BUILD_CXX_DLL_EXPORT file_target : abstract_target {
   void build(
       std::vector<abstract_target const *> const &resolved_deps) override final;
 
+  virtual void post_recipe_check() const;
+
 protected:
   std::filesystem::path resolved_path;
 
-  std::optional<modification_time_t> highest_mod_time{
+  std::optional<modification_time_t> highest_dep_mod_time{
       std::numeric_limits<modification_time_t>::min()};
-
-  bool read_only{false};
-
-  virtual void post_recipe_check() const;
 
 private:
   file_target(file_target const &) = delete;
@@ -63,14 +61,17 @@ private:
 };
 
 struct BUILD_CXX_DLL_EXPORT read_only_file_target : file_target {
-  explicit read_only_file_target(location const *const aLoc,
-                                 bool const aInclude_in_all,
-                                 std::string_view const aName,
-                                 std::string_view const *const aRaw_deps,
-                                 std::size_t const aNum_deps) noexcept;
+  using file_target::file_target;
 
-  void
-  recipe(std::vector<abstract_target const *> const &resolved_deps) override {
+  [[nodiscard]] std::optional<modification_time_t>
+  last_modification_time() const override;
+
+  void recipe(
+      std::vector<abstract_target const *> const & /*resolved_deps*/) override {
+    // nothing to do ...
+  }
+
+  void post_recipe_check() const override {
     // nothing to do ...
   }
 };

@@ -26,18 +26,15 @@ namespace build_cxx::common {
 
 std::optional<abstract_target::modification_time_t>
 file_target::last_modification_time() const {
-  if (!std::filesystem::exists(resolved_path) ||
-      (read_only && !highest_mod_time.has_value())) {
+  if (!std::filesystem::exists(resolved_path)) {
     return std::nullopt;
   }
 
   auto const ftime{
       std::filesystem::last_write_time(resolved_path).time_since_epoch()};
 
-  auto const my_mod_time{static_cast<modification_time_t>(
-      std::chrono::duration_cast<std::chrono::nanoseconds>(ftime).count())};
-
-  return read_only ? std::max(*highest_mod_time, my_mod_time) : my_mod_time;
+  return static_cast<modification_time_t>(
+      std::chrono::duration_cast<std::chrono::nanoseconds>(ftime).count());
 }
 
 std::filesystem::path
@@ -63,46 +60,53 @@ void file_target::resolve_own_traits() {
 
 void file_target::build(
     std::vector<abstract_target const *> const &resolved_deps) {
-  auto const my_mod_time{last_modification_time()};
+  bool outdated{true};
 
-  if (my_mod_time.has_value()) {
+  auto const my_last_mod_time{last_modification_time()};
+
+  if (my_last_mod_time.has_value()) {
     for (auto const dep : resolved_deps) {
       auto const dep_mod_time{dep->last_modification_time()};
 
       if (!dep_mod_time.has_value()) {
-        highest_mod_time.reset();
+        highest_dep_mod_time.reset();
         break;
       }
 
-      highest_mod_time = std::max(*highest_mod_time, *dep_mod_time);
+      highest_dep_mod_time = std::max(*highest_dep_mod_time, *dep_mod_time);
+    }
+
+    if (highest_dep_mod_time.has_value() &&
+        (*highest_dep_mod_time <= *my_last_mod_time)) {
+      // everything "down the dependency tree" exists and is older -> up to date
+      outdated = false;
     }
   }
 
-  if (my_mod_time.has_value() && highest_mod_time.has_value() &&
-      (*highest_mod_time <= *my_mod_time)) {
-    // everything "down the dependency tree" exists and is older => up to date
-    return;
+  if (outdated) {
+    recipe(resolved_deps);
   }
-
-  recipe(resolved_deps);
 
   post_recipe_check();
 }
 
 void file_target::post_recipe_check() const {
-  if (!read_only && !std::filesystem::exists(resolved_path)) {
+  if (!std::filesystem::exists(resolved_path)) {
     throw std::runtime_error{
         "file_target::build failed, because target file '" +
         resolved_path.string() + "' does not exist after recipe execution"};
   }
 }
 
-read_only_file_target::read_only_file_target(
-    location const *const aLoc, bool const aInclude_in_all,
-    std::string_view const aName, std::string_view const *const aRaw_deps,
-    std::size_t const aNum_deps) noexcept
-    : file_target{aLoc, aInclude_in_all, aName, aRaw_deps, aNum_deps} {
-  read_only = true;
+std::optional<abstract_target::modification_time_t>
+read_only_file_target::last_modification_time() const {
+  auto const my_last_mod_time{file_target::last_modification_time()};
+
+  if (!my_last_mod_time.has_value() || !highest_dep_mod_time.has_value()) {
+    return std::nullopt;
+  }
+
+  return std::max(*highest_dep_mod_time, *my_last_mod_time);
 }
 
 } // namespace build_cxx::common

@@ -223,7 +223,7 @@ TEST_CASE("driver::processed_targets") {
 
           f2->touch(2);
 
-          f3->set_exists(false);
+          f3->rm();
 
           REQUIRE_NOTHROW(driver_pt.build_all_targets(false));
           REQUIRE_EQ(built_targets.size(), 1);
@@ -245,7 +245,7 @@ TEST_CASE("driver::processed_targets") {
 
           f2->touch(1);
 
-          f3->set_exists(false);
+          f3->rm();
 
           REQUIRE_NOTHROW(driver_pt.build_all_targets(false));
           REQUIRE_EQ(built_targets.size(), 1);
@@ -323,7 +323,7 @@ TEST_CASE("driver::processed_targets") {
           f2s->touch(1);
           f2l->touch(2);
 
-          f3->set_exists(false);
+          f3->rm();
 
           REQUIRE_NOTHROW(driver_pt.build_all_targets(false));
           REQUIRE_EQ(built_targets.size(), 1);
@@ -349,7 +349,7 @@ TEST_CASE("driver::processed_targets") {
           f2s->touch(1);
           f2l->touch(1);
 
-          f3->set_exists(false);
+          f3->rm();
 
           REQUIRE_NOTHROW(driver_pt.build_all_targets(false));
           REQUIRE_EQ(built_targets.size(), 1);
@@ -410,7 +410,7 @@ TEST_CASE("driver::processed_targets") {
 
       SUBCASE("first, nonexistent") {
         fro->touch(1);
-        f1->set_exists(false);
+        f1->rm();
 
         REQUIRE_NOTHROW(driver_pt.build_target(p1, false));
         REQUIRE_EQ(built_targets.count(p1), 1);
@@ -440,7 +440,7 @@ TEST_CASE("driver::processed_targets") {
 
       SUBCASE("second, nonexistent") {
         fro->touch(1);
-        f2->set_exists(false);
+        f2->rm();
 
         REQUIRE_NOTHROW(driver_pt.build_target(f2, false));
         REQUIRE_EQ(built_targets.count(p2), 1);
@@ -451,7 +451,7 @@ TEST_CASE("driver::processed_targets") {
   }
 
   // TODO verify: above cases for various nontrivial "graphs" of dependencies
-  // should be "enough"
+  // are be "enough"
 }
 
 } // namespace
