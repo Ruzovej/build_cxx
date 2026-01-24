@@ -20,7 +20,6 @@
 #pragma once
 
 #include <filesystem>
-#include <limits>
 #include <string_view>
 
 #include "build_cxx/common/abstract_target.hxx"
@@ -31,9 +30,6 @@ namespace build_cxx::common {
 struct BUILD_CXX_DLL_EXPORT file_target : abstract_target {
   using abstract_target::abstract_target;
 
-  [[nodiscard]] std::optional<modification_time_t>
-  last_modification_time() const override;
-
   static std::filesystem::path
   resolve_path(std::string_view const source_filename,
                std::string_view const target_name);
@@ -42,22 +38,19 @@ struct BUILD_CXX_DLL_EXPORT file_target : abstract_target {
 
   void resolve_own_traits() override final;
 
+  [[nodiscard]] std::optional<modification_time_t>
+  last_modification_time() const override;
+
   void build(
       std::vector<abstract_target const *> const &resolved_deps) override final;
 
-  virtual void post_recipe_check() const;
-
 protected:
+  [[nodiscard]] virtual bool exists() const;
+
+  virtual void
+  post_recipe(std::optional<modification_time_t> const &highest_dep_mod_time);
+
   std::filesystem::path resolved_path;
-
-  std::optional<modification_time_t> highest_dep_mod_time{
-      std::numeric_limits<modification_time_t>::min()};
-
-private:
-  file_target(file_target const &) = delete;
-  file_target &operator=(file_target const &) = delete;
-  file_target(file_target &&) = delete;
-  file_target &operator=(file_target &&) = delete;
 };
 
 struct BUILD_CXX_DLL_EXPORT read_only_file_target : file_target {
@@ -66,14 +59,16 @@ struct BUILD_CXX_DLL_EXPORT read_only_file_target : file_target {
   [[nodiscard]] std::optional<modification_time_t>
   last_modification_time() const override;
 
-  void recipe(
-      std::vector<abstract_target const *> const & /*resolved_deps*/) override {
-    // nothing to do ...
+  void recipe(std::vector<abstract_target const *> const & // resolved_deps
+              ) override {
+    // read-only -> nothing to do ...
   }
 
-  void post_recipe_check() const override {
-    // nothing to do ...
-  }
+protected:
+  void post_recipe(
+      std::optional<modification_time_t> const &highest_dep_mod_time) override;
+
+  std::optional<modification_time_t> highest_mod_time{};
 };
 
 } // namespace build_cxx::common

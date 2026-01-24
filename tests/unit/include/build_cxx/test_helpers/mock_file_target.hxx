@@ -81,10 +81,18 @@ struct mock_file_target : common::file_target {
 
 protected:
   // `std::nullopt` means nonexistent file
+  std::optional<modification_time_t> highest_dep_mod_time{0};
   std::optional<modification_time_t> simulated_mod_time{0};
   bool simulated_read_only{false};
 
-  void post_recipe_check() const override {}
+  [[nodiscard]] bool exists() const override {
+    return simulated_mod_time.has_value();
+  }
+
+  void post_recipe(
+      std::optional<modification_time_t> const &highest_dep_mod_time) override {
+    this->highest_dep_mod_time = highest_dep_mod_time;
+  }
 };
 
 } // namespace build_cxx::test_helpers

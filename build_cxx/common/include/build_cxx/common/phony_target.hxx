@@ -29,12 +29,6 @@ namespace build_cxx::common {
 struct BUILD_CXX_DLL_EXPORT phony_target : abstract_target {
   using abstract_target::abstract_target;
 
-  // Phony target is always out of date
-  [[nodiscard]] std::optional<modification_time_t>
-  last_modification_time() const override {
-    return std::nullopt;
-  }
-
   static std::string resolve_name(std::string_view const project_name,
                                   std::string_view const target_name);
 
@@ -42,17 +36,17 @@ struct BUILD_CXX_DLL_EXPORT phony_target : abstract_target {
 
   void resolve_own_traits() override final;
 
+  // Phony target is always out of date
+  [[nodiscard]] std::optional<modification_time_t>
+  last_modification_time() const override {
+    return std::nullopt;
+  }
+
   void build(std::vector<abstract_target const *> const &resolved_deps)
       override final {
     // nothing to manage ...
     recipe(resolved_deps);
   }
-
-private:
-  phony_target(phony_target const &) = delete;
-  phony_target &operator=(phony_target const &) = delete;
-  phony_target(phony_target &&) = delete;
-  phony_target &operator=(phony_target &&) = delete;
 };
 
 } // namespace build_cxx::common

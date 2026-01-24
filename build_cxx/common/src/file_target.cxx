@@ -20,22 +20,10 @@
 #include "build_cxx/common/file_target.hxx"
 
 #include <chrono>
+#include <limits>
 #include <stdexcept>
 
 namespace build_cxx::common {
-
-std::optional<abstract_target::modification_time_t>
-file_target::last_modification_time() const {
-  if (!std::filesystem::exists(resolved_path)) {
-    return std::nullopt;
-  }
-
-  auto const ftime{
-      std::filesystem::last_write_time(resolved_path).time_since_epoch()};
-
-  return static_cast<modification_time_t>(
-      std::chrono::duration_cast<std::chrono::nanoseconds>(ftime).count());
-}
 
 std::filesystem::path
 file_target::resolve_path(std::string_view const source_filename,
@@ -58,28 +46,55 @@ void file_target::resolve_own_traits() {
   resolved_name = resolved_path.string();
 }
 
+namespace {
+abstract_target::modification_time_t
+file_last_modification_time(std::filesystem::path const &path) {
+  auto const ftime{std::filesystem::last_write_time(path).time_since_epoch()};
+
+  return static_cast<abstract_target::modification_time_t>(
+      std::chrono::duration_cast<std::chrono::nanoseconds>(ftime).count());
+}
+} // namespace
+
+std::optional<abstract_target::modification_time_t>
+file_target::last_modification_time() const {
+  if (!exists()) {
+    return std::nullopt;
+  }
+
+  return file_last_modification_time(resolved_path);
+}
+
 void file_target::build(
     std::vector<abstract_target const *> const &resolved_deps) {
   bool outdated{true};
 
+  std::optional<modification_time_t> highest_dep_mod_time{
+      std::numeric_limits<modification_time_t>::min()};
   auto const my_last_mod_time{last_modification_time()};
 
+  // this targets file exists
   if (my_last_mod_time.has_value()) {
     for (auto const dep : resolved_deps) {
       auto const dep_mod_time{dep->last_modification_time()};
 
+      // dep. isn't file-like or the file doesn't exist
       if (!dep_mod_time.has_value()) {
         highest_dep_mod_time.reset();
         break;
       }
 
-      highest_dep_mod_time = std::max(*highest_dep_mod_time, *dep_mod_time);
+      highest_dep_mod_time.emplace(
+          std::max(*highest_dep_mod_time, *dep_mod_time));
     }
 
-    if (highest_dep_mod_time.has_value() &&
-        (*highest_dep_mod_time <= *my_last_mod_time)) {
-      // everything "down the dependency tree" exists and is older -> up to date
-      outdated = false;
+    if (highest_dep_mod_time.has_value()) {
+      // TODO `<=` or `<`?!
+      if (*highest_dep_mod_time <= my_last_mod_time) {
+        // everything "down the dependency tree" exists and isn't newer -> up to
+        // date
+        outdated = false;
+      }
     }
   }
 
@@ -87,26 +102,46 @@ void file_target::build(
     recipe(resolved_deps);
   }
 
-  post_recipe_check();
+  post_recipe(highest_dep_mod_time);
 }
 
-void file_target::post_recipe_check() const {
-  if (!std::filesystem::exists(resolved_path)) {
+bool file_target::exists() const {
+  return std::filesystem::exists(resolved_path);
+}
+
+void file_target::post_recipe(
+    std::optional<modification_time_t> const &highest_dep_mod_time) {
+  if (!exists()) {
     throw std::runtime_error{
-        "file_target::build failed, because target file '" +
-        resolved_path.string() + "' does not exist after recipe execution"};
+        "unmet post-condition after running `recipe`: target file '" +
+        resolved_path.string() + "' doesn't exist"};
+  } else if (highest_dep_mod_time.has_value() &&
+             (file_last_modification_time(resolved_path) <
+              *highest_dep_mod_time)) {
+    throw std::runtime_error{
+        "unmet post-condition after running `recipe`: target file '" +
+        resolved_path.string() + "' isn't newer than its newest dependency"};
   }
 }
 
 std::optional<abstract_target::modification_time_t>
 read_only_file_target::last_modification_time() const {
-  auto const my_last_mod_time{file_target::last_modification_time()};
-
-  if (!my_last_mod_time.has_value() || !highest_dep_mod_time.has_value()) {
+  if (!highest_mod_time.has_value()) {
     return std::nullopt;
   }
 
-  return std::max(*highest_dep_mod_time, *my_last_mod_time);
+  auto const my_last_mod_time{file_target::last_modification_time()};
+
+  if (!my_last_mod_time.has_value()) {
+    return std::nullopt;
+  }
+
+  return std::max(*highest_mod_time, *my_last_mod_time);
+}
+
+void read_only_file_target::post_recipe(
+    std::optional<modification_time_t> const &highest_dep_mod_time) {
+  highest_mod_time = highest_dep_mod_time;
 }
 
 } // namespace build_cxx::common

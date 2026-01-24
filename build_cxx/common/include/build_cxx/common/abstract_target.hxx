@@ -40,6 +40,16 @@ struct BUILD_CXX_DLL_EXPORT abstract_target {
 
   virtual ~abstract_target() = default;
 
+  // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+  // "private":
+  // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+  virtual void resolve_own_traits() = 0;
+
+  // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+  // "public":
+  // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
   // TODO
   // - use: https://en.cppreference.com/w/cpp/filesystem/file_time_type.html
   // - because of:
@@ -49,23 +59,35 @@ struct BUILD_CXX_DLL_EXPORT abstract_target {
   // - example: https://godbolt.org/z/Enoza77Wo
   using modification_time_t = long long;
 
-  // nullopt means "always out of date"
+  // nullopt means no usable timestamp - "always out of date" or "non existing";
+  // consequently, any consumer of this always needs to re-build
   [[nodiscard]] virtual std::optional<modification_time_t>
   last_modification_time() const = 0;
 
-  virtual void resolve_own_traits() = 0;
-
+  // don't call this in client code, only provide implementation
   virtual void
   recipe(std::vector<abstract_target const *> const &resolved_deps) = 0;
 
+  // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+  // "private":
+  // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+  // assumes:
+  // 1. `build()` was already called for all dependencies
+  // 2. it won't be called more than once
+  // philosophically, this should do last preparations & ceremonies and
+  // ultimately call `recipe(...)`
   virtual void
   build(std::vector<abstract_target const *> const &resolved_deps) = 0;
 
-  // TODO private & getters, (setters?!), etc.:
-  // "private":
+  // TODO getters, (setters?!), etc.:
   abstract_target *next{nullptr}; // non owned
 
+  // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-
   // "public":
+  // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+  // TODO private & getters, (setters?!), etc.:
   project const *parent_project{nullptr}; // non owned
   location const *loc;                    // non owned
   bool include_in_all;

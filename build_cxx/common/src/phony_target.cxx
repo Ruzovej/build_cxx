@@ -19,8 +19,6 @@
 
 #include "build_cxx/common/phony_target.hxx"
 
-#include <limits>
-
 #include "build_cxx/common/project.hxx"
 
 namespace build_cxx::common {
