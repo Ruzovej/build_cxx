@@ -63,9 +63,8 @@ struct mock_file_target : common::file_target {
       // simulate creating the file by updating its mod. time to be larger than
       // any of its dependencies; this is only semi-working hack - in reality,
       // the dep. chain can be longer, and this heuristic may fail to provide
-      // new enough file - newer than some of it's "children" - failing to
-      // detect some file (indirectly) depending on this one to be marked as
-      // outdated
+      // new enough file - newer than some of its "children" - failing to detect
+      // some file (indirectly) depending on this one to be marked as outdated
       for (auto *const dep : resolved_deps) {
         auto const dep_mod_time{dep->last_modification_time()};
 

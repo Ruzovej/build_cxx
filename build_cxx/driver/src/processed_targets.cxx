@@ -179,8 +179,6 @@ void processed_targets::build_target_impl(common::abstract_target *const tgt,
                       verbose);
   }
 
-  auto const last_mod_time{tgt->last_modification_time()};
-
   if (verbose) {
     indent.pop_back();
     std::cout << indent << "-> ";

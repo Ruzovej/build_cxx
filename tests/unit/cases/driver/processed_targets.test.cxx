@@ -451,7 +451,7 @@ TEST_CASE("driver::processed_targets") {
   }
 
   // TODO verify: above cases for various nontrivial "graphs" of dependencies
-  // are be "enough"
+  // should be "enough"
 }
 
 } // namespace
