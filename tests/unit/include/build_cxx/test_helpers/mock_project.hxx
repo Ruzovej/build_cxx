@@ -43,6 +43,8 @@ struct mock_project : common::project {
         fake_loc_filename, include_in_all, tgt_name, std::move(deps))};
 
     res->set_read_only(read_only);
+    // WARNING: `100` should be enough, unless someonce overflows it ...
+    res->set_mod_times(++next_fake_file_mod_time, 100, false);
 
     return res;
   }
@@ -56,6 +58,8 @@ struct mock_project : common::project {
 
   // testing helper ...
   built_targets_t *built_targets{nullptr};
+
+  common::target_status::file_modification_time_t next_fake_file_mod_time{0};
 
 private:
   struct target_holder {

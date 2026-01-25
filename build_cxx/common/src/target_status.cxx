@@ -28,13 +28,21 @@ namespace {
 struct merge_visitor {
   explicit merge_visitor(target_status::status_t &aDest) : dest{aDest} {}
 
-  void operator()(std::monostate const &) {
+  void operator()(std::monostate const) {
     throw std::runtime_error{
         "Internal error: merging with uninitialized target status"};
   }
 
-  template <typename T> void operator()(T const &value) {
-    if (!std::holds_alternative<target_status::needs_update_t>(dest)) {
+  void operator()(target_status::needs_update_t const) {
+    dest = target_status::needs_update;
+  }
+
+  void operator()(target_status::file_modification_time_t const value) {
+    if (auto *const dest_mod_time_ptr =
+            std::get_if<target_status::file_modification_time_t>(&dest);
+        dest_mod_time_ptr != nullptr) {
+      *dest_mod_time_ptr = std::max(*dest_mod_time_ptr, value);
+    } else if (!std::holds_alternative<target_status::needs_update_t>(dest)) {
       dest = value;
     }
   }
@@ -45,7 +53,7 @@ private:
 
 } // namespace
 
-void target_status::merge_with(target_status const &rhs) {
+void target_status::merge_with(target_status const rhs) {
   std::visit(merge_visitor{status}, rhs.status);
 }
 
@@ -62,15 +70,15 @@ struct needs_update_visitor {
       : my_mod_time{aMy_mod_time} {}
 
   // other is empty
-  [[nodiscard]] bool operator()(std::monostate const &) const { return false; }
+  [[nodiscard]] bool operator()(std::monostate const) const { return false; }
 
   // other needs update
-  [[nodiscard]] bool operator()(target_status::needs_update_t const &) const {
+  [[nodiscard]] bool operator()(target_status::needs_update_t const) const {
     return true;
   }
 
   [[nodiscard]] bool operator()(
-      target_status::file_modification_time_t const &other_mod_time) const {
+      target_status::file_modification_time_t const other_mod_time) const {
     return my_mod_time < other_mod_time;
   }
 
@@ -80,7 +88,7 @@ private:
 
 } // namespace
 
-bool target_status::needs_update_compared_to(target_status const &other) const {
+bool target_status::needs_update_compared_to(target_status const other) const {
   require_nondefault_state();
   if (std::holds_alternative<needs_update_t>(status)) {
     return true;

@@ -186,66 +186,66 @@ TEST_CASE("driver::processed_targets") {
         REQUIRE(all_resolved);
 
         SUBCASE("all up-to date") {
-          f1->touch(1);
+          f1->set_mod_times(1);
 
-          f2->touch(2);
+          f2->set_mod_times(2);
 
-          f3->touch(3);
+          f3->set_mod_times(3);
 
           REQUIRE_NOTHROW(driver_pt.build_all_targets(false));
           REQUIRE_EQ(built_targets.size(), 0);
         }
 
         SUBCASE("first newest") {
-          f1->touch(3);
+          f1->set_mod_times(3);
 
-          f2->touch(1);
+          f2->set_mod_times(1);
 
-          f3->touch(2);
+          f3->set_mod_times(2, 4);
 
           REQUIRE_NOTHROW(driver_pt.build_all_targets(false));
           REQUIRE_EQ(built_targets.size(), 1);
         }
 
         SUBCASE("second newest") {
-          f1->touch(1);
+          f1->set_mod_times(1);
 
-          f2->touch(3);
+          f2->set_mod_times(3);
 
-          f3->touch(2);
+          f3->set_mod_times(2, 4);
 
           REQUIRE_NOTHROW(driver_pt.build_all_targets(false));
           REQUIRE_EQ(built_targets.size(), 1);
         }
 
         SUBCASE("third doesn't exist") {
-          f1->touch(1);
+          f1->set_mod_times(1);
 
-          f2->touch(2);
+          f2->set_mod_times(2);
 
-          f3->rm();
+          f3->set_mod_times(std::nullopt, 3);
 
           REQUIRE_NOTHROW(driver_pt.build_all_targets(false));
           REQUIRE_EQ(built_targets.size(), 1);
         }
 
         SUBCASE("same modification times") {
-          f1->touch(1);
+          f1->set_mod_times(1);
 
-          f2->touch(1);
+          f2->set_mod_times(1);
 
-          f3->touch(1);
+          f3->set_mod_times(1);
 
           REQUIRE_NOTHROW(driver_pt.build_all_targets(false));
           REQUIRE_EQ(built_targets.size(), 0);
         }
 
         SUBCASE("third doesn't exist, otherwise same modification times") {
-          f1->touch(1);
+          f1->set_mod_times(1);
 
-          f2->touch(1);
+          f2->set_mod_times(1);
 
-          f3->rm();
+          f3->set_mod_times(std::nullopt, 2);
 
           REQUIRE_NOTHROW(driver_pt.build_all_targets(false));
           REQUIRE_EQ(built_targets.size(), 1);
@@ -278,78 +278,78 @@ TEST_CASE("driver::processed_targets") {
         REQUIRE(built_targets.empty());
 
         SUBCASE("all up-to date") {
-          f1s->touch(1);
-          f1l->touch(2);
+          f1s->set_mod_times(1);
+          f1l->set_mod_times(4);
 
-          f2s->touch(1);
-          f2l->touch(2);
+          f2s->set_mod_times(2);
+          f2l->set_mod_times(3);
 
-          f3->touch(3);
+          f3->set_mod_times(5);
 
           REQUIRE_NOTHROW(driver_pt.build_all_targets(false));
           REQUIRE_EQ(built_targets.size(), 0);
         }
 
         SUBCASE("first newest") {
-          f1s->touch(4);
-          f1l->touch(2);
+          f1s->set_mod_times(4);
+          f1l->set_mod_times(2, 5);
 
-          f2s->touch(1);
-          f2l->touch(2);
+          f2s->set_mod_times(1);
+          f2l->set_mod_times(2);
 
-          f3->touch(3);
+          f3->set_mod_times(3, 5);
 
           REQUIRE_NOTHROW(driver_pt.build_all_targets(false));
           REQUIRE_EQ(built_targets.size(), 2);
         }
 
         SUBCASE("second newest") {
-          f1s->touch(1);
-          f1l->touch(4);
+          f1s->set_mod_times(1);
+          f1l->set_mod_times(5);
 
-          f2s->touch(1);
-          f2l->touch(2);
+          f2s->set_mod_times(2);
+          f2l->set_mod_times(3);
 
-          f3->touch(3);
+          f3->set_mod_times(4, 6);
 
           REQUIRE_NOTHROW(driver_pt.build_all_targets(false));
           REQUIRE_EQ(built_targets.size(), 1);
         }
 
         SUBCASE("third doesn't exist") {
-          f1s->touch(1);
-          f1l->touch(2);
+          f1s->set_mod_times(1);
+          f1l->set_mod_times(2);
 
-          f2s->touch(1);
-          f2l->touch(2);
+          f2s->set_mod_times(1);
+          f2l->set_mod_times(2);
 
-          f3->rm();
+          f3->set_mod_times(std::nullopt, 3);
 
           REQUIRE_NOTHROW(driver_pt.build_all_targets(false));
           REQUIRE_EQ(built_targets.size(), 1);
         }
 
         SUBCASE("same modification times") {
-          f1s->touch(1);
-          f1l->touch(1);
+          f1s->set_mod_times(1);
+          f1l->set_mod_times(1);
 
-          f2s->touch(1);
-          f2l->touch(1);
+          f2s->set_mod_times(1);
+          f2l->set_mod_times(1);
 
-          f3->touch(1);
+          f3->set_mod_times(1);
 
           REQUIRE_NOTHROW(driver_pt.build_all_targets(false));
           REQUIRE_EQ(built_targets.size(), 0);
         }
 
         SUBCASE("third doesn't exist, otherwise same modification times") {
-          f1s->touch(1);
-          f1l->touch(1);
+          f1s->set_mod_times(1);
+          f1l->set_mod_times(1);
 
-          f2s->touch(1);
-          f2l->touch(1);
+          f2s->set_mod_times(1);
+          f2l->set_mod_times(1);
 
-          f3->rm();
+          f3->set_mod_times(std::nullopt, 2);
 
           REQUIRE_NOTHROW(driver_pt.build_all_targets(false));
           REQUIRE_EQ(built_targets.size(), 1);
@@ -390,8 +390,8 @@ TEST_CASE("driver::processed_targets") {
       REQUIRE(built_targets.empty());
 
       SUBCASE("first, up to date") {
-        fro->touch(1);
-        f1->touch(2);
+        fro->set_mod_times(1);
+        f1->set_mod_times(2);
 
         REQUIRE_NOTHROW(driver_pt.build_target(p1, false));
         REQUIRE_EQ(built_targets.count(p1), 1);
@@ -399,8 +399,8 @@ TEST_CASE("driver::processed_targets") {
       }
 
       SUBCASE("first, out of date") {
-        fro->touch(2);
-        f1->touch(1);
+        fro->set_mod_times(2);
+        f1->set_mod_times(1, 3);
 
         REQUIRE_NOTHROW(driver_pt.build_target(p1, false));
         REQUIRE_EQ(built_targets.count(p1), 1);
@@ -409,8 +409,8 @@ TEST_CASE("driver::processed_targets") {
       }
 
       SUBCASE("first, nonexistent") {
-        fro->touch(1);
-        f1->rm();
+        fro->set_mod_times(1);
+        f1->set_mod_times(std::nullopt, 2);
 
         REQUIRE_NOTHROW(driver_pt.build_target(p1, false));
         REQUIRE_EQ(built_targets.count(p1), 1);
@@ -419,8 +419,8 @@ TEST_CASE("driver::processed_targets") {
       }
 
       SUBCASE("second, up to date") {
-        fro->touch(1);
-        f2->touch(2);
+        fro->set_mod_times(1);
+        f2->set_mod_times(2, 3);
 
         REQUIRE_NOTHROW(driver_pt.build_target(f2, false));
         REQUIRE_EQ(built_targets.count(p2), 1);
@@ -429,8 +429,8 @@ TEST_CASE("driver::processed_targets") {
       }
 
       SUBCASE("second, out of date") {
-        fro->touch(2);
-        f2->touch(1);
+        fro->set_mod_times(2);
+        f2->set_mod_times(1, 3);
 
         REQUIRE_NOTHROW(driver_pt.build_target(f2, false));
         REQUIRE_EQ(built_targets.count(p2), 1);
@@ -439,8 +439,8 @@ TEST_CASE("driver::processed_targets") {
       }
 
       SUBCASE("second, nonexistent") {
-        fro->touch(1);
-        f2->rm();
+        fro->set_mod_times(1);
+        f2->set_mod_times(std::nullopt, 2);
 
         REQUIRE_NOTHROW(driver_pt.build_target(f2, false));
         REQUIRE_EQ(built_targets.count(p2), 1);

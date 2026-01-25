@@ -36,17 +36,7 @@ struct BUILD_CXX_DLL_EXPORT phony_target : abstract_target {
 
   void resolve_own_traits() override final;
 
-  // Phony target is always out of date
-  [[nodiscard]] std::optional<modification_time_t>
-  last_modification_time() const override {
-    return std::nullopt;
-  }
-
-  void build(std::vector<abstract_target const *> const &resolved_deps)
-      override final {
-    // nothing to manage ...
-    recipe(resolved_deps);
-  }
+  void update_status() override;
 };
 
 } // namespace build_cxx::common

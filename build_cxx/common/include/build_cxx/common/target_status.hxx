@@ -35,14 +35,14 @@ struct BUILD_CXX_DLL_EXPORT target_status {
 
   constexpr target_status() = default;
   constexpr target_status(needs_update_t) : status{needs_update_t{}} {}
-  constexpr target_status(file_modification_time_t const mod_time)
+  constexpr explicit target_status(file_modification_time_t const mod_time)
       : status{mod_time} {}
 
-  void merge_with(target_status const &rhs);
+  void merge_with(target_status const rhs);
 
   [[nodiscard]] bool certainly_needs_update() const;
 
-  [[nodiscard]] bool needs_update_compared_to(target_status const &other) const;
+  [[nodiscard]] bool needs_update_compared_to(target_status const other) const;
 
 private:
   void require_nondefault_state() const;

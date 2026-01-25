@@ -26,6 +26,7 @@
 
 #include "build_cxx/common/location.hxx"
 #include "build_cxx/common/macros.h"
+#include "build_cxx/common/target_status.hxx"
 
 namespace build_cxx::common {
 
@@ -44,41 +45,25 @@ struct BUILD_CXX_DLL_EXPORT abstract_target {
   // "private":
   // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
+  // for initialization
   virtual void resolve_own_traits() = 0;
 
-  // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-  // "public":
-  // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+  // for building
 
-  // TODO
-  // - use: https://en.cppreference.com/w/cpp/filesystem/file_time_type.html
-  // - because of:
-  // https://en.cppreference.com/w/cpp/filesystem/last_write_time.html
-  // - comp. op.:
-  // https://en.cppreference.com/w/cpp/chrono/time_point/operator_cmp.html
-  // - example: https://godbolt.org/z/Enoza77Wo
-  using modification_time_t = long long;
+  virtual void update_status() = 0;
 
-  // nullopt means no usable timestamp - "always out of date" or "non existing";
-  // consequently, any consumer of this always needs to re-build
-  [[nodiscard]] virtual std::optional<modification_time_t>
-  last_modification_time() const = 0;
+  [[nodiscard]] target_status get_status() const { return status; }
 
   // don't call this in client code, only provide implementation
   virtual void
   recipe(std::vector<abstract_target const *> const &resolved_deps) = 0;
-
-  // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-  // "private":
-  // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
   // assumes:
   // 1. `build()` was already called for all dependencies
   // 2. it won't be called more than once
   // philosophically, this should do last preparations & ceremonies and
   // ultimately call `recipe(...)`
-  virtual void
-  build(std::vector<abstract_target const *> const &resolved_deps) = 0;
+  void build(std::vector<abstract_target const *> const &resolved_deps);
 
   // TODO getters, (setters?!), etc.:
   abstract_target *next{nullptr}; // non owned
@@ -97,6 +82,9 @@ struct BUILD_CXX_DLL_EXPORT abstract_target {
 
   std::string_view resolved_kind;
   std::string resolved_name;
+
+protected:
+  target_status status{};
 
 private:
   abstract_target(abstract_target const &) = delete;

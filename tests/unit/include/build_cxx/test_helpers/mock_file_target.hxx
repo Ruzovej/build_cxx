@@ -31,26 +31,28 @@ struct mock_file_target : common::file_target {
 
   built_targets_t *built_targets{nullptr};
 
-  void touch(modification_time_t const new_time) {
-    simulated_mod_time = new_time;
+  void set_mod_times(
+      std::optional<common::target_status::file_modification_time_t> const
+          init_mod_time,
+      std::optional<common::target_status::file_modification_time_t> const
+          final_mod_time = std::nullopt,
+      bool const reinitialize_status = true) {
+    simulated_mod_time = init_mod_time;
+
+    if (reinitialize_status) {
+      initialize_status(); // so `status` gets updated with this new value ...
+    }
+
+    simulated_mod_time_after_update = final_mod_time;
   }
 
-  void rm() { simulated_mod_time.reset(); }
+  void rm() {
+    simulated_mod_time.reset();
+    initialize_status(); // so `status` gets updated with this new value ...
+  }
 
   void set_read_only(bool const aRead_only) {
     simulated_read_only = aRead_only;
-  }
-
-  [[nodiscard]] std::optional<modification_time_t>
-  last_modification_time() const override {
-    if (!simulated_mod_time.has_value() ||
-        (simulated_read_only && !highest_dep_mod_time.has_value())) {
-      return std::nullopt;
-    }
-
-    return simulated_read_only
-               ? std::max(*highest_dep_mod_time, *simulated_mod_time)
-               : *simulated_mod_time;
   }
 
   void recipe(std::vector<common::abstract_target const *> const &resolved_deps)
@@ -59,38 +61,31 @@ struct mock_file_target : common::file_target {
       if (built_targets) {
         built_targets->emplace(this);
       }
+    }
+  }
 
-      // simulate creating the file by updating its mod. time to be larger than
-      // any of its dependencies; this is only semi-working hack - in reality,
-      // the dep. chain can be longer, and this heuristic may fail to provide
-      // new enough file - newer than some of its "children" - failing to detect
-      // some file (indirectly) depending on this one to be marked as outdated
-      for (auto *const dep : resolved_deps) {
-        auto const dep_mod_time{dep->last_modification_time()};
-
-        if (dep_mod_time.has_value()) {
-          simulated_mod_time = std::max(*simulated_mod_time, *dep_mod_time + 1);
-        } else {
-          simulated_mod_time.reset();
-          break;
-        }
-      }
+  void update_status() override {
+    if (!simulated_read_only) {
+      simulated_mod_time = simulated_mod_time_after_update;
+      initialize_status(); // so `status` gets updated with this new value ...
     }
   }
 
 protected:
-  // `std::nullopt` means nonexistent file
-  std::optional<modification_time_t> highest_dep_mod_time{0};
-  std::optional<modification_time_t> simulated_mod_time{0};
+  std::optional<common::target_status::file_modification_time_t>
+      simulated_mod_time;
+
+  std::optional<common::target_status::file_modification_time_t>
+      simulated_mod_time_after_update;
+
   bool simulated_read_only{false};
+
+  [[nodiscard]] common::target_status compute_status() const override {
+    return common::target_status{simulated_mod_time.value()};
+  }
 
   [[nodiscard]] bool exists() const override {
     return simulated_mod_time.has_value();
-  }
-
-  void post_recipe(
-      std::optional<modification_time_t> const &highest_dep_mod_time) override {
-    this->highest_dep_mod_time = highest_dep_mod_time;
   }
 };
 

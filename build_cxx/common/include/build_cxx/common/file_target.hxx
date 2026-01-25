@@ -38,17 +38,14 @@ struct BUILD_CXX_DLL_EXPORT file_target : abstract_target {
 
   void resolve_own_traits() override final;
 
-  [[nodiscard]] std::optional<modification_time_t>
-  last_modification_time() const override;
-
-  void build(
-      std::vector<abstract_target const *> const &resolved_deps) override final;
+  void update_status() override;
 
 protected:
+  [[nodiscard]] virtual target_status compute_status() const;
+
   [[nodiscard]] virtual bool exists() const;
 
-  virtual void
-  post_recipe(std::optional<modification_time_t> const &highest_dep_mod_time);
+  void initialize_status();
 
   std::filesystem::path resolved_path;
 };
@@ -56,19 +53,14 @@ protected:
 struct BUILD_CXX_DLL_EXPORT read_only_file_target : file_target {
   using file_target::file_target;
 
-  [[nodiscard]] std::optional<modification_time_t>
-  last_modification_time() const override;
-
   void recipe(std::vector<abstract_target const *> const & // resolved_deps
               ) override {
     // read-only -> nothing to do ...
   }
 
-protected:
-  void post_recipe(
-      std::optional<modification_time_t> const &highest_dep_mod_time) override;
-
-  std::optional<modification_time_t> highest_mod_time{};
+  void update_status() override {
+    // read only -> expect nothing has changed
+  }
 };
 
 } // namespace build_cxx::common

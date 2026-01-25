@@ -44,71 +44,36 @@ void file_target::resolve_own_traits() {
   resolved_kind = kind;
   resolved_path = resolve_path(loc->filename, name);
   resolved_name = resolved_path.string();
+  initialize_status();
 }
 
+void file_target::update_status() { initialize_status(); }
+
 namespace {
-abstract_target::modification_time_t
+
+target_status::file_modification_time_t
 file_last_modification_time(std::filesystem::path const &path) {
   auto const ftime{std::filesystem::last_write_time(path).time_since_epoch()};
 
-  return static_cast<abstract_target::modification_time_t>(
+  return static_cast<target_status::file_modification_time_t>(
       std::chrono::duration_cast<std::chrono::nanoseconds>(ftime).count());
 }
+
 } // namespace
 
-std::optional<abstract_target::modification_time_t>
-file_target::last_modification_time() const {
-  if (!exists()) {
-    return std::nullopt;
-  }
-
-  return file_last_modification_time(resolved_path);
-}
-
-void file_target::build(
-    std::vector<abstract_target const *> const &resolved_deps) {
-  bool outdated{true};
-
-  std::optional<modification_time_t> highest_dep_mod_time{
-      std::numeric_limits<modification_time_t>::min()};
-  auto const my_last_mod_time{last_modification_time()};
-
-  // this targets file exists
-  if (my_last_mod_time.has_value()) {
-    for (auto const dep : resolved_deps) {
-      auto const dep_mod_time{dep->last_modification_time()};
-
-      // dep. isn't file-like or the file doesn't exist
-      if (!dep_mod_time.has_value()) {
-        highest_dep_mod_time.reset();
-        break;
-      }
-
-      highest_dep_mod_time.emplace(
-          std::max(*highest_dep_mod_time, *dep_mod_time));
-    }
-
-    if (highest_dep_mod_time.has_value()) {
-      // TODO `<=` or `<`?!
-      if (*highest_dep_mod_time <= my_last_mod_time) {
-        // everything "down the dependency tree" exists and isn't newer -> up to
-        // date
-        outdated = false;
-      }
-    }
-  }
-
-  if (outdated) {
-    recipe(resolved_deps);
-  }
-
-  post_recipe(highest_dep_mod_time);
+target_status file_target::compute_status() const {
+  return target_status{file_last_modification_time(resolved_path)};
 }
 
 bool file_target::exists() const {
   return std::filesystem::exists(resolved_path);
 }
 
+void file_target::initialize_status() {
+  status = exists() ? compute_status() : target_status::needs_update;
+}
+
+/*
 void file_target::post_recipe(
     std::optional<modification_time_t> const &highest_dep_mod_time) {
   if (!exists()) {
@@ -142,6 +107,6 @@ read_only_file_target::last_modification_time() const {
 void read_only_file_target::post_recipe(
     std::optional<modification_time_t> const &highest_dep_mod_time) {
   highest_mod_time = highest_dep_mod_time;
-}
+}*/
 
 } // namespace build_cxx::common
