@@ -23,6 +23,7 @@
 #include <string_view>
 
 #include "build_cxx/common/abstract_target.hxx"
+#include "build_cxx/common/fs_proxy.hxx"
 #include "build_cxx/common/macros.h"
 
 namespace build_cxx::common {
@@ -48,6 +49,8 @@ protected:
   void initialize_status();
 
   std::filesystem::path resolved_path;
+
+  fs_proxy *fs{fs_proxy::default_impl()};
 };
 
 struct BUILD_CXX_DLL_EXPORT read_only_file_target : file_target {

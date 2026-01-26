@@ -49,64 +49,14 @@ void file_target::resolve_own_traits() {
 
 void file_target::update_status() { initialize_status(); }
 
-namespace {
-
-target_status::file_modification_time_t
-file_last_modification_time(std::filesystem::path const &path) {
-  auto const ftime{std::filesystem::last_write_time(path).time_since_epoch()};
-
-  return static_cast<target_status::file_modification_time_t>(
-      std::chrono::duration_cast<std::chrono::nanoseconds>(ftime).count());
-}
-
-} // namespace
-
 target_status file_target::compute_status() const {
-  return target_status{file_last_modification_time(resolved_path)};
+  return target_status{fs->file_last_mod_time(resolved_path)};
 }
 
-bool file_target::exists() const {
-  return std::filesystem::exists(resolved_path);
-}
+bool file_target::exists() const { return fs->file_exists(resolved_path); }
 
 void file_target::initialize_status() {
   status = exists() ? compute_status() : target_status::needs_update;
 }
-
-/*
-void file_target::post_recipe(
-    std::optional<modification_time_t> const &highest_dep_mod_time) {
-  if (!exists()) {
-    throw std::runtime_error{
-        "unmet post-condition after running `recipe`: target file '" +
-        resolved_path.string() + "' doesn't exist"};
-  } else if (highest_dep_mod_time.has_value() &&
-             (file_last_modification_time(resolved_path) <
-              *highest_dep_mod_time)) {
-    throw std::runtime_error{
-        "unmet post-condition after running `recipe`: target file '" +
-        resolved_path.string() + "' isn't newer than its newest dependency"};
-  }
-}
-
-std::optional<abstract_target::modification_time_t>
-read_only_file_target::last_modification_time() const {
-  if (!highest_mod_time.has_value()) {
-    return std::nullopt;
-  }
-
-  auto const my_last_mod_time{file_target::last_modification_time()};
-
-  if (!my_last_mod_time.has_value()) {
-    return std::nullopt;
-  }
-
-  return std::max(*highest_mod_time, *my_last_mod_time);
-}
-
-void read_only_file_target::post_recipe(
-    std::optional<modification_time_t> const &highest_dep_mod_time) {
-  highest_mod_time = highest_dep_mod_time;
-}*/
 
 } // namespace build_cxx::common
