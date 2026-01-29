@@ -20,9 +20,7 @@
 #pragma once
 
 #include <filesystem>
-#include <optional>
 #include <unordered_map>
-//#include <vector>
 
 #include "build_cxx/common/fs_proxy.hxx"
 #include "build_cxx/test_helpers/fake_clock.hxx"
@@ -39,12 +37,16 @@ struct fs_mock : common::fs_proxy {
     return files.find(path.string()) != files.end();
   }
 
-  [[nodiscard]] fake_clock::time_ns_t
+  [[nodiscard]] common::target_status::file_modification_time_t
   file_last_mod_time(std::filesystem::path const &path) const override {
     return files.at(path).last_mod_time;
   }
 
   void touch(std::filesystem::path const &path) override {
+    if (path.empty()) {
+      throw std::runtime_error{"Can't touch an empty filepath"};
+    }
+
     files[path].last_mod_time = clock.now_ns();
   }
 
@@ -60,8 +62,8 @@ struct fs_mock : common::fs_proxy {
 
 private:
   struct fake_file {
-    fake_clock::time_ns_t last_mod_time{};
-    std::string content;
+    common::target_status::file_modification_time_t last_mod_time{};
+    // std::string content; // TODO ...?!
   };
 
   std::unordered_map<std::filesystem::path, fake_file> files;

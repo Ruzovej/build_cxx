@@ -38,9 +38,9 @@ struct fs_proxy {
   [[nodiscard]] virtual target_status::file_modification_time_t
   file_last_mod_time(std::filesystem::path const &path) const = 0;
 
-  virtual void touch(std::filesystem::path const &filepath) = 0;
+  virtual void touch(std::filesystem::path const &path) = 0;
 
-  virtual void rm(std::filesystem::path const &filepath) = 0;
+  virtual void rm(std::filesystem::path const &path) = 0;
 };
 
 } // namespace build_cxx::common

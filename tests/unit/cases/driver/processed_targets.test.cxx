@@ -23,6 +23,7 @@
 
 #include "build_cxx/client/core.hxx"
 #include "build_cxx/common/location.hxx"
+#include "build_cxx/test_helpers/fs_mock.hxx"
 #include "build_cxx/test_helpers/mock_file_target.hxx"
 #include "build_cxx/test_helpers/mock_phony_target.hxx"
 #include "build_cxx/test_helpers/mock_project.hxx"
@@ -35,8 +36,10 @@ TEST_CASE("driver::processed_targets") {
       "/fake/dir/project1.root.cxx"};
 
   test_helpers::built_targets_t built_targets;
+  test_helpers::fs_mock fake_fs;
   test_helpers::mock_project test_project1{"dpttp1", "0.1.0", fake_root_file1};
   test_project1.built_targets = &built_targets;
+  test_project1.fake_fs = &fake_fs;
 
   driver::processed_targets driver_pt{};
 
@@ -186,66 +189,65 @@ TEST_CASE("driver::processed_targets") {
         REQUIRE(all_resolved);
 
         SUBCASE("all up-to date") {
-          f1->set_mod_times(1);
+          fake_fs.touch(f1->resolved_name);
 
-          f2->set_mod_times(2);
+          fake_fs.touch(f2->resolved_name);
 
-          f3->set_mod_times(3);
+          fake_fs.touch(f3->resolved_name);
 
           REQUIRE_NOTHROW(driver_pt.build_all_targets(false));
           REQUIRE_EQ(built_targets.size(), 0);
         }
 
         SUBCASE("first newest") {
-          f1->set_mod_times(3);
-
-          f2->set_mod_times(1);
-
-          f3->set_mod_times(2, 4);
 
           REQUIRE_NOTHROW(driver_pt.build_all_targets(false));
           REQUIRE_EQ(built_targets.size(), 1);
         }
 
         SUBCASE("second newest") {
-          f1->set_mod_times(1);
+          fake_fs.touch(f3->resolved_name);
 
-          f2->set_mod_times(3);
+          fake_fs.touch(f1->resolved_name);
 
-          f3->set_mod_times(2, 4);
+          fake_fs.touch(f2->resolved_name);
 
           REQUIRE_NOTHROW(driver_pt.build_all_targets(false));
           REQUIRE_EQ(built_targets.size(), 1);
         }
 
         SUBCASE("third doesn't exist") {
-          f1->set_mod_times(1);
+          fake_fs.touch(f1->resolved_name);
 
-          f2->set_mod_times(2);
-
-          f3->set_mod_times(std::nullopt, 3);
+          fake_fs.touch(f2->resolved_name);
 
           REQUIRE_NOTHROW(driver_pt.build_all_targets(false));
           REQUIRE_EQ(built_targets.size(), 1);
         }
 
         SUBCASE("same modification times") {
-          f1->set_mod_times(1);
+          fake_fs.clock.freeze_time(true);
 
-          f2->set_mod_times(1);
+          fake_fs.touch(f1->resolved_name);
 
-          f3->set_mod_times(1);
+          fake_fs.touch(f2->resolved_name);
+
+          fake_fs.touch(f3->resolved_name);
+
+          fake_fs.clock.freeze_time(false);
 
           REQUIRE_NOTHROW(driver_pt.build_all_targets(false));
           REQUIRE_EQ(built_targets.size(), 0);
         }
 
         SUBCASE("third doesn't exist, otherwise same modification times") {
-          f1->set_mod_times(1);
+          fake_fs.clock.freeze_time(true);
 
-          f2->set_mod_times(1);
+          fake_fs.touch(f1->resolved_name);
 
-          f3->set_mod_times(std::nullopt, 2);
+          fake_fs.touch(f2->resolved_name);
+
+          fake_fs.clock.freeze_time(false);
 
           REQUIRE_NOTHROW(driver_pt.build_all_targets(false));
           REQUIRE_EQ(built_targets.size(), 1);
@@ -278,78 +280,94 @@ TEST_CASE("driver::processed_targets") {
         REQUIRE(built_targets.empty());
 
         SUBCASE("all up-to date") {
-          f1s->set_mod_times(1);
-          f1l->set_mod_times(4);
+          fake_fs.touch(f1l->resolved_name);
 
-          f2s->set_mod_times(2);
-          f2l->set_mod_times(3);
+          fake_fs.touch(f2s->resolved_name);
 
-          f3->set_mod_times(5);
+          fake_fs.touch(f2l->resolved_name);
+
+          fake_fs.touch(f1s->resolved_name);
+
+          fake_fs.touch(f3->resolved_name);
 
           REQUIRE_NOTHROW(driver_pt.build_all_targets(false));
           REQUIRE_EQ(built_targets.size(), 0);
         }
 
         SUBCASE("first newest") {
-          f1s->set_mod_times(4);
-          f1l->set_mod_times(2, 5);
+          fake_fs.touch(f2s->resolved_name);
 
-          f2s->set_mod_times(1);
-          f2l->set_mod_times(2);
+          fake_fs.touch(f2l->resolved_name);
 
-          f3->set_mod_times(3, 5);
+          fake_fs.touch(f1l->resolved_name);
+
+          fake_fs.touch(f3->resolved_name);
+
+          fake_fs.touch(f1s->resolved_name);
 
           REQUIRE_NOTHROW(driver_pt.build_all_targets(false));
           REQUIRE_EQ(built_targets.size(), 2);
         }
 
         SUBCASE("second newest") {
-          f1s->set_mod_times(1);
-          f1l->set_mod_times(5);
+          fake_fs.touch(f1s->resolved_name);
 
-          f2s->set_mod_times(2);
-          f2l->set_mod_times(3);
+          fake_fs.touch(f2s->resolved_name);
 
-          f3->set_mod_times(4, 6);
+          fake_fs.touch(f2l->resolved_name);
+
+          fake_fs.touch(f3->resolved_name);
+
+          fake_fs.touch(f1l->resolved_name);
 
           REQUIRE_NOTHROW(driver_pt.build_all_targets(false));
           REQUIRE_EQ(built_targets.size(), 1);
         }
 
         SUBCASE("third doesn't exist") {
-          f1s->set_mod_times(1);
-          f1l->set_mod_times(2);
+          fake_fs.touch(f1s->resolved_name);
 
-          f2s->set_mod_times(1);
-          f2l->set_mod_times(2);
+          fake_fs.touch(f2s->resolved_name);
 
-          f3->set_mod_times(std::nullopt, 3);
+          fake_fs.touch(f2l->resolved_name);
+
+          fake_fs.touch(f1l->resolved_name);
 
           REQUIRE_NOTHROW(driver_pt.build_all_targets(false));
           REQUIRE_EQ(built_targets.size(), 1);
         }
 
         SUBCASE("same modification times") {
-          f1s->set_mod_times(1);
-          f1l->set_mod_times(1);
+          fake_fs.clock.freeze_time(true);
 
-          f2s->set_mod_times(1);
-          f2l->set_mod_times(1);
+          fake_fs.touch(f1s->resolved_name);
 
-          f3->set_mod_times(1);
+          fake_fs.touch(f2s->resolved_name);
+
+          fake_fs.touch(f2l->resolved_name);
+
+          fake_fs.touch(f3->resolved_name);
+
+          fake_fs.touch(f1l->resolved_name);
+
+          fake_fs.clock.freeze_time(false);
 
           REQUIRE_NOTHROW(driver_pt.build_all_targets(false));
           REQUIRE_EQ(built_targets.size(), 0);
         }
 
         SUBCASE("third doesn't exist, otherwise same modification times") {
-          f1s->set_mod_times(1);
-          f1l->set_mod_times(1);
+          fake_fs.clock.freeze_time(true);
 
-          f2s->set_mod_times(1);
-          f2l->set_mod_times(1);
+          fake_fs.touch(f1s->resolved_name);
 
-          f3->set_mod_times(std::nullopt, 2);
+          fake_fs.touch(f2s->resolved_name);
+
+          fake_fs.touch(f2l->resolved_name);
+
+          fake_fs.touch(f1l->resolved_name);
+
+          fake_fs.clock.freeze_time(false);
 
           REQUIRE_NOTHROW(driver_pt.build_all_targets(false));
           REQUIRE_EQ(built_targets.size(), 1);
@@ -369,13 +387,13 @@ TEST_CASE("driver::processed_targets") {
           fake_root_file1, false, "src/fake.c", true, {})};
 
       auto *const f1{test_project1.add_mock_file_target(
-          fake_root_file1, true, "bin/fake", false, {"src/fake.c"})};
+          fake_root_file1, true, "bin/fake1", false, {"src/fake.c"})};
 
       auto *const p1{test_project1.add_mock_phony_target(
-          fake_root_file1, true, "phony_alias", {"bin/fake"})};
+          fake_root_file1, true, "phony_alias", {"bin/fake1"})};
 
       auto *const f2{test_project1.add_mock_file_target(
-          fake_root_file1, true, "bin/fake", false,
+          fake_root_file1, true, "bin/fake2", false,
           {"src/fake.c", "fake_phony"})};
 
       auto *const p2{test_project1.add_mock_phony_target(fake_root_file1, true,
@@ -390,8 +408,9 @@ TEST_CASE("driver::processed_targets") {
       REQUIRE(built_targets.empty());
 
       SUBCASE("first, up to date") {
-        fro->set_mod_times(1);
-        f1->set_mod_times(2);
+        fake_fs.touch(fro->resolved_name);
+
+        fake_fs.touch(f1->resolved_name);
 
         REQUIRE_NOTHROW(driver_pt.build_target(p1, false));
         REQUIRE_EQ(built_targets.count(p1), 1);
@@ -399,8 +418,9 @@ TEST_CASE("driver::processed_targets") {
       }
 
       SUBCASE("first, out of date") {
-        fro->set_mod_times(2);
-        f1->set_mod_times(1, 3);
+        fake_fs.touch(f1->resolved_name);
+
+        fake_fs.touch(fro->resolved_name);
 
         REQUIRE_NOTHROW(driver_pt.build_target(p1, false));
         REQUIRE_EQ(built_targets.count(p1), 1);
@@ -409,8 +429,7 @@ TEST_CASE("driver::processed_targets") {
       }
 
       SUBCASE("first, nonexistent") {
-        fro->set_mod_times(1);
-        f1->set_mod_times(std::nullopt, 2);
+        fake_fs.touch(fro->resolved_name);
 
         REQUIRE_NOTHROW(driver_pt.build_target(p1, false));
         REQUIRE_EQ(built_targets.count(p1), 1);
@@ -419,8 +438,9 @@ TEST_CASE("driver::processed_targets") {
       }
 
       SUBCASE("second, up to date") {
-        fro->set_mod_times(1);
-        f2->set_mod_times(2, 3);
+        fake_fs.touch(fro->resolved_name);
+
+        fake_fs.touch(f2->resolved_name);
 
         REQUIRE_NOTHROW(driver_pt.build_target(f2, false));
         REQUIRE_EQ(built_targets.count(p2), 1);
@@ -429,8 +449,9 @@ TEST_CASE("driver::processed_targets") {
       }
 
       SUBCASE("second, out of date") {
-        fro->set_mod_times(2);
-        f2->set_mod_times(1, 3);
+        fake_fs.touch(f2->resolved_name);
+
+        fake_fs.touch(fro->resolved_name);
 
         REQUIRE_NOTHROW(driver_pt.build_target(f2, false));
         REQUIRE_EQ(built_targets.count(p2), 1);
@@ -439,8 +460,7 @@ TEST_CASE("driver::processed_targets") {
       }
 
       SUBCASE("second, nonexistent") {
-        fro->set_mod_times(1);
-        f2->set_mod_times(std::nullopt, 2);
+        fake_fs.touch(fro->resolved_name);
 
         REQUIRE_NOTHROW(driver_pt.build_target(f2, false));
         REQUIRE_EQ(built_targets.count(p2), 1);

@@ -26,6 +26,7 @@
 #include "build_cxx/common/location.hxx"
 #include "build_cxx/common/project.hxx"
 #include "build_cxx/test_helpers/built_targets_t.hxx"
+#include "build_cxx/test_helpers/fs_mock.hxx"
 #include "build_cxx/test_helpers/mock_file_target.hxx"
 #include "build_cxx/test_helpers/mock_phony_target.hxx"
 
@@ -43,8 +44,7 @@ struct mock_project : common::project {
         fake_loc_filename, include_in_all, tgt_name, std::move(deps))};
 
     res->set_read_only(read_only);
-    // WARNING: `100` should be enough, unless someonce overflows it ...
-    res->set_mod_times(++next_fake_file_mod_time, 100, false);
+    res->set_fs_proxy(fake_fs);
 
     return res;
   }
@@ -59,7 +59,7 @@ struct mock_project : common::project {
   // testing helper ...
   built_targets_t *built_targets{nullptr};
 
-  common::target_status::file_modification_time_t next_fake_file_mod_time{0};
+  fs_mock *fake_fs{nullptr};
 
 private:
   struct target_holder {

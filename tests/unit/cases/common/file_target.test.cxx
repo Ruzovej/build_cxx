@@ -33,8 +33,10 @@ TEST_CASE("common::file_target") {
       "/fake/dir/file_target.test.cxx"};
 
   test_helpers::built_targets_t built_targets;
+  test_helpers::fs_mock fake_fs;
   test_helpers::mock_project test_project{"cfttp", "0.1.0", fake_filename};
   test_project.built_targets = &built_targets;
+  test_project.fake_fs = &fake_fs;
 
   SUBCASE("relative path") {
     auto *const ft{test_project.add_mock_file_target(fake_filename, true, "tft",
@@ -53,6 +55,7 @@ TEST_CASE("common::file_target") {
     REQUIRE_NOTHROW(ft->recipe({}));
     REQUIRE_EQ(built_targets.size(), 1);
     REQUIRE_EQ(*built_targets.begin(), ft);
+    REQUIRE(fake_fs.file_exists(ft->resolved_name));
 
     // TODO test `last_modification_time` ...
   }
@@ -76,6 +79,7 @@ TEST_CASE("common::file_target") {
     REQUIRE_NOTHROW(ft->recipe({}));
     // expect 0 because it's marked as read-only ...:
     REQUIRE_EQ(built_targets.size(), 0);
+    REQUIRE(!fake_fs.file_exists(ft->resolved_name));
 
     // TODO test `last_modification_time` ...
   }

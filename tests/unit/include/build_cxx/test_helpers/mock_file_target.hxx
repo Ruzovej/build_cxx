@@ -31,61 +31,38 @@ struct mock_file_target : common::file_target {
 
   built_targets_t *built_targets{nullptr};
 
-  void set_mod_times(
-      std::optional<common::target_status::file_modification_time_t> const
-          init_mod_time,
-      std::optional<common::target_status::file_modification_time_t> const
-          final_mod_time = std::nullopt,
-      bool const reinitialize_status = true) {
-    simulated_mod_time = init_mod_time;
-
-    if (reinitialize_status) {
-      initialize_status(); // so `status` gets updated with this new value ...
-    }
-
-    simulated_mod_time_after_update = final_mod_time;
-  }
-
-  void rm() {
-    simulated_mod_time.reset();
-    initialize_status(); // so `status` gets updated with this new value ...
-  }
-
   void set_read_only(bool const aRead_only) {
     simulated_read_only = aRead_only;
   }
 
-  void recipe(std::vector<common::abstract_target const *> const &resolved_deps)
-      override {
+  void set_fs_proxy(common::fs_proxy *aFs) { fs = aFs; }
+
+  void recipe(std::vector<common::abstract_target const *> const
+                  & /*resolved_deps*/) override {
     if (!simulated_read_only) {
       if (built_targets) {
         built_targets->emplace(this);
       }
+      fs->touch(resolved_path);
     }
   }
 
   void update_status() override {
     if (!simulated_read_only) {
-      simulated_mod_time = simulated_mod_time_after_update;
+      fs->touch(resolved_path);
       initialize_status(); // so `status` gets updated with this new value ...
     }
   }
 
 protected:
-  std::optional<common::target_status::file_modification_time_t>
-      simulated_mod_time;
-
-  std::optional<common::target_status::file_modification_time_t>
-      simulated_mod_time_after_update;
-
   bool simulated_read_only{false};
 
-  [[nodiscard]] common::target_status compute_status() const override {
-    return common::target_status{simulated_mod_time.value()};
-  }
+  //[[nodiscard]] common::target_status compute_status() const override {
+  //  return common::target_status{simulated_mod_time.value()};
+  //}
 
   [[nodiscard]] bool exists() const override {
-    return simulated_mod_time.has_value();
+    return fs->file_exists(resolved_path);
   }
 };
 

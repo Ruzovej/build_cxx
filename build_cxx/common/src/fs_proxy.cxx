@@ -44,28 +44,28 @@ struct dflt_impl : fs_proxy {
         std::chrono::duration_cast<std::chrono::nanoseconds>(ftime).count());
   }
 
-  void touch(std::filesystem::path const &filepath) override {
-    if (filepath.empty()) {
+  void touch(std::filesystem::path const &path) override {
+    if (path.empty()) {
       throw std::runtime_error{"Can't touch an empty filepath"};
     }
 
-    if (!std::filesystem::exists(filepath)) {
-      auto const parent_path{filepath.parent_path()};
+    if (!std::filesystem::exists(path)) {
+      auto const parent_path{path.parent_path()};
 
       if (!std::filesystem::exists(parent_path)) {
         std::filesystem::create_directories(parent_path);
       }
 
-      std::ofstream{filepath}.close();
+      std::ofstream{path}.close();
     } else {
       std::filesystem::last_write_time(
-          filepath, std::filesystem::file_time_type::clock::now());
+          path, std::filesystem::file_time_type::clock::now());
     }
   }
 
-  void rm(std::filesystem::path const &filepath) override {
-    if (!std::filesystem::remove(filepath)) {
-      throw std::runtime_error{"Failed to remove file '" + filepath.string() +
+  void rm(std::filesystem::path const &path) override {
+    if (!std::filesystem::remove(path)) {
+      throw std::runtime_error{"Failed to remove file '" + path.string() +
                                '\''};
     }
   }

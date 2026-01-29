@@ -39,16 +39,18 @@ TEST_CASE("client::debug_helper") {
 
   REQUIRE(fake_fs.file_exists(tmp_dir / "foo1.txt"));
   REQUIRE(fake_fs.file_exists("foo2.txt"));
-
   fake_fs.clock.freeze_time(true);
-
   REQUIRE_NOTHROW(fake_fs.touch("/home/bar/foo2.txt"));
 
   REQUIRE(fake_fs.file_last_mod_time(tmp_dir / "foo1.txt") <
           fake_fs.file_last_mod_time("foo2.txt"));
-
   REQUIRE(fake_fs.file_last_mod_time("foo2.txt") ==
           fake_fs.file_last_mod_time("/home/bar/foo2.txt"));
+
+  fake_fs.clock.freeze_time(false);
+  REQUIRE_NOTHROW(fake_fs.touch(tmp_dir / "foo1.txt"));
+  REQUIRE(fake_fs.file_last_mod_time("foo2.txt") <
+          fake_fs.file_last_mod_time(tmp_dir / "foo1.txt"));
 
   REQUIRE_NOTHROW(fake_fs.rm(tmp_dir / "foo1.txt"));
   REQUIRE_NOTHROW(fake_fs.rm("foo2.txt"));

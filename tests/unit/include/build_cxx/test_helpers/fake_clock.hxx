@@ -24,16 +24,15 @@
 namespace build_cxx::test_helpers {
 
 struct fake_clock {
-  using time_ns_t = common::target_status::file_modification_time_t;
-
-  [[nodiscard]] time_ns_t now_ns(bool const current = false) {
-    return (current || time_frozen) ? time_ns : (++time_ns);
+  [[nodiscard]] common::target_status::file_modification_time_t
+  now_ns(bool const freezed = false) {
+    return (freezed || time_frozen) ? time_ns : (++time_ns);
   }
 
   void freeze_time(bool const freeze) { time_frozen = freeze; }
 
 private:
-  time_ns_t time_ns{};
+  common::target_status::file_modification_time_t time_ns{};
   bool time_frozen{false};
 };
 
