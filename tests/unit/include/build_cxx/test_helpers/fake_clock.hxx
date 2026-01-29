@@ -19,25 +19,22 @@
 
 #pragma once
 
-#include <filesystem>
-#include <unordered_set>
+#include "build_cxx/common/target_status.hxx"
 
 namespace build_cxx::test_helpers {
 
-struct mng_file {
-  [[nodiscard]] static std::filesystem::path const &tmp_dir(bool const local);
+struct fake_clock {
+  using time_ns_t = common::target_status::file_modification_time_t;
 
-  [[nodiscard]] static bool
-  under_tmp_dir(std::filesystem::path const &filepath);
+  [[nodiscard]] time_ns_t now_ns(bool const current = false) {
+    return (current || time_frozen) ? time_ns : (++time_ns);
+  }
 
-  ~mng_file();
-
-  void touch(std::filesystem::path const &filepath);
-
-  void rm(std::filesystem::path const &filepath);
+  void freeze_time(bool const freeze) { time_frozen = freeze; }
 
 private:
-  std::unordered_set<std::filesystem::path> created_files;
+  time_ns_t time_ns{};
+  bool time_frozen{false};
 };
 
 } // namespace build_cxx::test_helpers

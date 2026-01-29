@@ -28,10 +28,9 @@ namespace build_cxx::common {
 struct fs_proxy {
   [[nodiscard]] static fs_proxy *default_impl();
 
-  virtual ~fs_proxy() noexcept;
+  virtual ~fs_proxy() noexcept = default;
 
-  [[nodiscard]] virtual std::filesystem::path
-  tmp_dir(bool const local) const = 0;
+  [[nodiscard]] virtual std::filesystem::path tmp_dir() const = 0;
 
   [[nodiscard]] virtual bool
   file_exists(std::filesystem::path const &path) const = 0;

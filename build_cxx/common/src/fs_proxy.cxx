@@ -27,7 +27,7 @@ namespace build_cxx::common {
 namespace {
 
 struct dflt_impl : fs_proxy {
-  [[nodiscard]] std::filesystem::path tmp_dir(bool const local) const override {
+  [[nodiscard]] std::filesystem::path tmp_dir() const override {
     return std::filesystem::temp_directory_path();
   }
 
@@ -76,7 +76,5 @@ dflt_impl inst{};
 } // namespace
 
 fs_proxy *fs_proxy::default_impl() { return &inst; }
-
-fs_proxy::~fs_proxy() noexcept = default;
 
 } // namespace build_cxx::common
