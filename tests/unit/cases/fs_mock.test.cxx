@@ -24,7 +24,7 @@
 namespace build_cxx {
 namespace {
 
-TEST_CASE("client::debug_helper") {
+TEST_CASE("test_helpers::fs_mock") {
   test_helpers::fs_mock fake_fs;
 
   std::filesystem::path tmp_dir;

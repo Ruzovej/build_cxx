@@ -36,11 +36,11 @@ struct dflt_impl : fs_proxy {
     return std::filesystem::exists(path);
   }
 
-  [[nodiscard]] target_status::file_modification_time_t
+  [[nodiscard]] target_status::file_mod_time_t
   file_last_mod_time(std::filesystem::path const &path) const override {
     auto const ftime{std::filesystem::last_write_time(path).time_since_epoch()};
 
-    return static_cast<target_status::file_modification_time_t>(
+    return static_cast<target_status::file_mod_time_t>(
         std::chrono::duration_cast<std::chrono::nanoseconds>(ftime).count());
   }
 

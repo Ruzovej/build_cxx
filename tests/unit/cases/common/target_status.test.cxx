@@ -32,8 +32,8 @@ constexpr common::target_status needs_update() {
   return common::target_status{common::target_status::needs_update};
 }
 
-constexpr common::target_status file_mod_time(
-    common::target_status::file_modification_time_t const mod_time = 42) {
+constexpr common::target_status
+file_mod_time(common::target_status::file_mod_time_t const mod_time = 42) {
   return common::target_status{mod_time};
 }
 
@@ -153,7 +153,7 @@ TEST_CASE("common::target_status") {
     }
 
     SUBCASE("first file mod time") {
-      using mod_time_t = common::target_status::file_modification_time_t;
+      using mod_time_t = common::target_status::file_mod_time_t;
 
       static mod_time_t constexpr sooner{1};
       static mod_time_t constexpr now{2};

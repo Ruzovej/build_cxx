@@ -35,7 +35,7 @@ struct fs_proxy {
   [[nodiscard]] virtual bool
   file_exists(std::filesystem::path const &path) const = 0;
 
-  [[nodiscard]] virtual target_status::file_modification_time_t
+  [[nodiscard]] virtual target_status::file_mod_time_t
   file_last_mod_time(std::filesystem::path const &path) const = 0;
 
   virtual void touch(std::filesystem::path const &path) = 0;

@@ -38,9 +38,9 @@ struct merge_visitor {
     dest = target_status::needs_update;
   }
 
-  void operator()(target_status::file_modification_time_t const value) {
+  void operator()(target_status::file_mod_time_t const value) {
     if (auto *const dest_mod_time_ptr =
-            std::get_if<target_status::file_modification_time_t>(&dest);
+            std::get_if<target_status::file_mod_time_t>(&dest);
         dest_mod_time_ptr != nullptr) {
       *dest_mod_time_ptr = std::max(*dest_mod_time_ptr, value);
     } else if (!std::holds_alternative<target_status::needs_update_t>(dest)) {
@@ -71,7 +71,7 @@ namespace {
 
 struct needs_update_visitor {
   explicit needs_update_visitor(
-      target_status::file_modification_time_t const aMy_mod_time)
+      target_status::file_mod_time_t const aMy_mod_time)
       : my_mod_time{aMy_mod_time} {}
 
   // other is empty
@@ -82,13 +82,13 @@ struct needs_update_visitor {
     return true;
   }
 
-  [[nodiscard]] bool operator()(
-      target_status::file_modification_time_t const other_mod_time) const {
+  [[nodiscard]] bool
+  operator()(target_status::file_mod_time_t const other_mod_time) const {
     return my_mod_time < other_mod_time;
   }
 
 private:
-  target_status::file_modification_time_t my_mod_time;
+  target_status::file_mod_time_t my_mod_time;
 };
 
 } // namespace
@@ -99,7 +99,7 @@ bool target_status::needs_update_compared_to(target_status const other) const {
     return true;
   } else {
     auto *const self_mod_time_ptr =
-        std::get_if<target_status::file_modification_time_t>(&status);
+        std::get_if<target_status::file_mod_time_t>(&status);
     return std::visit(needs_update_visitor{*self_mod_time_ptr}, other.status);
   }
 }

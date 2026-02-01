@@ -37,7 +37,7 @@ struct fs_mock : common::fs_proxy {
     return files.find(path) != files.cend();
   }
 
-  [[nodiscard]] common::target_status::file_modification_time_t
+  [[nodiscard]] common::target_status::file_mod_time_t
   file_last_mod_time(std::filesystem::path const &path) const override {
     return files.at(path).last_mod_time;
   }
@@ -62,7 +62,7 @@ struct fs_mock : common::fs_proxy {
 
 private:
   struct fake_file {
-    common::target_status::file_modification_time_t last_mod_time{};
+    common::target_status::file_mod_time_t last_mod_time{};
     // std::string content; // TODO ...?!
   };
 

@@ -27,16 +27,16 @@ namespace build_cxx::common {
 
 struct BUILD_CXX_DLL_EXPORT target_status {
   struct needs_update_t {};
+  using file_mod_time_t = long long;
+  
   static needs_update_t constexpr needs_update{};
-  // TODO rename to `file_mod_time_t`:
-  using file_modification_time_t = long long;
 
   using status_t =
-      std::variant<std::monostate, needs_update_t, file_modification_time_t>;
+      std::variant<std::monostate, needs_update_t, file_mod_time_t>;
 
   constexpr target_status() = default;
   constexpr target_status(needs_update_t x) : status{x} {}
-  constexpr explicit target_status(file_modification_time_t const mod_time)
+  constexpr explicit target_status(file_mod_time_t const mod_time)
       : status{mod_time} {}
 
   void merge_with(target_status const rhs);

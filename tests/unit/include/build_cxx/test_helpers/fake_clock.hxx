@@ -24,7 +24,7 @@
 namespace build_cxx::test_helpers {
 
 struct fake_clock {
-  [[nodiscard]] common::target_status::file_modification_time_t
+  [[nodiscard]] common::target_status::file_mod_time_t
   now_ns(bool const freezed = false) {
     return (freezed || time_frozen) ? time_ns : (++time_ns);
   }
@@ -32,7 +32,7 @@ struct fake_clock {
   void freeze_time(bool const freeze) { time_frozen = freeze; }
 
 private:
-  common::target_status::file_modification_time_t time_ns{};
+  common::target_status::file_mod_time_t time_ns{};
   bool time_frozen{false};
 };
 

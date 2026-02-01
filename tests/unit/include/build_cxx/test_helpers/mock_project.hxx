@@ -56,9 +56,8 @@ struct mock_project : common::project {
                                               tgt_name, std::move(deps));
   }
 
-  // testing helper ...
+  // testing helpers must be eventually set:
   built_targets_t *built_targets{nullptr};
-
   fs_mock *fake_fs{nullptr};
 
 private:

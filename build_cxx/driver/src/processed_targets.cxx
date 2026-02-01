@@ -185,7 +185,7 @@ void processed_targets::build_target_impl(common::abstract_target *const tgt,
   }
 
   tgt->build(deps);
-  
+
   if (verbose) {
     std::cout << '\n';
   }
