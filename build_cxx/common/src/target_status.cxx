@@ -91,6 +91,8 @@ private:
 
 bool target_status::needs_update_compared_to(target_status const other) const {
   require_initialized();
+  // TODO consider changing the API so this check passes tests:
+  // other.require_initialized();
   if (std::holds_alternative<needs_update_t>(status)) {
     return true;
   } else {
