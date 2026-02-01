@@ -39,7 +39,8 @@ struct BUILD_CXX_DLL_EXPORT file_target : abstract_target {
 
   void resolve_own_traits() override final;
 
-  void update_status() override;
+  void initialize_status() override;
+  void update_status(target_status const new_status) override;
 
   std::filesystem::path const &get_resolved_path() const {
     return resolved_path;
@@ -59,7 +60,7 @@ struct BUILD_CXX_DLL_EXPORT read_only_file_target : file_target {
     // read-only -> nothing to do ...
   }
 
-  void update_status() override;
+  void update_status(target_status const new_status) override;
 };
 
 } // namespace build_cxx::common

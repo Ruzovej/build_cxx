@@ -19,7 +19,6 @@
 
 #include "build_cxx/common/file_target.hxx"
 
-#include <chrono>
 #include <limits>
 #include <stdexcept>
 
@@ -46,18 +45,24 @@ void file_target::resolve_own_traits() {
   resolved_name = resolved_path.string();
 }
 
-void file_target::update_status() {
+void file_target::initialize_status() {
   status = fs->file_exists(resolved_path)
                ? target_status{fs->file_last_mod_time(resolved_path)}
                : target_status::needs_update;
 }
 
-void read_only_file_target::update_status() {
-  // it's read-only, so it shouldn't change
-  // TODO simplify it in general ...
-  if (!status.is_initialized()) {
-    file_target::update_status();
+void file_target::update_status(target_status const // new_status
+) {
+  if (!fs->file_exists(resolved_path)) {
+    throw std::runtime_error{"After running its recipe, expected file '" +
+                             resolved_name + "' doesn't exist"};
   }
+
+  status = target_status{fs->file_last_mod_time(resolved_path)};
+}
+
+void read_only_file_target::update_status(target_status const new_status) {
+  status.merge_with(new_status);
 }
 
 } // namespace build_cxx::common

@@ -33,6 +33,9 @@ void phony_target::resolve_own_traits() {
   resolved_name = resolve_name(parent_project->name, name);
 }
 
-void phony_target::update_status() { status = target_status::needs_update; }
+void phony_target::initialize_status() { status = target_status::needs_update; }
+
+void phony_target::update_status(target_status const // new_status
+) {}
 
 } // namespace build_cxx::common

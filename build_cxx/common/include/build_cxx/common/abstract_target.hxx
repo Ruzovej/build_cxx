@@ -49,7 +49,8 @@ struct BUILD_CXX_DLL_EXPORT abstract_target {
 
   // for building
 
-  virtual void update_status() = 0;
+  virtual void initialize_status() = 0;
+  virtual void update_status(target_status const new_status) = 0;
 
   [[nodiscard]] target_status get_status() const { return status; }
 

@@ -28,7 +28,7 @@ namespace build_cxx::common {
 struct BUILD_CXX_DLL_EXPORT target_status {
   struct needs_update_t {};
   using file_mod_time_t = long long;
-  
+
   static needs_update_t constexpr needs_update{};
 
   using status_t =
@@ -40,8 +40,6 @@ struct BUILD_CXX_DLL_EXPORT target_status {
       : status{mod_time} {}
 
   void merge_with(target_status const rhs);
-
-  [[nodiscard]] bool is_initialized() const;
 
   [[nodiscard]] bool certainly_needs_update() const;
 

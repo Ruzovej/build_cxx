@@ -19,8 +19,6 @@
 
 #pragma once
 
-#include <unordered_set>
-
 #include "build_cxx/common/file_target.hxx"
 #include "build_cxx/test_helpers/built_targets_t.hxx"
 
@@ -48,10 +46,11 @@ struct mock_file_target : common::file_target {
     }
   }
 
-  void update_status() override {
-    if (!simulated_read_only || !status.is_initialized()) {
-      // so `status` gets updated with this new value ...
-      file_target::update_status();
+  void update_status(common::target_status const new_status) override {
+    if (simulated_read_only) {
+      status.merge_with(new_status);
+    } else {
+      file_target::update_status(new_status);
     }
   }
 

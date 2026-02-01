@@ -58,10 +58,6 @@ void target_status::merge_with(target_status const rhs) {
   std::visit(merge_visitor{status}, rhs.status);
 }
 
-bool target_status::is_initialized() const {
-  return !std::holds_alternative<std::monostate>(status);
-}
-
 bool target_status::certainly_needs_update() const {
   require_initialized();
   return std::holds_alternative<needs_update_t>(status);
@@ -105,7 +101,7 @@ bool target_status::needs_update_compared_to(target_status const other) const {
 }
 
 void target_status::require_initialized() const {
-  if (!is_initialized()) {
+  if (std::holds_alternative<std::monostate>(status)) {
     throw std::runtime_error{
         "Internal error: querying uninitialized target status"};
   }

@@ -36,7 +36,8 @@ struct BUILD_CXX_DLL_EXPORT phony_target : abstract_target {
 
   void resolve_own_traits() override final;
 
-  void update_status() override;
+  void initialize_status() override;
+  void update_status(target_status const new_status) override;
 };
 
 } // namespace build_cxx::common
