@@ -41,12 +41,14 @@ struct BUILD_CXX_DLL_EXPORT target_status {
 
   void merge_with(target_status const rhs);
 
+  [[nodiscard]] bool is_initialized() const;
+
   [[nodiscard]] bool certainly_needs_update() const;
 
   [[nodiscard]] bool needs_update_compared_to(target_status const other) const;
 
 private:
-  void require_nondefault_state() const;
+  void require_initialized() const;
 
   status_t status;
 };

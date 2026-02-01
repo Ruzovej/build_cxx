@@ -31,7 +31,9 @@ abstract_target::abstract_target(location const *const aLoc,
 
 void abstract_target::build(
     std::vector<abstract_target const *> const &resolved_deps) {
-  auto const prev_status{status};
+  update_status();
+
+  auto const init_status{status};
 
   if (!status.certainly_needs_update()) {
     for (auto const dep : resolved_deps) {
@@ -43,9 +45,8 @@ void abstract_target::build(
     }
   }
 
-  if (prev_status.needs_update_compared_to(status)) {
+  if (init_status.needs_update_compared_to(status)) {
     recipe(resolved_deps);
-
     update_status();
   }
 }

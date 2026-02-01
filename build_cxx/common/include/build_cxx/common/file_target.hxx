@@ -41,13 +41,11 @@ struct BUILD_CXX_DLL_EXPORT file_target : abstract_target {
 
   void update_status() override;
 
+  std::filesystem::path const &get_resolved_path() const {
+    return resolved_path;
+  }
+
 protected:
-  [[nodiscard]] virtual target_status compute_status() const;
-
-  [[nodiscard]] virtual bool exists() const;
-
-  void initialize_status();
-
   std::filesystem::path resolved_path;
 
   fs_proxy *fs{fs_proxy::default_impl()};
@@ -61,9 +59,7 @@ struct BUILD_CXX_DLL_EXPORT read_only_file_target : file_target {
     // read-only -> nothing to do ...
   }
 
-  void update_status() override {
-    // read only -> expect nothing has changed
-  }
+  void update_status() override;
 };
 
 } // namespace build_cxx::common

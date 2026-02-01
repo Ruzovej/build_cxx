@@ -37,8 +37,9 @@ struct mock_file_target : common::file_target {
 
   void set_fs_proxy(common::fs_proxy *aFs) { fs = aFs; }
 
-  void recipe(std::vector<common::abstract_target const *> const
-                  & /*resolved_deps*/) override {
+  void
+  recipe(std::vector<common::abstract_target const *> const & // resolved_deps
+         ) override {
     if (!simulated_read_only) {
       if (built_targets) {
         built_targets->emplace(this);
@@ -48,22 +49,14 @@ struct mock_file_target : common::file_target {
   }
 
   void update_status() override {
-    if (!simulated_read_only) {
-      fs->touch(resolved_path);
-      initialize_status(); // so `status` gets updated with this new value ...
+    if (!simulated_read_only || !status.is_initialized()) {
+      // so `status` gets updated with this new value ...
+      file_target::update_status();
     }
   }
 
 protected:
   bool simulated_read_only{false};
-
-  //[[nodiscard]] common::target_status compute_status() const override {
-  //  return common::target_status{simulated_mod_time.value()};
-  //}
-
-  [[nodiscard]] bool exists() const override {
-    return fs->file_exists(resolved_path);
-  }
 };
 
 } // namespace build_cxx::test_helpers

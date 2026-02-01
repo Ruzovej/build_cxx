@@ -170,6 +170,11 @@ TEST_CASE("driver::processed_targets") {
   }
 
   SUBCASE("more nontrivial dependencies") {
+    // TODO
+    // - review if there are enough test cases ~= covered scenarios
+    // - after asserting that no. of built targets is N, check all specific ones
+    // are present in the set
+
     SUBCASE("file targets only") {
       SUBCASE("chain of 3 files, first 2 read-only") {
         auto *const f1{test_project1.add_mock_file_target(
@@ -189,37 +194,42 @@ TEST_CASE("driver::processed_targets") {
         REQUIRE(all_resolved);
 
         SUBCASE("all up-to date") {
-          fake_fs.touch(f1->resolved_name);
+          fake_fs.touch(f1->get_resolved_path());
 
-          fake_fs.touch(f2->resolved_name);
+          fake_fs.touch(f2->get_resolved_path());
 
-          fake_fs.touch(f3->resolved_name);
+          fake_fs.touch(f3->get_resolved_path());
 
           REQUIRE_NOTHROW(driver_pt.build_all_targets(false));
           REQUIRE_EQ(built_targets.size(), 0);
         }
 
         SUBCASE("first newest") {
+          fake_fs.touch(f2->get_resolved_path());
+
+          fake_fs.touch(f3->get_resolved_path());
+
+          fake_fs.touch(f1->get_resolved_path());
 
           REQUIRE_NOTHROW(driver_pt.build_all_targets(false));
           REQUIRE_EQ(built_targets.size(), 1);
         }
 
         SUBCASE("second newest") {
-          fake_fs.touch(f3->resolved_name);
+          fake_fs.touch(f3->get_resolved_path());
 
-          fake_fs.touch(f1->resolved_name);
+          fake_fs.touch(f1->get_resolved_path());
 
-          fake_fs.touch(f2->resolved_name);
+          fake_fs.touch(f2->get_resolved_path());
 
           REQUIRE_NOTHROW(driver_pt.build_all_targets(false));
           REQUIRE_EQ(built_targets.size(), 1);
         }
 
         SUBCASE("third doesn't exist") {
-          fake_fs.touch(f1->resolved_name);
+          fake_fs.touch(f1->get_resolved_path());
 
-          fake_fs.touch(f2->resolved_name);
+          fake_fs.touch(f2->get_resolved_path());
 
           REQUIRE_NOTHROW(driver_pt.build_all_targets(false));
           REQUIRE_EQ(built_targets.size(), 1);
@@ -228,11 +238,11 @@ TEST_CASE("driver::processed_targets") {
         SUBCASE("same modification times") {
           fake_fs.clock.freeze_time(true);
 
-          fake_fs.touch(f1->resolved_name);
+          fake_fs.touch(f1->get_resolved_path());
 
-          fake_fs.touch(f2->resolved_name);
+          fake_fs.touch(f2->get_resolved_path());
 
-          fake_fs.touch(f3->resolved_name);
+          fake_fs.touch(f3->get_resolved_path());
 
           fake_fs.clock.freeze_time(false);
 
@@ -243,9 +253,9 @@ TEST_CASE("driver::processed_targets") {
         SUBCASE("third doesn't exist, otherwise same modification times") {
           fake_fs.clock.freeze_time(true);
 
-          fake_fs.touch(f1->resolved_name);
+          fake_fs.touch(f1->get_resolved_path());
 
-          fake_fs.touch(f2->resolved_name);
+          fake_fs.touch(f2->get_resolved_path());
 
           fake_fs.clock.freeze_time(false);
 
@@ -280,75 +290,114 @@ TEST_CASE("driver::processed_targets") {
         REQUIRE(built_targets.empty());
 
         SUBCASE("all up-to date") {
-          fake_fs.touch(f1l->resolved_name);
+          fake_fs.touch(f2s->get_resolved_path());
 
-          fake_fs.touch(f2s->resolved_name);
+          fake_fs.touch(f1s->get_resolved_path());
 
-          fake_fs.touch(f2l->resolved_name);
+          fake_fs.touch(f2l->get_resolved_path());
 
-          fake_fs.touch(f1s->resolved_name);
+          fake_fs.touch(f1l->get_resolved_path());
 
-          fake_fs.touch(f3->resolved_name);
+          fake_fs.touch(f3->get_resolved_path());
 
           REQUIRE_NOTHROW(driver_pt.build_all_targets(false));
           REQUIRE_EQ(built_targets.size(), 0);
         }
 
-        SUBCASE("first newest") {
-          fake_fs.touch(f2s->resolved_name);
+        SUBCASE("first lib needs update") {
+          fake_fs.touch(f2s->get_resolved_path());
 
-          fake_fs.touch(f2l->resolved_name);
+          fake_fs.touch(f2l->get_resolved_path());
 
-          fake_fs.touch(f1l->resolved_name);
+          fake_fs.touch(f1l->get_resolved_path());
 
-          fake_fs.touch(f3->resolved_name);
+          fake_fs.touch(f1s->get_resolved_path());
 
-          fake_fs.touch(f1s->resolved_name);
+          fake_fs.touch(f3->get_resolved_path());
 
           REQUIRE_NOTHROW(driver_pt.build_all_targets(false));
           REQUIRE_EQ(built_targets.size(), 2);
         }
 
-        SUBCASE("second newest") {
-          fake_fs.touch(f1s->resolved_name);
+        SUBCASE("second lib needs update") {
+          fake_fs.touch(f2l->get_resolved_path());
 
-          fake_fs.touch(f2s->resolved_name);
+          fake_fs.touch(f2s->get_resolved_path());
 
-          fake_fs.touch(f2l->resolved_name);
+          fake_fs.touch(f1s->get_resolved_path());
 
-          fake_fs.touch(f3->resolved_name);
+          fake_fs.touch(f1l->get_resolved_path());
 
-          fake_fs.touch(f1l->resolved_name);
+          fake_fs.touch(f3->get_resolved_path());
+
+          REQUIRE_NOTHROW(driver_pt.build_all_targets(false));
+          REQUIRE_EQ(built_targets.size(), 2);
+        }
+
+        SUBCASE("first lib newest") {
+          fake_fs.touch(f1s->get_resolved_path());
+
+          fake_fs.touch(f2s->get_resolved_path());
+
+          fake_fs.touch(f2l->get_resolved_path());
+
+          fake_fs.touch(f3->get_resolved_path());
+
+          fake_fs.touch(f1l->get_resolved_path());
+
+          REQUIRE_NOTHROW(driver_pt.build_all_targets(false));
+          REQUIRE_EQ(built_targets.size(), 1);
+        }
+
+        SUBCASE("second lib newest") {
+          fake_fs.touch(f1s->get_resolved_path());
+
+          fake_fs.touch(f2s->get_resolved_path());
+
+          fake_fs.touch(f1l->get_resolved_path());
+
+          fake_fs.touch(f3->get_resolved_path());
+
+          fake_fs.touch(f2l->get_resolved_path());
 
           REQUIRE_NOTHROW(driver_pt.build_all_targets(false));
           REQUIRE_EQ(built_targets.size(), 1);
         }
 
         SUBCASE("third doesn't exist") {
-          fake_fs.touch(f1s->resolved_name);
+          fake_fs.touch(f1s->get_resolved_path());
 
-          fake_fs.touch(f2s->resolved_name);
+          fake_fs.touch(f2s->get_resolved_path());
 
-          fake_fs.touch(f2l->resolved_name);
+          fake_fs.touch(f2l->get_resolved_path());
 
-          fake_fs.touch(f1l->resolved_name);
+          fake_fs.touch(f1l->get_resolved_path());
 
           REQUIRE_NOTHROW(driver_pt.build_all_targets(false));
           REQUIRE_EQ(built_targets.size(), 1);
         }
 
+        SUBCASE("only RO files exist") {
+          fake_fs.touch(f1s->get_resolved_path());
+
+          fake_fs.touch(f2s->get_resolved_path());
+
+          REQUIRE_NOTHROW(driver_pt.build_all_targets(false));
+          REQUIRE_EQ(built_targets.size(), 3);
+        }
+
         SUBCASE("same modification times") {
           fake_fs.clock.freeze_time(true);
 
-          fake_fs.touch(f1s->resolved_name);
+          fake_fs.touch(f1s->get_resolved_path());
 
-          fake_fs.touch(f2s->resolved_name);
+          fake_fs.touch(f2s->get_resolved_path());
 
-          fake_fs.touch(f2l->resolved_name);
+          fake_fs.touch(f2l->get_resolved_path());
 
-          fake_fs.touch(f3->resolved_name);
+          fake_fs.touch(f3->get_resolved_path());
 
-          fake_fs.touch(f1l->resolved_name);
+          fake_fs.touch(f1l->get_resolved_path());
 
           fake_fs.clock.freeze_time(false);
 
@@ -359,18 +408,34 @@ TEST_CASE("driver::processed_targets") {
         SUBCASE("third doesn't exist, otherwise same modification times") {
           fake_fs.clock.freeze_time(true);
 
-          fake_fs.touch(f1s->resolved_name);
+          fake_fs.touch(f1s->get_resolved_path());
 
-          fake_fs.touch(f2s->resolved_name);
+          fake_fs.touch(f2s->get_resolved_path());
 
-          fake_fs.touch(f2l->resolved_name);
+          fake_fs.touch(f2l->get_resolved_path());
 
-          fake_fs.touch(f1l->resolved_name);
+          fake_fs.touch(f1l->get_resolved_path());
 
           fake_fs.clock.freeze_time(false);
 
           REQUIRE_NOTHROW(driver_pt.build_all_targets(false));
           REQUIRE_EQ(built_targets.size(), 1);
+        }
+
+        SUBCASE(
+            "third and second don't exist, otherwise same modification times") {
+          fake_fs.clock.freeze_time(true);
+
+          fake_fs.touch(f1s->get_resolved_path());
+
+          fake_fs.touch(f2s->get_resolved_path());
+
+          fake_fs.touch(f1l->get_resolved_path());
+
+          fake_fs.clock.freeze_time(false);
+
+          REQUIRE_NOTHROW(driver_pt.build_all_targets(false));
+          REQUIRE_EQ(built_targets.size(), 2);
         }
       }
 
@@ -408,9 +473,9 @@ TEST_CASE("driver::processed_targets") {
       REQUIRE(built_targets.empty());
 
       SUBCASE("first, up to date") {
-        fake_fs.touch(fro->resolved_name);
+        fake_fs.touch(fro->get_resolved_path());
 
-        fake_fs.touch(f1->resolved_name);
+        fake_fs.touch(f1->get_resolved_path());
 
         REQUIRE_NOTHROW(driver_pt.build_target(p1, false));
         REQUIRE_EQ(built_targets.count(p1), 1);
@@ -418,9 +483,9 @@ TEST_CASE("driver::processed_targets") {
       }
 
       SUBCASE("first, out of date") {
-        fake_fs.touch(f1->resolved_name);
+        fake_fs.touch(f1->get_resolved_path());
 
-        fake_fs.touch(fro->resolved_name);
+        fake_fs.touch(fro->get_resolved_path());
 
         REQUIRE_NOTHROW(driver_pt.build_target(p1, false));
         REQUIRE_EQ(built_targets.count(p1), 1);
@@ -429,7 +494,7 @@ TEST_CASE("driver::processed_targets") {
       }
 
       SUBCASE("first, nonexistent") {
-        fake_fs.touch(fro->resolved_name);
+        fake_fs.touch(fro->get_resolved_path());
 
         REQUIRE_NOTHROW(driver_pt.build_target(p1, false));
         REQUIRE_EQ(built_targets.count(p1), 1);
@@ -438,9 +503,9 @@ TEST_CASE("driver::processed_targets") {
       }
 
       SUBCASE("second, up to date") {
-        fake_fs.touch(fro->resolved_name);
+        fake_fs.touch(fro->get_resolved_path());
 
-        fake_fs.touch(f2->resolved_name);
+        fake_fs.touch(f2->get_resolved_path());
 
         REQUIRE_NOTHROW(driver_pt.build_target(f2, false));
         REQUIRE_EQ(built_targets.count(p2), 1);
@@ -449,9 +514,9 @@ TEST_CASE("driver::processed_targets") {
       }
 
       SUBCASE("second, out of date") {
-        fake_fs.touch(f2->resolved_name);
+        fake_fs.touch(f2->get_resolved_path());
 
-        fake_fs.touch(fro->resolved_name);
+        fake_fs.touch(fro->get_resolved_path());
 
         REQUIRE_NOTHROW(driver_pt.build_target(f2, false));
         REQUIRE_EQ(built_targets.count(p2), 1);
@@ -460,7 +525,7 @@ TEST_CASE("driver::processed_targets") {
       }
 
       SUBCASE("second, nonexistent") {
-        fake_fs.touch(fro->resolved_name);
+        fake_fs.touch(fro->get_resolved_path());
 
         REQUIRE_NOTHROW(driver_pt.build_target(f2, false));
         REQUIRE_EQ(built_targets.count(p2), 1);

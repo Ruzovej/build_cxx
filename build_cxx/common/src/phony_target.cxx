@@ -31,7 +31,6 @@ std::string phony_target::resolve_name(std::string_view const project_name,
 void phony_target::resolve_own_traits() {
   resolved_kind = kind;
   resolved_name = resolve_name(parent_project->name, name);
-  update_status();
 }
 
 void phony_target::update_status() { status = target_status::needs_update; }

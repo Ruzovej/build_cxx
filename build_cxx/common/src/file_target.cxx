@@ -44,19 +44,20 @@ void file_target::resolve_own_traits() {
   resolved_kind = kind;
   resolved_path = resolve_path(loc->filename, name);
   resolved_name = resolved_path.string();
-  initialize_status();
 }
 
-void file_target::update_status() { initialize_status(); }
-
-target_status file_target::compute_status() const {
-  return target_status{fs->file_last_mod_time(resolved_path)};
+void file_target::update_status() {
+  status = fs->file_exists(resolved_path)
+               ? target_status{fs->file_last_mod_time(resolved_path)}
+               : target_status::needs_update;
 }
 
-bool file_target::exists() const { return fs->file_exists(resolved_path); }
-
-void file_target::initialize_status() {
-  status = exists() ? compute_status() : target_status::needs_update;
+void read_only_file_target::update_status() {
+  // it's read-only, so it shouldn't change
+  // TODO simplify it in general ...
+  if (!status.is_initialized()) {
+    file_target::update_status();
+  }
 }
 
 } // namespace build_cxx::common

@@ -34,7 +34,7 @@ struct fs_mock : common::fs_proxy {
 
   [[nodiscard]] bool
   file_exists(std::filesystem::path const &path) const override {
-    return files.find(path.string()) != files.end();
+    return files.find(path) != files.cend();
   }
 
   [[nodiscard]] common::target_status::file_modification_time_t
