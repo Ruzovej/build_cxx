@@ -33,7 +33,12 @@
 namespace build_cxx::test_helpers {
 
 struct mock_project : common::project {
-  using project::project;
+  explicit mock_project(built_targets_t *const aBuilt_targets,
+                        fs_mock *const aFake_fs, std::string_view const name,
+                        std::string_view const version,
+                        std::string_view const root_file) noexcept
+      : common::project{name, version, root_file},
+        built_targets{aBuilt_targets}, fake_fs{aFake_fs} {}
 
   [[nodiscard]] mock_file_target *
   add_mock_file_target(std::string_view const fake_loc_filename,
@@ -56,7 +61,6 @@ struct mock_project : common::project {
                                               tgt_name, std::move(deps));
   }
 
-  // testing helpers must be eventually set:
   built_targets_t *built_targets{nullptr};
   fs_mock *fake_fs{nullptr};
 

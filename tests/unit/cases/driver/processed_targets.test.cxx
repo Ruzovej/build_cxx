@@ -37,9 +37,8 @@ TEST_CASE("driver::processed_targets") {
 
   test_helpers::built_targets_t built_targets;
   test_helpers::fs_mock fake_fs;
-  test_helpers::mock_project test_project1{"dpttp1", "0.1.0", fake_root_file1};
-  test_project1.built_targets = &built_targets;
-  test_project1.fake_fs = &fake_fs;
+  test_helpers::mock_project test_project1{&built_targets, &fake_fs, "dpttp1",
+                                           "0.1.0", fake_root_file1};
 
   driver::processed_targets driver_pt{};
 
@@ -70,9 +69,8 @@ TEST_CASE("driver::processed_targets") {
       static std::string_view constexpr fake_root_file2{
           "/fake/dir/project2.root.cxx"};
 
-      test_helpers::mock_project test_project2{"dpttp2", "0.1.0",
-                                               fake_root_file2};
-      test_project2.built_targets = &built_targets;
+      test_helpers::mock_project test_project2{
+          &built_targets, nullptr, "dpttp2", "0.1.0", fake_root_file2};
 
       SUBCASE(
           "each with single phony target without cross-project dependencies") {

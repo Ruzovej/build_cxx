@@ -50,9 +50,12 @@ struct BUILD_CXX_DLL_EXPORT abstract_target {
   // for building
 
   virtual void initialize_status() = 0;
-  virtual void update_status(target_status const new_status) = 0;
+  virtual void update_status(target_status const newest_dep_status) = 0;
 
-  [[nodiscard]] target_status get_status() const { return status; }
+  [[nodiscard]] target_status get_status() const {
+    // force 2 lines
+    return status;
+  }
 
   // don't call this in client code, only provide implementation
   virtual void

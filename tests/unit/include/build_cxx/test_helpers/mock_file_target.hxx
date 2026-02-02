@@ -30,14 +30,19 @@ struct mock_file_target : common::file_target {
   built_targets_t *built_targets{nullptr};
 
   void set_read_only(bool const aRead_only) {
+    // force 2 lines
     simulated_read_only = aRead_only;
   }
 
-  void set_fs_proxy(common::fs_proxy *aFs) { fs = aFs; }
+  void set_fs_proxy(common::fs_proxy *aFs) {
+    // force 2 lines
+    fs = aFs;
+  }
 
-  void
-  recipe(std::vector<common::abstract_target const *> const & // resolved_deps
-         ) override {
+  void recipe(std::vector<common::abstract_target const *> const &resolved_deps)
+      override {
+    static_cast<void>(resolved_deps);
+
     if (!simulated_read_only) {
       if (built_targets) {
         built_targets->emplace(this);
@@ -46,11 +51,11 @@ struct mock_file_target : common::file_target {
     }
   }
 
-  void update_status(common::target_status const new_status) override {
+  void update_status(common::target_status const newest_dep_status) override {
     if (simulated_read_only) {
-      status.merge_with(new_status);
+      status.merge_with(newest_dep_status);
     } else {
-      file_target::update_status(new_status);
+      file_target::update_status(newest_dep_status);
     }
   }
 

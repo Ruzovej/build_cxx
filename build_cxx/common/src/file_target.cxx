@@ -51,8 +51,12 @@ void file_target::initialize_status() {
                : target_status::needs_update;
 }
 
-void file_target::update_status(target_status const // new_status
-) {
+void file_target::update_status(target_status const newest_dep_status) {
+  // this target should be directly mapped to a file -> it has status
+  // independent on its deps.; TODO later check that if this "newest_dep_status"
+  // is "timepoint"-like, it's <= than own. mod file
+  static_cast<void>(newest_dep_status);
+
   if (!fs->file_exists(resolved_path)) {
     throw std::runtime_error{"After running its recipe, expected file '" +
                              resolved_name + "' doesn't exist"};
@@ -61,8 +65,9 @@ void file_target::update_status(target_status const // new_status
   status = target_status{fs->file_last_mod_time(resolved_path)};
 }
 
-void read_only_file_target::update_status(target_status const new_status) {
-  status.merge_with(new_status);
+void read_only_file_target::update_status(
+    target_status const newest_dep_status) {
+  status.merge_with(newest_dep_status);
 }
 
 } // namespace build_cxx::common

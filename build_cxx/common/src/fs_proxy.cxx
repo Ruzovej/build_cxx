@@ -75,6 +75,9 @@ dflt_impl inst{};
 
 } // namespace
 
-fs_proxy *fs_proxy::default_impl() { return &inst; }
+fs_proxy *fs_proxy::default_impl() {
+  // force 2 lines
+  return &inst;
+}
 
 } // namespace build_cxx::common
