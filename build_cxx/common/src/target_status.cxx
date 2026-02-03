@@ -20,7 +20,6 @@
 #include "build_cxx/common/target_status.hxx"
 
 #include <stdexcept>
-#include <variant>
 
 namespace build_cxx::common {
 
