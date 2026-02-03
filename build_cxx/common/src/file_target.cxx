@@ -19,7 +19,6 @@
 
 #include "build_cxx/common/file_target.hxx"
 
-#include <limits>
 #include <stdexcept>
 
 namespace build_cxx::common {
