@@ -28,7 +28,7 @@ struct fake_clock {
   now_ns(bool const frozen = false) {
     if (!frozen && !time_frozen) {
       ++time_ns;
-    };
+    }
     return time_ns;
   }
 
