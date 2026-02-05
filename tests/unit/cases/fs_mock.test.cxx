@@ -17,15 +17,15 @@
   with build_cxx. If not, see <https://www.gnu.org/licenses/>.
 */
 
-#include "build_cxx/test_helpers/fs_mock.hxx"
+#include "build_cxx/test_helpers/mock_fs.hxx"
 
 #include <doctest/doctest.h>
 
 namespace build_cxx {
 namespace {
 
-TEST_CASE("test_helpers::fs_mock") {
-  test_helpers::fs_mock fake_fs;
+TEST_CASE("test_helpers::mock_fs") {
+  test_helpers::mock_fs fake_fs;
 
   std::filesystem::path tmp_dir;
 

@@ -27,7 +27,7 @@
 
 namespace build_cxx::test_helpers {
 
-struct fs_mock : common::fs_proxy {
+struct mock_fs : common::fs_proxy {
   [[nodiscard]] std::filesystem::path tmp_dir() const override {
     return "/fake/tmp";
   }

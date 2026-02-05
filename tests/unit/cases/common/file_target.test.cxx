@@ -23,6 +23,7 @@
 
 #include "build_cxx/client/core.hxx"
 #include "build_cxx/test_helpers/mock_file_target.hxx"
+#include "build_cxx/test_helpers/mock_fs.hxx"
 #include "build_cxx/test_helpers/mock_project.hxx"
 
 namespace build_cxx {
@@ -33,7 +34,7 @@ TEST_CASE("common::file_target") {
       "/fake/dir/file_target.test.cxx"};
 
   test_helpers::built_targets_t built_targets;
-  test_helpers::fs_mock fake_fs;
+  test_helpers::mock_fs fake_fs;
   test_helpers::mock_project test_project{&built_targets, &fake_fs, "cfttp",
                                           "0.1.0", fake_filename};
 

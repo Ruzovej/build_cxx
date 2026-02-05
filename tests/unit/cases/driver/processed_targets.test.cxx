@@ -23,8 +23,8 @@
 
 #include "build_cxx/client/core.hxx"
 #include "build_cxx/common/location.hxx"
-#include "build_cxx/test_helpers/fs_mock.hxx"
 #include "build_cxx/test_helpers/mock_file_target.hxx"
+#include "build_cxx/test_helpers/mock_fs.hxx"
 #include "build_cxx/test_helpers/mock_phony_target.hxx"
 #include "build_cxx/test_helpers/mock_project.hxx"
 
@@ -36,7 +36,7 @@ TEST_CASE("driver::processed_targets") {
       "/fake/dir/project1.root.cxx"};
 
   test_helpers::built_targets_t built_targets;
-  test_helpers::fs_mock fake_fs;
+  test_helpers::mock_fs fake_fs;
   test_helpers::mock_project test_project1{&built_targets, &fake_fs, "dpttp1",
                                            "0.1.0", fake_root_file1};
 

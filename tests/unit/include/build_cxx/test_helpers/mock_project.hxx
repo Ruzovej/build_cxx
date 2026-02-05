@@ -26,15 +26,15 @@
 #include "build_cxx/common/location.hxx"
 #include "build_cxx/common/project.hxx"
 #include "build_cxx/test_helpers/built_targets_t.hxx"
-#include "build_cxx/test_helpers/fs_mock.hxx"
 #include "build_cxx/test_helpers/mock_file_target.hxx"
+#include "build_cxx/test_helpers/mock_fs.hxx"
 #include "build_cxx/test_helpers/mock_phony_target.hxx"
 
 namespace build_cxx::test_helpers {
 
 struct mock_project : common::project {
   explicit mock_project(built_targets_t *const aBuilt_targets,
-                        fs_mock *const aFake_fs, std::string_view const name,
+                        mock_fs *const aFake_fs, std::string_view const name,
                         std::string_view const version,
                         std::string_view const root_file) noexcept
       : common::project{name, version, root_file},
@@ -62,7 +62,7 @@ struct mock_project : common::project {
   }
 
   built_targets_t *built_targets{nullptr};
-  fs_mock *fake_fs{nullptr};
+  mock_fs *fake_fs{nullptr};
 
 private:
   struct target_holder {
