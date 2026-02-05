@@ -36,7 +36,7 @@
 
 namespace build_cxx::driver {
 
-void process_input(std::vector<char const *> const &targets,
+void process_input(int const n_jobs, std::vector<char const *> const &targets,
                    std::vector<char const *> const &input_files) {
   std::vector<build_cxx::driver::dlopen_scoped> dl_handles;
   dl_handles.reserve(input_files.size());

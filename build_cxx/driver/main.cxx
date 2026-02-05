@@ -45,6 +45,7 @@ int main(int argc, char *argv[]) {
   try {
     std::vector<char const *> targets;
     std::vector<char const *> input_files;
+    int n_jobs{1};
 
     // skip executable name ...
     static_cast<void>(consume_arg(true, "missing executable filename"));
@@ -56,12 +57,21 @@ int main(int argc, char *argv[]) {
       if (next_arg == "--target" || next_arg == "-t") {
         targets.emplace_back(
             consume_arg(true, "missing target name after --target/-t"));
+      } else if (next_arg == "--jobs" || next_arg == "-j") {
+        auto const n_jobs_str{
+            consume_arg(true, "missing number after --jobs/-j")};
+        try {
+          n_jobs = std::stoi(std::string{n_jobs_str});
+        } catch (...) {
+          throw std::runtime_error{"Invalid number for --jobs/-j: " +
+                                   std::string{n_jobs_str}};
+        }
       } else {
         input_files.emplace_back(next_arg_cstr);
       }
     }
 
-    build_cxx::driver::process_input(targets, input_files);
+    build_cxx::driver::process_input(n_jobs, targets, input_files);
 
     return EXIT_SUCCESS;
   } catch (std::exception const &e) {
