@@ -54,6 +54,7 @@ private:
 } // namespace
 
 void target_status::merge_with(target_status const rhs) {
+  rhs.require_initialized();
   std::visit(merge_visitor{status}, rhs.status);
 }
 
@@ -70,7 +71,10 @@ struct needs_update_visitor {
       : my_mod_time{aMy_mod_time} {}
 
   // other is empty
-  [[nodiscard]] bool operator()(std::monostate const) const { return false; }
+  [[nodiscard]] bool operator()(std::monostate const) const {
+    throw std::runtime_error{
+        "Internal error: comparing with uninitialized target status"};
+  }
 
   // other needs update
   [[nodiscard]] bool operator()(target_status::needs_update_t const) const {
@@ -90,8 +94,7 @@ private:
 
 bool target_status::needs_update_compared_to(target_status const other) const {
   require_initialized();
-  // TODO consider changing the API so this check passes tests:
-  // other.require_initialized();
+  other.require_initialized();
   if (std::holds_alternative<needs_update_t>(status)) {
     return true;
   } else {

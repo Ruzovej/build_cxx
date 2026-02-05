@@ -126,13 +126,12 @@ TEST_CASE("common::target_status") {
       }
 
       SUBCASE("second needs update") {
-        REQUIRE_THROWS(discarded =
-                           ts.needs_update_compared_to(uninitialized()));
+        REQUIRE_THROWS(discarded = ts.needs_update_compared_to(needs_update()));
       }
 
       SUBCASE("second file mod time") {
         REQUIRE_THROWS(discarded =
-                           ts.needs_update_compared_to(uninitialized()));
+                           ts.needs_update_compared_to(file_mod_time()));
       }
     }
 
@@ -140,7 +139,8 @@ TEST_CASE("common::target_status") {
       auto ts{needs_update()};
 
       SUBCASE("second uninitialized") {
-        REQUIRE(ts.needs_update_compared_to(uninitialized()));
+        REQUIRE_THROWS(discarded =
+                           ts.needs_update_compared_to(uninitialized()));
       }
 
       SUBCASE("second needs update") {
@@ -162,7 +162,8 @@ TEST_CASE("common::target_status") {
       auto ts{file_mod_time(now)};
 
       SUBCASE("second uninitialized") {
-        REQUIRE(!ts.needs_update_compared_to(uninitialized()));
+        REQUIRE_THROWS(discarded =
+                           ts.needs_update_compared_to(uninitialized()));
       }
 
       SUBCASE("second needs update") {
