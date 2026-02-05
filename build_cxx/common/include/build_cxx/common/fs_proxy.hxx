@@ -19,25 +19,28 @@
 
 #pragma once
 
-#include <string_view>
+#include <filesystem>
 
-#include "build_cxx/common/abstract_target.hxx"
-#include "build_cxx/common/macros.h"
+#include "build_cxx/common/target_status.hxx"
 
 namespace build_cxx::common {
 
-struct BUILD_CXX_DLL_EXPORT phony_target : abstract_target {
-  using abstract_target::abstract_target;
+struct fs_proxy {
+  [[nodiscard]] static fs_proxy *default_impl();
 
-  static std::string resolve_name(std::string_view const project_name,
-                                  std::string_view const target_name);
+  virtual ~fs_proxy() noexcept = default;
 
-  static std::string_view constexpr kind{"phony"};
+  [[nodiscard]] virtual std::filesystem::path tmp_dir() const = 0;
 
-  void resolve_own_traits() override final;
+  [[nodiscard]] virtual bool
+  file_exists(std::filesystem::path const &path) const = 0;
 
-  void initialize_status() override;
-  void update_status(target_status const newest_dep_status) override;
+  [[nodiscard]] virtual target_status::file_mod_time_t
+  file_last_mod_time(std::filesystem::path const &path) const = 0;
+
+  virtual void touch(std::filesystem::path const &path) = 0;
+
+  virtual void rm(std::filesystem::path const &path) = 0;
 };
 
 } // namespace build_cxx::common

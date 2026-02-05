@@ -19,25 +19,27 @@
 
 #pragma once
 
-#include <string_view>
+#include "build_cxx/common/target_status.hxx"
 
-#include "build_cxx/common/abstract_target.hxx"
-#include "build_cxx/common/macros.h"
+namespace build_cxx::test_helpers {
 
-namespace build_cxx::common {
+struct fake_clock {
+  [[nodiscard]] common::target_status::file_mod_time_t
+  now_ns(bool const frozen = false) {
+    if (!frozen && !time_frozen) {
+      ++time_ns;
+    }
+    return time_ns;
+  }
 
-struct BUILD_CXX_DLL_EXPORT phony_target : abstract_target {
-  using abstract_target::abstract_target;
+  void freeze_time(bool const freeze) {
+    // force 2 lines
+    time_frozen = freeze;
+  }
 
-  static std::string resolve_name(std::string_view const project_name,
-                                  std::string_view const target_name);
-
-  static std::string_view constexpr kind{"phony"};
-
-  void resolve_own_traits() override final;
-
-  void initialize_status() override;
-  void update_status(target_status const newest_dep_status) override;
+private:
+  common::target_status::file_mod_time_t time_ns{};
+  bool time_frozen{false};
 };
 
-} // namespace build_cxx::common
+} // namespace build_cxx::test_helpers

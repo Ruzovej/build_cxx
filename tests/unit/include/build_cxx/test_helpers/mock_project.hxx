@@ -27,12 +27,18 @@
 #include "build_cxx/common/project.hxx"
 #include "build_cxx/test_helpers/built_targets_t.hxx"
 #include "build_cxx/test_helpers/mock_file_target.hxx"
+#include "build_cxx/test_helpers/mock_fs.hxx"
 #include "build_cxx/test_helpers/mock_phony_target.hxx"
 
 namespace build_cxx::test_helpers {
 
 struct mock_project : common::project {
-  using project::project;
+  explicit mock_project(built_targets_t *const aBuilt_targets,
+                        mock_fs *const aFake_fs, std::string_view const name,
+                        std::string_view const version,
+                        std::string_view const root_file) noexcept
+      : common::project{name, version, root_file},
+        built_targets{aBuilt_targets}, fake_fs{aFake_fs} {}
 
   [[nodiscard]] mock_file_target *
   add_mock_file_target(std::string_view const fake_loc_filename,
@@ -43,6 +49,7 @@ struct mock_project : common::project {
         fake_loc_filename, include_in_all, tgt_name, std::move(deps))};
 
     res->set_read_only(read_only);
+    res->set_fs_proxy(fake_fs);
 
     return res;
   }
@@ -54,8 +61,8 @@ struct mock_project : common::project {
                                               tgt_name, std::move(deps));
   }
 
-  // testing helper ...
   built_targets_t *built_targets{nullptr};
+  mock_fs *fake_fs{nullptr};
 
 private:
   struct target_holder {

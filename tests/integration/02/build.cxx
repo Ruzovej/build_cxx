@@ -17,10 +17,33 @@
   with build_cxx. If not, see <https://www.gnu.org/licenses/>.
 */
 
+#include <filesystem>
+#include <fstream>
 #include <iostream>
 
 #include <build_cxx/client/core.hxx>
 #include <build_cxx/client/debug_helper.hxx>
+
+namespace {
+
+void touch_file(std::filesystem::path const &p) {
+  if (!std::filesystem::exists(p)) {
+    auto const parent_path{p.parent_path()};
+    if (!std::filesystem::exists(parent_path)) {
+      std::filesystem::create_directories(parent_path);
+    }
+    std::ofstream ofs{p};
+    ofs.close();
+  } else {
+    std::filesystem::last_write_time(
+        p, std::filesystem::file_time_type::clock::now());
+  }
+}
+
+auto const current_dir{
+    std::filesystem::path{BUILD_CXX_CURRENT_LOCATION.filename}.parent_path()};
+
+} // namespace
 
 BUILD_CXX_PROJECT("BBB", "1.0.0");
 
@@ -28,12 +51,14 @@ BUILD_CXX_PHONY_TARGET("b_01",
                        // deps:
                        "b_02") {
   std::cout << "I'm happy :-) "
-            << build_cxx::client::abstract_target_build_info(this, deps);
+            << build_cxx::client::abstract_target_build_info(this,
+                                                             resolved_deps);
 }
 
 BUILD_CXX_HIDDEN_PHONY_TARGET("b_02") {
   std::cout << "I'm happy :-) "
-            << build_cxx::client::abstract_target_build_info(this, deps);
+            << build_cxx::client::abstract_target_build_info(this,
+                                                             resolved_deps);
 }
 
 // very fake ...:
@@ -42,47 +67,48 @@ BUILD_CXX_PHONY_TARGET("BBB",
                        // deps:
                        "bin/libBBB.a", "bin/libBBB.so") {
   std::cout << "I'm happy :-) "
-            << build_cxx::client::abstract_target_build_info(this, deps);
+            << build_cxx::client::abstract_target_build_info(this,
+                                                             resolved_deps);
 }
 
 BUILD_CXX_FILE_TARGET("bin/libBBB.a",
                       // deps:
                       "build/src/BBB.cxx.o") {
   std::cout << "I'm happy :-) "
-            << build_cxx::client::abstract_target_build_info(this, deps);
+            << build_cxx::client::abstract_target_build_info(this,
+                                                             resolved_deps);
+
+  touch_file(current_dir / name);
 }
 
 BUILD_CXX_FILE_TARGET("bin/libBBB.so",
                       // deps:
                       "build/src/BBB.cxx.o") {
   std::cout << "I'm happy :-) "
-            << build_cxx::client::abstract_target_build_info(this, deps);
+            << build_cxx::client::abstract_target_build_info(this,
+                                                             resolved_deps);
+
+  touch_file(current_dir / name);
 }
 
 BUILD_CXX_HIDDEN_FILE_TARGET("build/src/BBB.cxx.o",
                              // deps:
                              "src/BBB.cxx") {
   std::cout << "I'm happy :-) "
-            << build_cxx::client::abstract_target_build_info(this, deps);
+            << build_cxx::client::abstract_target_build_info(this,
+                                                             resolved_deps);
+
+  touch_file(current_dir / name);
 }
 
 // simulating local file:
-BUILD_CXX_HIDDEN_FILE_TARGET("src/BBB.cxx",
-                             // deps:
-                             "src/BBB.hxx") {
-  std::cout << "I'm happy :-) "
-            << build_cxx::client::abstract_target_build_info(this, deps);
-}
+BUILD_CXX_HIDDEN_READ_ONLY_FILE_TARGET("src/BBB.cxx",
+                                       // deps:
+                                       "src/BBB.hxx");
 
-BUILD_CXX_HIDDEN_FILE_TARGET("src/BBB.hxx",
-                             // deps:
-                             "/usr/include/string_view") {
-  std::cout << "I'm happy :-) "
-            << build_cxx::client::abstract_target_build_info(this, deps);
-}
+BUILD_CXX_HIDDEN_READ_ONLY_FILE_TARGET("src/BBB.hxx",
+                                       // deps:
+                                       "/usr/include/string_view");
 
 // simulating system file:
-BUILD_CXX_HIDDEN_FILE_TARGET("/usr/include/string_view") {
-  std::cout << "I'm happy :-) "
-            << build_cxx::client::abstract_target_build_info(this, deps);
-}
+BUILD_CXX_HIDDEN_READ_ONLY_FILE_TARGET("/usr/include/string_view");

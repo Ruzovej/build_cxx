@@ -30,8 +30,8 @@ namespace {
 
 TEST_CASE("common::phony_target") {
   test_helpers::built_targets_t built_targets;
-  test_helpers::mock_project test_project{"cpttp", "0.1.0", __FILE__};
-  test_project.built_targets = &built_targets;
+  test_helpers::mock_project test_project{&built_targets, nullptr, "cpttp",
+                                          "0.1.0", __FILE__};
 
   auto *const pt{test_project.add_mock_phony_target(__FILE__, true,
                                                     "test_phony_target", {})};

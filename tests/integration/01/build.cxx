@@ -17,10 +17,33 @@
   with build_cxx. If not, see <https://www.gnu.org/licenses/>.
 */
 
+#include <filesystem>
+#include <fstream>
 #include <iostream>
 
 #include <build_cxx/client/core.hxx>
 #include <build_cxx/client/debug_helper.hxx>
+
+namespace {
+
+void touch_file(std::filesystem::path const &p) {
+  if (!std::filesystem::exists(p)) {
+    auto const parent_path{p.parent_path()};
+    if (!std::filesystem::exists(parent_path)) {
+      std::filesystem::create_directories(parent_path);
+    }
+    std::ofstream ofs{p};
+    ofs.close();
+  } else {
+    std::filesystem::last_write_time(
+        p, std::filesystem::file_time_type::clock::now());
+  }
+}
+
+auto const current_dir{
+    std::filesystem::path{BUILD_CXX_CURRENT_LOCATION.filename}.parent_path()};
+
+} // namespace
 
 BUILD_CXX_PROJECT("AAA", "1.0.0");
 
@@ -28,19 +51,22 @@ BUILD_CXX_PHONY_TARGET("a_phony_1",
                        // deps:
                        "a_phony_2", "a_phony_3", "bin/libAAA.a") {
   std::cout << "I'm happy :-) "
-            << build_cxx::client::abstract_target_build_info(this, deps);
+            << build_cxx::client::abstract_target_build_info(this,
+                                                             resolved_deps);
 }
 
 BUILD_CXX_PHONY_TARGET("a_phony_2",
                        // deps:
                        "BBB::BBB") {
   std::cout << "I'm twice as happy :-) "
-            << build_cxx::client::abstract_target_build_info(this, deps);
+            << build_cxx::client::abstract_target_build_info(this,
+                                                             resolved_deps);
 }
 
 BUILD_CXX_HIDDEN_PHONY_TARGET("a_phony_3") {
   std::cout << "I'm happy :-) "
-            << build_cxx::client::abstract_target_build_info(this, deps);
+            << build_cxx::client::abstract_target_build_info(this,
+                                                             resolved_deps);
 }
 
 // again, faking it a lot:
@@ -50,7 +76,10 @@ BUILD_CXX_FILE_TARGET("bin/libAAA.a",
                       "a/src/AAA_1.cxx", "b/src/AAA_2.cxx",
                       "b/c/src/AAA_3.cxx") {
   std::cout << "I'm twice as happy :-) "
-            << build_cxx::client::abstract_target_build_info(this, deps);
+            << build_cxx::client::abstract_target_build_info(this,
+                                                             resolved_deps);
+
+  touch_file(current_dir / name);
 }
 
 #include "a/build.cxx"

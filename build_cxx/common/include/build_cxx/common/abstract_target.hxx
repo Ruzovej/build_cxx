@@ -25,6 +25,7 @@
 
 #include "build_cxx/common/location.hxx"
 #include "build_cxx/common/macros.h"
+#include "build_cxx/common/target_status.hxx"
 
 namespace build_cxx::common {
 
@@ -39,27 +40,42 @@ struct BUILD_CXX_DLL_EXPORT abstract_target {
 
   virtual ~abstract_target() = default;
 
-  // TODO
-  // - use: https://en.cppreference.com/w/cpp/filesystem/file_time_type.html
-  // - because of:
-  // https://en.cppreference.com/w/cpp/filesystem/last_write_time.html
-  // - comp. op.:
-  // https://en.cppreference.com/w/cpp/chrono/time_point/operator_cmp.html
-  // - example: https://godbolt.org/z/Enoza77Wo
-  using modification_time_t = long long;
+  // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+  // "private":
+  // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
-  [[nodiscard]] virtual modification_time_t last_modification_time() const = 0;
-
+  // for initialization
   virtual void resolve_own_traits() = 0;
 
+  // for building
+
+  virtual void initialize_status() = 0;
+  virtual void update_status(target_status const newest_dep_status) = 0;
+
+  [[nodiscard]] target_status get_status() const {
+    // force 2 lines
+    return status;
+  }
+
+  // don't call this in client code, only provide implementation
   virtual void
   recipe(std::vector<abstract_target const *> const &resolved_deps) = 0;
 
-  // TODO private & getters, (setters?!), etc.:
-  // "private":
+  // assumes:
+  // 1. `build()` was already called for all dependencies
+  // 2. it won't be called more than once
+  // philosophically, this should do last preparations & ceremonies and
+  // ultimately call `recipe(...)`
+  void build(std::vector<abstract_target const *> const &resolved_deps);
+
+  // TODO getters, (setters?!), etc.:
   abstract_target *next{nullptr}; // non owned
 
+  // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-
   // "public":
+  // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+  // TODO private & getters, (setters?!), etc.:
   project const *parent_project{nullptr}; // non owned
   location const *loc;                    // non owned
   bool include_in_all;
@@ -69,6 +85,9 @@ struct BUILD_CXX_DLL_EXPORT abstract_target {
 
   std::string_view resolved_kind;
   std::string resolved_name;
+
+protected:
+  target_status status{};
 
 private:
   abstract_target(abstract_target const &) = delete;

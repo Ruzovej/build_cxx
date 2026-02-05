@@ -19,8 +19,6 @@
 
 #pragma once
 
-#include <unordered_set>
-
 #include "build_cxx/common/file_target.hxx"
 #include "build_cxx/test_helpers/built_targets_t.hxx"
 
@@ -31,36 +29,37 @@ struct mock_file_target : common::file_target {
 
   built_targets_t *built_targets{nullptr};
 
-  void touch(modification_time_t const new_time) {
-    simulated_mod_time = new_time;
+  void set_read_only(bool const aRead_only) {
+    // force 2 lines
+    simulated_read_only = aRead_only;
   }
 
-  void touch_inc(modification_time_t const inc_time = 1) {
-    simulated_mod_time += inc_time;
+  void set_fs_proxy(common::fs_proxy *aFs) {
+    // force 2 lines
+    fs = aFs;
   }
 
-  void set_exists(bool const exists) { simulated_existence = exists; }
+  void recipe(std::vector<common::abstract_target const *> const &resolved_deps)
+      override {
+    static_cast<void>(resolved_deps);
 
-  void set_read_only(bool const read_only) { simulated_read_only = read_only; }
-
-  [[nodiscard]] modification_time_t last_modification_time() const override {
-    if (!simulated_existence) {
-      return std::numeric_limits<modification_time_t>::min();
+    if (!simulated_read_only) {
+      if (built_targets) {
+        built_targets->emplace(this);
+      }
+      fs->touch(resolved_path);
     }
-
-    return simulated_mod_time;
   }
 
-  void recipe(std::vector<common::abstract_target const *> const
-                  & /*resolved_deps*/) override {
-    if (!simulated_read_only && built_targets) {
-      built_targets->emplace(this);
+  void update_status(common::target_status const newest_dep_status) override {
+    if (simulated_read_only) {
+      status.merge_with(newest_dep_status);
+    } else {
+      file_target::update_status(newest_dep_status);
     }
   }
 
 protected:
-  modification_time_t simulated_mod_time{0};
-  bool simulated_existence{true};
   bool simulated_read_only{false};
 };
 

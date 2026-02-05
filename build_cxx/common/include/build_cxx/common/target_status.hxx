@@ -19,25 +19,36 @@
 
 #pragma once
 
-#include <string_view>
+#include <variant>
 
-#include "build_cxx/common/abstract_target.hxx"
 #include "build_cxx/common/macros.h"
 
 namespace build_cxx::common {
 
-struct BUILD_CXX_DLL_EXPORT phony_target : abstract_target {
-  using abstract_target::abstract_target;
+struct BUILD_CXX_DLL_EXPORT target_status {
+  struct needs_update_t {};
+  using file_mod_time_t = long long;
 
-  static std::string resolve_name(std::string_view const project_name,
-                                  std::string_view const target_name);
+  static needs_update_t constexpr needs_update{};
 
-  static std::string_view constexpr kind{"phony"};
+  using status_t =
+      std::variant<std::monostate, needs_update_t, file_mod_time_t>;
 
-  void resolve_own_traits() override final;
+  constexpr target_status() = default;
+  constexpr target_status(needs_update_t) : status{needs_update} {}
+  constexpr explicit target_status(file_mod_time_t const mod_time)
+      : status{mod_time} {}
 
-  void initialize_status() override;
-  void update_status(target_status const newest_dep_status) override;
+  void merge_with(target_status const rhs);
+
+  [[nodiscard]] bool certainly_needs_update() const;
+
+  [[nodiscard]] bool needs_update_compared_to(target_status const other) const;
+
+private:
+  void require_initialized() const;
+
+  status_t status;
 };
 
 } // namespace build_cxx::common

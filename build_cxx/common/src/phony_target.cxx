@@ -19,16 +19,9 @@
 
 #include "build_cxx/common/phony_target.hxx"
 
-#include <limits>
-
 #include "build_cxx/common/project.hxx"
 
 namespace build_cxx::common {
-
-abstract_target::modification_time_t
-phony_target::last_modification_time() const {
-  return std::numeric_limits<modification_time_t>::min();
-}
 
 std::string phony_target::resolve_name(std::string_view const project_name,
                                        std::string_view const target_name) {
@@ -38,6 +31,13 @@ std::string phony_target::resolve_name(std::string_view const project_name,
 void phony_target::resolve_own_traits() {
   resolved_kind = kind;
   resolved_name = resolve_name(parent_project->name, name);
+}
+
+void phony_target::initialize_status() { status = target_status::needs_update; }
+
+void phony_target::update_status(target_status const newest_dep_status) {
+  // this kind of target is always out of date -> nothing to do ...
+  static_cast<void>(newest_dep_status);
 }
 
 } // namespace build_cxx::common

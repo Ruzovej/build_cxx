@@ -20,18 +20,16 @@
 #pragma once
 
 #include <filesystem>
-#include <limits>
 #include <string_view>
 
 #include "build_cxx/common/abstract_target.hxx"
+#include "build_cxx/common/fs_proxy.hxx"
 #include "build_cxx/common/macros.h"
 
 namespace build_cxx::common {
 
 struct BUILD_CXX_DLL_EXPORT file_target : abstract_target {
   using abstract_target::abstract_target;
-
-  [[nodiscard]] modification_time_t last_modification_time() const override;
 
   static std::filesystem::path
   resolve_path(std::string_view const source_filename,
@@ -41,27 +39,29 @@ struct BUILD_CXX_DLL_EXPORT file_target : abstract_target {
 
   void resolve_own_traits() override final;
 
+  void initialize_status() override;
+  void update_status(target_status const newest_dep_status) override;
+
+  std::filesystem::path const &get_resolved_path() const {
+    return resolved_path;
+  }
+
 protected:
   std::filesystem::path resolved_path;
 
-private:
-  file_target(file_target const &) = delete;
-  file_target &operator=(file_target const &) = delete;
-  file_target(file_target &&) = delete;
-  file_target &operator=(file_target &&) = delete;
+  fs_proxy *fs{fs_proxy::default_impl()};
 };
 
 struct BUILD_CXX_DLL_EXPORT read_only_file_target : file_target {
   using file_target::file_target;
 
-  [[nodiscard]] modification_time_t last_modification_time() const override;
-
   void
-  recipe(std::vector<abstract_target const *> const &resolved_deps) override;
+  recipe(std::vector<abstract_target const *> const &resolved_deps) override {
+    // read-only -> nothing to do ...
+    static_cast<void>(resolved_deps);
+  }
 
-protected:
-  modification_time_t highest_mod_time{
-      std::numeric_limits<modification_time_t>::min()};
+  void update_status(target_status const newest_dep_status) override;
 };
 
 } // namespace build_cxx::common

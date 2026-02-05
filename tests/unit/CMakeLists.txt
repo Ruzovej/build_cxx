@@ -13,14 +13,21 @@ FetchContent_MakeAvailable(doctest)
 
 file(
     GLOB_RECURSE
+        BUILD_CXX_UNIT_TEST_CASES
+            CONFIGURE_DEPENDS
+            "${CMAKE_CURRENT_LIST_DIR}/cases/*.test.cxx"
+)
+file(
+    GLOB_RECURSE
         BUILD_CXX_UNIT_TEST_SOURCES
             CONFIGURE_DEPENDS
-            "${CMAKE_CURRENT_LIST_DIR}/*.test.cxx"
+            "${CMAKE_CURRENT_LIST_DIR}/src/*.cxx"
 )
 
 add_executable(
     build_cxx_unit_tests
         "${CMAKE_CURRENT_LIST_DIR}/doctest_main.cxx"
+        ${BUILD_CXX_UNIT_TEST_CASES}
         ${BUILD_CXX_UNIT_TEST_SOURCES}
 )
 target_include_directories(
