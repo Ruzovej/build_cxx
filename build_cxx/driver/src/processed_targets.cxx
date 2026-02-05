@@ -183,6 +183,7 @@ void processed_targets::build_targets_impl(
 
     auto &tgt_resolved_deps{target_resolved_deps.at(tgt)};
 
+    // TODO get rid of this `const_cast` ...:
     const_cast<common::abstract_target *>(tgt)->build(tgt_resolved_deps.deps);
 
     built_targets.emplace(tgt);
