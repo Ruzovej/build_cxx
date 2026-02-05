@@ -19,10 +19,6 @@
 
 #include "build_cxx/driver/processed_targets.hxx"
 
-#include <algorithm>
-#include <filesystem>
-#include <iostream>
-#include <string_view>
 #include <utility>
 
 #include <build_cxx/common/file_target.hxx>
@@ -183,8 +179,14 @@ void processed_targets::build_targets_impl(
 
     auto &tgt_resolved_deps{target_resolved_deps.at(tgt)};
 
-    // TODO get rid of this `const_cast` ...:
-    const_cast<common::abstract_target *>(tgt)->build(tgt_resolved_deps.deps);
+    if constexpr (false) {
+      // TODO get rid of this `const_cast` ...:
+      const_cast<common::abstract_target *>(tgt)->build(tgt_resolved_deps.deps);
+    } else {
+      // but this way?!
+      targets_by_resolved_name.at(tgt->resolved_name)
+          ->build(tgt_resolved_deps.deps);
+    }
 
     built_targets.emplace(tgt);
 
