@@ -106,13 +106,13 @@ TEST_CASE("driver::processed_targets") {
 
         REQUIRE(built_targets.empty());
         REQUIRE_NOTHROW(driver_pt.build_target(pt_1, false));
+        REQUIRE_EQ(built_targets.count(pt_1), 1);
         REQUIRE_EQ(built_targets.size(), 1);
-        REQUIRE_EQ(*built_targets.begin(), pt_1);
 
         built_targets.clear();
         REQUIRE_NOTHROW(driver_pt.build_target(pt_2, false));
+        REQUIRE_EQ(built_targets.count(pt_2), 1);
         REQUIRE_EQ(built_targets.size(), 1);
-        REQUIRE_EQ(*built_targets.begin(), pt_2);
       }
 
       SUBCASE("phony target with one cross-project dependency") {
@@ -138,8 +138,8 @@ TEST_CASE("driver::processed_targets") {
         SUBCASE("build them separately") {
           // without deps
           REQUIRE_NOTHROW(driver_pt.build_target(pt_1, false));
+          REQUIRE_EQ(built_targets.count(pt_1), 1);
           REQUIRE_EQ(built_targets.size(), 1);
-          REQUIRE_EQ(*built_targets.begin(), pt_1);
 
           // internal set will contain both ptrs, but this one is cleared in
           // order to have easier checks below
@@ -147,20 +147,23 @@ TEST_CASE("driver::processed_targets") {
 
           // builds even its dependency
           REQUIRE_NOTHROW(driver_pt.build_target(pt_2, false));
-          REQUIRE_EQ(built_targets.size(), 1);
           REQUIRE_EQ(*built_targets.begin(), pt_2);
+          REQUIRE_EQ(built_targets.size(), 1);
 
           // ...
           built_targets.clear();
 
           // ...
           REQUIRE_NOTHROW(driver_pt.build_target(pt_3, false));
+          REQUIRE_EQ(built_targets.count(pt_3), 1);
           REQUIRE_EQ(built_targets.size(), 1);
-          REQUIRE_EQ(*built_targets.begin(), pt_3);
         }
 
         SUBCASE("build them together") {
           REQUIRE_NOTHROW(driver_pt.build_all_targets(false));
+          REQUIRE_EQ(built_targets.count(pt_1), 1);
+          REQUIRE_EQ(built_targets.count(pt_2), 1);
+          REQUIRE_EQ(built_targets.count(pt_3), 1);
           REQUIRE_EQ(built_targets.size(), 3);
         }
       }
@@ -168,11 +171,6 @@ TEST_CASE("driver::processed_targets") {
   }
 
   SUBCASE("more nontrivial dependencies") {
-    // TODO
-    // - review if there are enough test cases ~= covered scenarios
-    // - after asserting that no. of built targets is N, check all specific ones
-    // are present in the set
-
     SUBCASE("file targets only") {
       SUBCASE("chain of 3 files, first 2 read-only") {
         auto *const f1{test_project1.add_mock_file_target(
@@ -210,6 +208,7 @@ TEST_CASE("driver::processed_targets") {
           fake_fs.touch(f1->get_resolved_path());
 
           REQUIRE_NOTHROW(driver_pt.build_all_targets(false));
+          REQUIRE_EQ(built_targets.count(f3), 1);
           REQUIRE_EQ(built_targets.size(), 1);
         }
 
@@ -221,6 +220,7 @@ TEST_CASE("driver::processed_targets") {
           fake_fs.touch(f2->get_resolved_path());
 
           REQUIRE_NOTHROW(driver_pt.build_all_targets(false));
+          REQUIRE_EQ(built_targets.count(f3), 1);
           REQUIRE_EQ(built_targets.size(), 1);
         }
 
@@ -230,6 +230,7 @@ TEST_CASE("driver::processed_targets") {
           fake_fs.touch(f2->get_resolved_path());
 
           REQUIRE_NOTHROW(driver_pt.build_all_targets(false));
+          REQUIRE_EQ(built_targets.count(f3), 1);
           REQUIRE_EQ(built_targets.size(), 1);
         }
 
@@ -258,6 +259,7 @@ TEST_CASE("driver::processed_targets") {
           fake_fs.clock.freeze_time(false);
 
           REQUIRE_NOTHROW(driver_pt.build_all_targets(false));
+          REQUIRE_EQ(built_targets.count(f3), 1);
           REQUIRE_EQ(built_targets.size(), 1);
         }
       }
@@ -314,6 +316,8 @@ TEST_CASE("driver::processed_targets") {
           fake_fs.touch(f3->get_resolved_path());
 
           REQUIRE_NOTHROW(driver_pt.build_all_targets(false));
+          REQUIRE_EQ(built_targets.count(f1l), 1);
+          REQUIRE_EQ(built_targets.count(f3), 1);
           REQUIRE_EQ(built_targets.size(), 2);
         }
 
@@ -329,6 +333,8 @@ TEST_CASE("driver::processed_targets") {
           fake_fs.touch(f3->get_resolved_path());
 
           REQUIRE_NOTHROW(driver_pt.build_all_targets(false));
+          REQUIRE_EQ(built_targets.count(f2l), 1);
+          REQUIRE_EQ(built_targets.count(f3), 1);
           REQUIRE_EQ(built_targets.size(), 2);
         }
 
@@ -344,6 +350,7 @@ TEST_CASE("driver::processed_targets") {
           fake_fs.touch(f1l->get_resolved_path());
 
           REQUIRE_NOTHROW(driver_pt.build_all_targets(false));
+          REQUIRE_EQ(built_targets.count(f3), 1);
           REQUIRE_EQ(built_targets.size(), 1);
         }
 
@@ -359,6 +366,7 @@ TEST_CASE("driver::processed_targets") {
           fake_fs.touch(f2l->get_resolved_path());
 
           REQUIRE_NOTHROW(driver_pt.build_all_targets(false));
+          REQUIRE_EQ(built_targets.count(f3), 1);
           REQUIRE_EQ(built_targets.size(), 1);
         }
 
@@ -372,6 +380,7 @@ TEST_CASE("driver::processed_targets") {
           fake_fs.touch(f1l->get_resolved_path());
 
           REQUIRE_NOTHROW(driver_pt.build_all_targets(false));
+          REQUIRE_EQ(built_targets.count(f3), 1);
           REQUIRE_EQ(built_targets.size(), 1);
         }
 
@@ -381,6 +390,9 @@ TEST_CASE("driver::processed_targets") {
           fake_fs.touch(f2s->get_resolved_path());
 
           REQUIRE_NOTHROW(driver_pt.build_all_targets(false));
+          REQUIRE_EQ(built_targets.count(f1l), 1);
+          REQUIRE_EQ(built_targets.count(f2l), 1);
+          REQUIRE_EQ(built_targets.count(f3), 1);
           REQUIRE_EQ(built_targets.size(), 3);
         }
 
@@ -417,6 +429,7 @@ TEST_CASE("driver::processed_targets") {
           fake_fs.clock.freeze_time(false);
 
           REQUIRE_NOTHROW(driver_pt.build_all_targets(false));
+          REQUIRE_EQ(built_targets.count(f3), 1);
           REQUIRE_EQ(built_targets.size(), 1);
         }
 
@@ -433,6 +446,8 @@ TEST_CASE("driver::processed_targets") {
           fake_fs.clock.freeze_time(false);
 
           REQUIRE_NOTHROW(driver_pt.build_all_targets(false));
+          REQUIRE_EQ(built_targets.count(f2l), 1);
+          REQUIRE_EQ(built_targets.count(f3), 1);
           REQUIRE_EQ(built_targets.size(), 2);
         }
       }
