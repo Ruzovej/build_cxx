@@ -98,6 +98,7 @@ bool processed_targets::resolve_deps(common::abstract_target const *const at) {
 
             if (iter != targets_by_resolved_name.cend()) {
               deps.emplace_back(iter->second);
+              target_resolved_deps[iter->second].dep_of.emplace_back(at);
               return true;
             }
             return false;
@@ -125,7 +126,6 @@ bool processed_targets::resolve_deps(common::abstract_target const *const at) {
     --unresolved;
   }
 
-  iter->second.resolved = all_deps_resolved;
   iter->second.deps = std::move(deps);
 
   return all_deps_resolved;
@@ -133,8 +133,9 @@ bool processed_targets::resolve_deps(common::abstract_target const *const at) {
 
 void processed_targets::build_target(common::abstract_target *const tgt,
                                      bool const verbose) {
+  std::vector<common::abstract_target const *> tgts{tgt};
   std::string indent{};
-  build_target_impl(tgt, indent, verbose);
+  build_targets_impl(tgts, indent, verbose);
 }
 
 void processed_targets::build_all_targets(bool const verbose) {
@@ -145,52 +146,69 @@ void processed_targets::build_all_targets(bool const verbose) {
   }
 }
 
-void processed_targets::build_target_impl(common::abstract_target *const tgt,
-                                          std::string &indent,
-                                          bool const verbose) {
-  if (built_targets.find(tgt) != built_targets.cend()) {
-    return;
-  } else if (target_resolved_deps.find(tgt) == target_resolved_deps.cend()) {
-    throw std::runtime_error{
-        "Internal error: trying to build unknown target '" +
-        std::string{tgt->name} + "'"};
-  } else if (!target_resolved_deps.at(tgt).resolved) {
-    throw std::runtime_error{"Internal error: trying to build target '" +
-                             std::string{tgt->name} +
-                             "' with unresolved dependencies"};
+void processed_targets::build_targets_impl(
+    std::vector<common::abstract_target const *> &tgts, std::string &indent,
+    bool const verbose) {
+  std::unordered_set<common::abstract_target const *> unsatisfied_deps;
+  std::unordered_set<common::abstract_target const *> satisfied_deps;
+
+  while (!tgts.empty()) {
+    auto *const tgt{tgts.back()};
+    tgts.pop_back();
+
+    if (built_targets.count(tgt) == 1) {
+      continue;
+    }
+
+    auto const &resolved_deps{target_resolved_deps.at(tgt)};
+
+    if (resolved_deps.already_built == resolved_deps.deps.size()) {
+      satisfied_deps.emplace(tgt);
+    } else {
+      unsatisfied_deps.emplace(tgt);
+    }
+
+    for (auto const dep : resolved_deps.deps) {
+      if ((unsatisfied_deps.count(dep) == 0) &&
+          (satisfied_deps.count(dep) == 0)) {
+        tgts.emplace_back(dep);
+      }
+    }
   }
 
-  if (verbose) {
-    std::cout << indent << "Building target '" << tgt->resolved_name << "':\n";
-    indent += '\t';
+  while (!satisfied_deps.empty()) {
+    auto it{satisfied_deps.begin()};
+    auto *const tgt{*it};
+    satisfied_deps.erase(it);
+
+    auto &tgt_resolved_deps{target_resolved_deps.at(tgt)};
+
+    const_cast<common::abstract_target *>(tgt)->build(tgt_resolved_deps.deps);
+
+    built_targets.emplace(tgt);
+
+    for (auto *const consumer : tgt_resolved_deps.dep_of) {
+      auto &consumer_resolved_deps{target_resolved_deps.at(consumer)};
+
+      ++consumer_resolved_deps.already_built;
+
+      auto const iter{unsatisfied_deps.find(consumer)};
+
+      if (iter == unsatisfied_deps.cend()) {
+        continue;
+      }
+
+      if (consumer_resolved_deps.already_built ==
+          consumer_resolved_deps.deps.size()) {
+        unsatisfied_deps.erase(iter);
+        satisfied_deps.emplace(consumer);
+      }
+    }
   }
 
-  // TODO remove later ...
-  // if (tgt->name == "build/src/CCC.cxx.o") {
-  //  [[maybe_unused]] volatile bool a = false;
-  //  a = true;
-  //}
-
-  auto const &deps{target_resolved_deps.at(tgt).deps};
-
-  for (auto const dep : deps) {
-    // TODO get rid of this ugly `const_cast` ...
-    build_target_impl(const_cast<common::abstract_target *>(dep), indent,
-                      verbose);
+  if (!unsatisfied_deps.empty()) {
+    throw std::runtime_error{"Build order of targets contains a cycle"};
   }
-
-  if (verbose) {
-    indent.pop_back();
-    std::cout << indent << "-> ";
-  }
-
-  tgt->build(deps);
-
-  if (verbose) {
-    std::cout << '\n';
-  }
-
-  built_targets.emplace(tgt);
 }
 
 } // namespace build_cxx::driver

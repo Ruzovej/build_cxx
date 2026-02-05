@@ -77,25 +77,35 @@ struct BUILD_CXX_DLL_EXPORT processed_targets {
     return target_resolved_deps;
   }
 
+  // TODO - methods for detecting cycles, etc.:
+  // [[nodiscard]] bool
+  // build_tree_valid_for(const common::abstract_target *const root) const;
+  //
+  // [[nodiscard]] bool whole_build_tree_valid() const;
+
   // TODO
   // - parallelize
-  // - accept more targets at once
+  // - accept more targets at once: via `vector`, or even better -
+  //   `unordered_set`
   // - switch for turning on/off logging to `stdout`, etc.
   void build_target(common::abstract_target *const tgt, bool const verbose);
 
   void build_all_targets(bool const verbose);
 
 private:
-  void build_target_impl(common::abstract_target *const tgt,
-                         std::string &indent, bool const verbose);
+  // TODO `unordered_set` instead of `vector` ...:
+  void build_targets_impl(std::vector<common::abstract_target const *> &tgts,
+                          std::string &indent, bool const verbose);
 
   // not owning any pointer(s):
   std::unordered_set<common::abstract_target const *> built_targets;
 
   struct resolved_deps {
     bool resolved{false};
+    long long already_built{0};
     // not owning any pointer(s):
     std::vector<common::abstract_target const *> deps;
+    std::vector<common::abstract_target const *> dep_of;
   };
 
   // not owning any pointer(s):

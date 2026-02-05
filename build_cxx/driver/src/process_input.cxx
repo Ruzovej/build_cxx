@@ -45,6 +45,7 @@ void process_input(int const n_jobs, std::vector<char const *> const &targets,
     dl_handles.emplace_back(input_file);
   }
 
+  // TODO "hide" this & related checks in relevant "processed_targets"s method
   std::unordered_map<std::string_view, std::string_view> processed_projects;
 
   processed_targets pt{};
