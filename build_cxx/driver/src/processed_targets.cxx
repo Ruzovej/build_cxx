@@ -25,6 +25,7 @@
 #include <build_cxx/common/phony_target.hxx>
 
 #include "build_cxx/driver/dlopen_scoped.hxx"
+#include "build_cxx/driver/scheduler.hxx"
 
 namespace build_cxx::driver {
 
@@ -48,6 +49,7 @@ void processed_targets::process_project(common::project const *const proj) {
   }
 }
 
+// TODO split into multiple methods:
 bool processed_targets::resolve_deps(common::abstract_target const *const at) {
   if (at == nullptr) {
     if (unresolved != 0) {
@@ -142,6 +144,7 @@ void processed_targets::build_all_targets(bool const verbose) {
   }
 }
 
+// TODO split into multiple methods:
 void processed_targets::build_targets_impl(
     std::vector<common::abstract_target const *> &tgts, std::string &indent,
     bool const verbose) {
@@ -172,26 +175,42 @@ void processed_targets::build_targets_impl(
     }
   }
 
-  while (!satisfied_deps.empty()) {
-    auto it{satisfied_deps.begin()};
-    auto *const tgt{*it};
-    satisfied_deps.erase(it);
+  // TODO number of jobs from parameter
+  scheduler sched{12};
 
-    auto &tgt_resolved_deps{target_resolved_deps.at(tgt)};
+  do {
+    while (!satisfied_deps.empty()) {
+      auto it{satisfied_deps.begin()};
+      auto *const tgt{*it};
+      satisfied_deps.erase(it);
 
-    if constexpr (false) {
-      // TODO get rid of this `const_cast` ...:
-        const_cast<common::abstract_target *>(tgt)->build(
-            tgt_resolved_deps.deps);
-    } else {
-      // but this way?!
-      targets_by_resolved_name.at(tgt->resolved_name)
-          ->build(tgt_resolved_deps.deps);
+      auto const &tgt_resolved_deps{target_resolved_deps.at(tgt)};
+
+      if constexpr (false) {
+        // TODO get rid of this `const_cast` ...:
+        sched.schedule_build({const_cast<common::abstract_target *>(tgt),
+                              &tgt_resolved_deps.deps});
+      } else {
+        // but this way?!
+        sched.schedule_build(
+            {const_cast<common::abstract_target *>(
+                 targets_by_resolved_name.at(tgt->resolved_name)),
+             &tgt_resolved_deps.deps});
+      }
     }
 
-    built_targets.emplace(tgt);
+    auto const *const built_tgt{sched.get_built_target(true)};
 
-    for (auto *const consumer : tgt_resolved_deps.dep_of) {
+    // TODO rework this so this nullptr check isn't needed here:
+    if (built_tgt == nullptr) {
+      continue;
+    }
+
+    built_targets.emplace(built_tgt);
+
+    auto const &built_tgt_resolved_deps{target_resolved_deps.at(built_tgt)};
+
+    for (auto *const consumer : built_tgt_resolved_deps.dep_of) {
       auto &consumer_resolved_deps{target_resolved_deps.at(consumer)};
 
       ++consumer_resolved_deps.already_built;
@@ -208,7 +227,7 @@ void processed_targets::build_targets_impl(
         satisfied_deps.emplace(consumer);
       }
     }
-  }
+  } while ((sched.num_handled_targets() != 0) || (!satisfied_deps.empty()));
 
   if (!unsatisfied_deps.empty()) {
     throw std::runtime_error{"Build order of targets contains a cycle"};
