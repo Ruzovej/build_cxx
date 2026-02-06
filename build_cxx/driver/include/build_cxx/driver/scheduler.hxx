@@ -44,7 +44,17 @@ private:
   };
 
 public:
+  [[nodiscard]] int num_workers() const {
+    // force 2 lines
+    return n_workers;
+  }
+
   void utilize_n_workers(int const n);
+
+  [[nodiscard]] int num_utilized_workers() const {
+    // force 2 lines
+    return n_utilized_workers;
+  }
 
   void schedule_build(build_request const &task);
 

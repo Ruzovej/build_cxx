@@ -18,8 +18,8 @@
 */
 
 #include "build_cxx/driver/scheduler.hxx"
-#include <atomic>
-#include <mutex>
+
+#include <stdexcept>
 
 namespace build_cxx::driver {
 
@@ -36,6 +36,8 @@ scheduler::~scheduler() noexcept {
 void scheduler::utilize_n_workers(int const n) {
   if ((n < 1) || (n_workers < n)) {
     throw std::runtime_error{"Invalid number of utilized workers"};
+  } else if (n == n_utilized_workers) {
+    return;
   }
 
   {
@@ -87,20 +89,32 @@ void scheduler::spawn_worker_threads() {
   for (int idx{0}; idx < n_workers; ++idx) {
     workers.emplace_back([idx, this]() {
       while (true) {
+        bool wake_other{false};
         build_request task;
         {
           std::unique_lock lck{mtx_todo};
           cv_todo.wait(lck, [idx, this]() {
             // force 2 lines
-            return ((idx < n_utilized_workers) && !todo.empty()) || !running;
+            return !todo.empty() || !running;
           });
 
           if (!running) {
             return;
           }
 
-          task = todo.front();
-          todo.pop();
+          if (idx < n_utilized_workers) {
+            task = todo.front();
+            todo.pop();
+          } else {
+            wake_other = true;
+          }
+        }
+
+        if (wake_other) {
+          cv_todo.notify_one();
+          // TODO better way to prevent "frequent/quick spinning":
+          std::this_thread::yield();
+          continue;
         }
 
         task.tgt->build(*task.deps);
