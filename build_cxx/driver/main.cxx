@@ -19,6 +19,7 @@
 
 #include <exception>
 #include <iostream>
+#include <thread>
 #include <vector>
 
 #include "build_cxx/driver/process_input.hxx"
@@ -45,7 +46,8 @@ int main(int argc, char *argv[]) {
   try {
     std::vector<char const *> targets;
     std::vector<char const *> input_files;
-    int n_jobs{1};
+    auto n_jobs{
+        std::max(1, static_cast<int>(std::thread::hardware_concurrency()))};
 
     // skip executable name ...
     static_cast<void>(consume_arg(true, "missing executable filename"));

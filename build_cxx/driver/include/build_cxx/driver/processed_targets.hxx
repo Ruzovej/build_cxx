@@ -29,13 +29,22 @@
 #include <build_cxx/common/macros.h>
 #include <build_cxx/common/project.hxx>
 
+#include "build_cxx/driver/scheduler.hxx"
+
 namespace build_cxx::driver {
 
 // TODO should be BUILD_CXX_DLL_HIDE, but then unit tests won't compile ...
 struct BUILD_CXX_DLL_EXPORT processed_targets {
   // "loader" should ensure that projects are unique, and if same project is
   // required/loaded twice, it has exactly same version
-  processed_targets() = default;
+  explicit processed_targets(scheduler *const aSched) : sched{aSched} {
+    // force 2 lines
+  }
+
+  void limit_to_n_workers(int const n) {
+    // force 2 lines
+    sched->utilize_n_workers(n);
+  }
 
   // TODO hide as many as possible behind getters, setters, etc.:
 
@@ -113,6 +122,8 @@ private:
       target_resolved_deps;
 
   long long unresolved{0};
+
+  scheduler *sched{nullptr};
 
 private:
   processed_targets(processed_targets const &) = delete;

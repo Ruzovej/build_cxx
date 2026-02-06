@@ -33,6 +33,7 @@
 
 #include "build_cxx/driver/dlopen_scoped.hxx"
 #include "build_cxx/driver/processed_targets.hxx"
+#include "build_cxx/driver/scheduler.hxx"
 
 namespace build_cxx::driver {
 
@@ -48,7 +49,8 @@ void process_input(int const n_jobs, std::vector<char const *> const &targets,
   // TODO "hide" this & related checks in relevant "processed_targets"s method
   std::unordered_map<std::string_view, std::string_view> processed_projects;
 
-  processed_targets pt{};
+  scheduler sched{n_jobs};
+  processed_targets pt{&sched};
 
   bool all_resolved{false};
 

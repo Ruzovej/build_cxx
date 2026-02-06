@@ -23,6 +23,7 @@
 
 #include "build_cxx/client/core.hxx"
 #include "build_cxx/common/location.hxx"
+#include "build_cxx/driver/scheduler.hxx"
 #include "build_cxx/test_helpers/mock_file_target.hxx"
 #include "build_cxx/test_helpers/mock_fs.hxx"
 #include "build_cxx/test_helpers/mock_phony_target.hxx"
@@ -30,6 +31,9 @@
 
 namespace build_cxx {
 namespace {
+
+// file scope ... so it won't get reinitialized for each test case
+driver::scheduler sched{12};
 
 TEST_CASE("driver::processed_targets") {
   static std::string_view constexpr fake_root_file1{
@@ -40,7 +44,7 @@ TEST_CASE("driver::processed_targets") {
   test_helpers::mock_project test_project1{&built_targets, &fake_fs, "dpttp1",
                                            "0.1.0", fake_root_file1};
 
-  driver::processed_targets driver_pt{};
+  driver::processed_targets driver_pt{&sched};
 
   SUBCASE("basics") {
     SUBCASE("empty project") {

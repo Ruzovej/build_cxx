@@ -23,14 +23,31 @@
 
 namespace build_cxx::driver {
 
-scheduler::scheduler(int const aN_workers) noexcept : n_workers{aN_workers} {
+scheduler::scheduler(int const aN_workers) noexcept
+    : n_workers{aN_workers}, n_utilized_workers{aN_workers} {
   spawn_worker_threads();
 }
 
-scheduler::~scheduler() noexcept { stop_worker_threads(); }
+scheduler::~scheduler() noexcept {
+  // force 2 lines
+  stop_worker_threads();
+}
+
+void scheduler::utilize_n_workers(int const n) {
+  if ((n < 1) || (n_workers < n)) {
+    throw std::runtime_error{"Invalid number of utilized workers"};
+  }
+
+  {
+    std::lock_guard lck{mtx_todo};
+    n_utilized_workers = n;
+  }
+
+  cv_todo.notify_all();
+}
 
 void scheduler::schedule_build(scheduler::build_request const &task) {
-  ++in_progress;
+  ++n_handled_targets;
   {
     std::lock_guard lck{mtx_todo};
     todo.push(task);
@@ -38,13 +55,9 @@ void scheduler::schedule_build(scheduler::build_request const &task) {
   cv_todo.notify_one();
 }
 
-[[nodiscard]] long long scheduler::num_handled_targets() const {
-  return in_progress;
-}
-
-[[nodiscard]] common::abstract_target const *
+common::abstract_target const *
 scheduler::get_built_target(bool const blocking) {
-  if (in_progress == 0) {
+  if (n_handled_targets == 0) {
     // TODO maybe rather throw exception, so user learns not to call it in this
     // case - which can be checked, etc.:
     return nullptr;
@@ -53,13 +66,16 @@ scheduler::get_built_target(bool const blocking) {
   std::unique_lock lck{mtx_done};
 
   if (blocking && done.empty()) {
-    cv_done.wait(lck, [this]() { return !done.empty() || !running; });
+    cv_done.wait(lck, [this]() {
+      // force 2 lines
+      return !done.empty() || !running;
+    });
   }
 
   if (!done.empty()) {
     auto *const res{done.front()};
     done.pop();
-    --in_progress;
+    --n_handled_targets;
     return res;
   }
   return nullptr;
@@ -69,12 +85,15 @@ void scheduler::spawn_worker_threads() {
   workers.reserve(n_workers);
 
   for (int idx{0}; idx < n_workers; ++idx) {
-    workers.emplace_back([&]() {
+    workers.emplace_back([idx, this]() {
       while (true) {
         build_request task;
         {
           std::unique_lock lck{mtx_todo};
-          cv_todo.wait(lck, [this]() { return !todo.empty() || !running; });
+          cv_todo.wait(lck, [idx, this]() {
+            // force 2 lines
+            return ((idx < n_utilized_workers) && !todo.empty()) || !running;
+          });
 
           if (!running) {
             return;

@@ -19,7 +19,6 @@
 
 #pragma once
 
-#include <atomic>
 #include <condition_variable>
 #include <mutex>
 #include <queue>
@@ -37,34 +36,48 @@ struct BUILD_CXX_DLL_EXPORT scheduler {
 
   ~scheduler() noexcept;
 
+  // TODO crusty - rework this "private-public dance":
+private:
   struct build_request {
     common::abstract_target *tgt{nullptr};
     std::vector<common::abstract_target const *> const *deps{nullptr};
   };
 
+public:
+  void utilize_n_workers(int const n);
+
   void schedule_build(build_request const &task);
 
-  [[nodiscard]] long long num_handled_targets() const;
+  [[nodiscard]] long long num_handled_targets() const {
+    return n_handled_targets;
+  }
 
   [[nodiscard]] common::abstract_target const *
   get_built_target(bool const blocking = true);
 
 private:
   int n_workers;
-  long long in_progress{0};
+  int n_utilized_workers;
+  long long n_handled_targets{0};
   bool running{true};
   std::vector<std::thread> workers;
 
-  mutable std::mutex mtx_todo;
+  std::mutex mtx_todo;
   std::condition_variable cv_todo;
   std::queue<build_request> todo;
 
-  mutable std::mutex mtx_done;
+  std::mutex mtx_done;
   std::condition_variable cv_done;
   std::queue<common::abstract_target const *> done;
 
   void spawn_worker_threads();
   void stop_worker_threads();
+
+private:
+  scheduler(const scheduler &) = delete;
+  scheduler &operator=(const scheduler &) = delete;
+  scheduler(scheduler &&) = delete;
+  scheduler &operator=(scheduler &&) = delete;
 };
 
 } // namespace build_cxx::driver

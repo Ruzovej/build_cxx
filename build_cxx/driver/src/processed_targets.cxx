@@ -175,9 +175,6 @@ void processed_targets::build_targets_impl(
     }
   }
 
-  // TODO number of jobs from parameter
-  scheduler sched{12};
-
   do {
     while (!satisfied_deps.empty()) {
       auto it{satisfied_deps.begin()};
@@ -188,18 +185,16 @@ void processed_targets::build_targets_impl(
 
       if constexpr (false) {
         // TODO get rid of this `const_cast` ...:
-        sched.schedule_build({const_cast<common::abstract_target *>(tgt),
-                              &tgt_resolved_deps.deps});
+        sched->schedule_build({const_cast<common::abstract_target *>(tgt),
+                               &tgt_resolved_deps.deps});
       } else {
         // but this way?!
-        sched.schedule_build(
-            {const_cast<common::abstract_target *>(
-                 targets_by_resolved_name.at(tgt->resolved_name)),
-             &tgt_resolved_deps.deps});
+        auto *mtgt{targets_by_resolved_name.at(tgt->resolved_name)};
+        sched->schedule_build({mtgt, &tgt_resolved_deps.deps});
       }
     }
 
-    auto const *const built_tgt{sched.get_built_target(true)};
+    auto const *const built_tgt{sched->get_built_target(true)};
 
     // TODO rework this so this nullptr check isn't needed here:
     if (built_tgt == nullptr) {
@@ -227,7 +222,7 @@ void processed_targets::build_targets_impl(
         satisfied_deps.emplace(consumer);
       }
     }
-  } while ((sched.num_handled_targets() != 0) || (!satisfied_deps.empty()));
+  } while ((sched->num_handled_targets() != 0) || (!satisfied_deps.empty()));
 
   if (!unsatisfied_deps.empty()) {
     throw std::runtime_error{"Build order of targets contains a cycle"};
