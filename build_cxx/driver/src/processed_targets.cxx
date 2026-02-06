@@ -181,7 +181,8 @@ void processed_targets::build_targets_impl(
 
     if constexpr (false) {
       // TODO get rid of this `const_cast` ...:
-      const_cast<common::abstract_target *>(tgt)->build(tgt_resolved_deps.deps);
+        const_cast<common::abstract_target *>(tgt)->build(
+            tgt_resolved_deps.deps);
     } else {
       // but this way?!
       targets_by_resolved_name.at(tgt->resolved_name)
