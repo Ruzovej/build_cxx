@@ -32,7 +32,7 @@ struct mock_phony_target : common::phony_target {
   built_targets_t *built_targets{nullptr};
 
   void recipe(std::vector<common::abstract_target const *> const &resolved_deps)
-      override {
+      const override {
     static_cast<void>(resolved_deps);
 
     if (built_targets) {

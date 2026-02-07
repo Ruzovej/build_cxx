@@ -81,7 +81,7 @@ private:
     using aBase_name::aBase_name;                                              \
                                                                                \
     void recipe(std::vector<build_cxx::common::abstract_target const *> const  \
-                    &resolved_deps) override;                                  \
+                    &resolved_deps) const override;                            \
   }
 
 #define BUILD_CXX_DEFINE_TARGET(aTarget_type_t, aTarget_var_name,              \
@@ -99,7 +99,7 @@ private:
 #define BUILD_CXX_DEFINE_TARGET_RECIPE(aDerived_name)                          \
   void aDerived_name::recipe(                                                  \
       std::vector<build_cxx::common::abstract_target const *> const            \
-          &resolved_deps)
+          &resolved_deps) const
 
 // 02
 

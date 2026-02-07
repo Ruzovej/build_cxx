@@ -60,14 +60,8 @@ int main(int argc, char *argv[]) {
         targets.emplace_back(
             consume_arg(true, "missing target name after --target/-t"));
       } else if (next_arg == "--jobs" || next_arg == "-j") {
-        auto const n_jobs_str{
-            consume_arg(true, "missing number after --jobs/-j")};
-        try {
-          n_jobs = std::stoi(std::string{n_jobs_str});
-        } catch (...) {
-          throw std::runtime_error{"Invalid number for --jobs/-j: " +
-                                   std::string{n_jobs_str}};
-        }
+        n_jobs = std::stoi(
+            std::string{consume_arg(true, "missing number after --jobs/-j")});
       } else {
         input_files.emplace_back(next_arg_cstr);
       }

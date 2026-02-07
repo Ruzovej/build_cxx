@@ -36,7 +36,7 @@ struct BUILD_CXX_DLL_EXPORT scheduler {
 
   ~scheduler() noexcept;
 
-  // TODO crusty - rework this "private-public dance":
+  // TODO rework this weird "private-public dance":
 private:
   struct build_request {
     common::abstract_target *tgt{nullptr};

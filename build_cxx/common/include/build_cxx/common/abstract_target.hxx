@@ -59,7 +59,7 @@ struct BUILD_CXX_DLL_EXPORT abstract_target {
 
   // don't call this in client code, only provide implementation
   virtual void
-  recipe(std::vector<abstract_target const *> const &resolved_deps) = 0;
+  recipe(std::vector<abstract_target const *> const &resolved_deps) const = 0;
 
   // assumes:
   // 1. `build()` was already called for all dependencies

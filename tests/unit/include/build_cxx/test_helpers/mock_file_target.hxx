@@ -40,7 +40,7 @@ struct mock_file_target : common::file_target {
   }
 
   void recipe(std::vector<common::abstract_target const *> const &resolved_deps)
-      override {
+      const override {
     static_cast<void>(resolved_deps);
 
     if (!simulated_read_only) {
