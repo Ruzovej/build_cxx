@@ -23,29 +23,13 @@
 
 namespace build_cxx::driver {
 
-scheduler::scheduler(int const aN_workers) noexcept
-    : n_workers{aN_workers}, n_utilized_workers{aN_workers} {
+scheduler::scheduler(int const aN_workers) noexcept : n_workers{aN_workers} {
   spawn_worker_threads();
 }
 
 scheduler::~scheduler() noexcept {
   // force 2 lines
   stop_worker_threads();
-}
-
-void scheduler::utilize_n_workers(int const n) {
-  if ((n < 1) || (n_workers < n)) {
-    throw std::runtime_error{"Invalid number of utilized workers"};
-  } else if (n == n_utilized_workers) {
-    return;
-  }
-
-  {
-    std::lock_guard lck{mtx_todo};
-    n_utilized_workers = n;
-  }
-
-  cv_todo.notify_all();
 }
 
 void scheduler::schedule_build(scheduler::build_request const &task) {
@@ -87,34 +71,22 @@ void scheduler::spawn_worker_threads() {
   workers.reserve(n_workers);
 
   for (int idx{0}; idx < n_workers; ++idx) {
-    workers.emplace_back([idx, this]() {
+    workers.emplace_back([&]() {
       while (true) {
-        bool wake_other{false};
         build_request task;
         {
           std::unique_lock lck{mtx_todo};
-          cv_todo.wait(lck, [idx, this]() {
+          cv_todo.wait(lck, [&]() {
             // force 2 lines
-            return !todo.empty() || !running;
+            return !running || !todo.empty();
           });
 
           if (!running) {
             return;
           }
 
-          if (idx < n_utilized_workers) {
-            task = todo.front();
-            todo.pop();
-          } else {
-            wake_other = true;
-          }
-        }
-
-        if (wake_other) {
-          cv_todo.notify_one();
-          // TODO better way to prevent "frequent/quick spinning":
-          std::this_thread::yield();
-          continue;
+          task = todo.front();
+          todo.pop();
         }
 
         task.tgt->build(*task.deps);

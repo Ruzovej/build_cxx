@@ -32,11 +32,56 @@
 namespace build_cxx {
 namespace {
 
-static int constexpr n_workers{12};
-// file scope ... so it won't get reinitialized for each test case
-driver::scheduler sched{n_workers};
+void test_impl(driver::scheduler &sched);
 
-TEST_CASE("driver::processed_targets") {
+// file scope ... so they won't get reinitialized for each test case:
+
+driver::scheduler sched_1{1};
+TEST_CASE("driver::processed_targets, 1 worker") {
+  // force 2 lines
+  test_impl(sched_1);
+}
+
+driver::scheduler sched_2{2};
+TEST_CASE("driver::processed_targets, 2 workers") {
+  // force 2 lines
+  test_impl(sched_2);
+}
+
+driver::scheduler sched_3{3};
+TEST_CASE("driver::processed_targets, 3 workers") {
+  // force 2 lines
+  test_impl(sched_3);
+}
+
+driver::scheduler sched_4{4};
+TEST_CASE("driver::processed_targets, 4 workers") {
+  // force 2 lines
+  test_impl(sched_4);
+}
+
+driver::scheduler sched_5{5};
+TEST_CASE("driver::processed_targets, 5 workers") {
+  // force 2 lines
+  test_impl(sched_5);
+}
+
+driver::scheduler sched_6{6};
+TEST_CASE("driver::processed_targets, 6 workers") {
+  // force 2 lines
+  test_impl(sched_6);
+}
+
+driver::scheduler sched_12{12};
+TEST_CASE("driver::processed_targets, 12 workers") {
+  // force 2 lines
+  test_impl(sched_12);
+}
+
+void test_impl(driver::scheduler &sched) {
+  // no pending task from prev. test case:
+  REQUIRE_EQ(sched.num_handled_targets(), 0);
+
   static std::string_view constexpr fake_root_file1{
       "/fake/dir/project1.root.cxx"};
 
@@ -46,34 +91,6 @@ TEST_CASE("driver::processed_targets") {
                                            "0.1.0", fake_root_file1};
 
   driver::processed_targets driver_pt{&sched};
-  // reset it ...:
-  driver_pt.limit_to_n_workers(n_workers);
-
-  SUBCASE("num workers") {
-    REQUIRE_THROWS(driver_pt.limit_to_n_workers(0));
-
-    REQUIRE_EQ(sched.num_workers(), n_workers);
-    REQUIRE_EQ(sched.num_utilized_workers(), n_workers);
-
-    REQUIRE_NOTHROW(driver_pt.limit_to_n_workers(1));
-
-    REQUIRE_EQ(sched.num_workers(), n_workers);
-    REQUIRE_EQ(sched.num_utilized_workers(), 1);
-
-    REQUIRE_NOTHROW(driver_pt.limit_to_n_workers(n_workers));
-
-    REQUIRE_EQ(sched.num_workers(), n_workers);
-    REQUIRE_EQ(sched.num_utilized_workers(), n_workers);
-
-    REQUIRE_THROWS(driver_pt.limit_to_n_workers(n_workers + 1));
-
-    REQUIRE_EQ(sched.num_workers(), n_workers);
-    REQUIRE_EQ(sched.num_utilized_workers(), n_workers);
-  }
-
-  // TODO figure out better way how to run those test cases with varying number
-  // of workers ... see the repetitive `SUBCASE("varying num. of workers") ...`
-  // used (copy-pasted) below:
 
   SUBCASE("basics") {
     SUBCASE("empty project") {
@@ -169,21 +186,6 @@ TEST_CASE("driver::processed_targets") {
         REQUIRE(built_targets.empty());
 
         SUBCASE("build them separately") {
-          SUBCASE("varying num. of workers") {
-            SUBCASE("1") {
-              // force 2 lines
-              driver_pt.limit_to_n_workers(1);
-            }
-            SUBCASE("2") {
-              // force 2 lines
-              driver_pt.limit_to_n_workers(2);
-            }
-            SUBCASE("max") {
-              // force 2 lines
-              driver_pt.limit_to_n_workers(n_workers);
-            }
-          }
-
           // without deps
           REQUIRE_NOTHROW(driver_pt.build_target(pt_1, false));
           REQUIRE_EQ(built_targets.count(pt_1), 1);
@@ -208,21 +210,6 @@ TEST_CASE("driver::processed_targets") {
         }
 
         SUBCASE("build them together") {
-          SUBCASE("varying num. of workers") {
-            SUBCASE("1") {
-              // force 2 lines
-              driver_pt.limit_to_n_workers(1);
-            }
-            SUBCASE("2") {
-              // force 2 lines
-              driver_pt.limit_to_n_workers(2);
-            }
-            SUBCASE("max") {
-              // force 2 lines
-              driver_pt.limit_to_n_workers(n_workers);
-            }
-          }
-
           REQUIRE_NOTHROW(driver_pt.build_all_targets(false));
           REQUIRE_EQ(built_targets.count(pt_1), 1);
           REQUIRE_EQ(built_targets.count(pt_2), 1);
@@ -253,21 +240,6 @@ TEST_CASE("driver::processed_targets") {
         REQUIRE(all_resolved);
 
         SUBCASE("all up-to date") {
-          SUBCASE("varying num. of workers") {
-            SUBCASE("1") {
-              // force 2 lines
-              driver_pt.limit_to_n_workers(1);
-            }
-            SUBCASE("2") {
-              // force 2 lines
-              driver_pt.limit_to_n_workers(2);
-            }
-            SUBCASE("max") {
-              // force 2 lines
-              driver_pt.limit_to_n_workers(n_workers);
-            }
-          }
-
           fake_fs.touch(f1->get_resolved_path());
 
           fake_fs.touch(f2->get_resolved_path());
@@ -279,21 +251,6 @@ TEST_CASE("driver::processed_targets") {
         }
 
         SUBCASE("first newest") {
-          SUBCASE("varying num. of workers") {
-            SUBCASE("1") {
-              // force 2 lines
-              driver_pt.limit_to_n_workers(1);
-            }
-            SUBCASE("2") {
-              // force 2 lines
-              driver_pt.limit_to_n_workers(2);
-            }
-            SUBCASE("max") {
-              // force 2 lines
-              driver_pt.limit_to_n_workers(n_workers);
-            }
-          }
-
           fake_fs.touch(f2->get_resolved_path());
 
           fake_fs.touch(f3->get_resolved_path());
@@ -306,21 +263,6 @@ TEST_CASE("driver::processed_targets") {
         }
 
         SUBCASE("second newest") {
-          SUBCASE("varying num. of workers") {
-            SUBCASE("1") {
-              // force 2 lines
-              driver_pt.limit_to_n_workers(1);
-            }
-            SUBCASE("2") {
-              // force 2 lines
-              driver_pt.limit_to_n_workers(2);
-            }
-            SUBCASE("max") {
-              // force 2 lines
-              driver_pt.limit_to_n_workers(n_workers);
-            }
-          }
-
           fake_fs.touch(f3->get_resolved_path());
 
           fake_fs.touch(f1->get_resolved_path());
@@ -333,21 +275,6 @@ TEST_CASE("driver::processed_targets") {
         }
 
         SUBCASE("third doesn't exist") {
-          SUBCASE("varying num. of workers") {
-            SUBCASE("1") {
-              // force 2 lines
-              driver_pt.limit_to_n_workers(1);
-            }
-            SUBCASE("2") {
-              // force 2 lines
-              driver_pt.limit_to_n_workers(2);
-            }
-            SUBCASE("max") {
-              // force 2 lines
-              driver_pt.limit_to_n_workers(n_workers);
-            }
-          }
-
           fake_fs.touch(f1->get_resolved_path());
 
           fake_fs.touch(f2->get_resolved_path());
@@ -358,21 +285,6 @@ TEST_CASE("driver::processed_targets") {
         }
 
         SUBCASE("same modification times") {
-          SUBCASE("varying num. of workers") {
-            SUBCASE("1") {
-              // force 2 lines
-              driver_pt.limit_to_n_workers(1);
-            }
-            SUBCASE("2") {
-              // force 2 lines
-              driver_pt.limit_to_n_workers(2);
-            }
-            SUBCASE("max") {
-              // force 2 lines
-              driver_pt.limit_to_n_workers(n_workers);
-            }
-          }
-
           fake_fs.clock.freeze_time(true);
 
           fake_fs.touch(f1->get_resolved_path());
@@ -388,21 +300,6 @@ TEST_CASE("driver::processed_targets") {
         }
 
         SUBCASE("third doesn't exist, otherwise same modification times") {
-          SUBCASE("varying num. of workers") {
-            SUBCASE("1") {
-              // force 2 lines
-              driver_pt.limit_to_n_workers(1);
-            }
-            SUBCASE("2") {
-              // force 2 lines
-              driver_pt.limit_to_n_workers(2);
-            }
-            SUBCASE("max") {
-              // force 2 lines
-              driver_pt.limit_to_n_workers(n_workers);
-            }
-          }
-
           fake_fs.clock.freeze_time(true);
 
           fake_fs.touch(f1->get_resolved_path());
@@ -443,21 +340,6 @@ TEST_CASE("driver::processed_targets") {
         REQUIRE(built_targets.empty());
 
         SUBCASE("all up-to date") {
-          SUBCASE("varying num. of workers") {
-            SUBCASE("1") {
-              // force 2 lines
-              driver_pt.limit_to_n_workers(1);
-            }
-            SUBCASE("2") {
-              // force 2 lines
-              driver_pt.limit_to_n_workers(2);
-            }
-            SUBCASE("max") {
-              // force 2 lines
-              driver_pt.limit_to_n_workers(n_workers);
-            }
-          }
-
           fake_fs.touch(f2s->get_resolved_path());
 
           fake_fs.touch(f1s->get_resolved_path());
@@ -473,21 +355,6 @@ TEST_CASE("driver::processed_targets") {
         }
 
         SUBCASE("first lib needs update") {
-          SUBCASE("varying num. of workers") {
-            SUBCASE("1") {
-              // force 2 lines
-              driver_pt.limit_to_n_workers(1);
-            }
-            SUBCASE("2") {
-              // force 2 lines
-              driver_pt.limit_to_n_workers(2);
-            }
-            SUBCASE("max") {
-              // force 2 lines
-              driver_pt.limit_to_n_workers(n_workers);
-            }
-          }
-
           fake_fs.touch(f2s->get_resolved_path());
 
           fake_fs.touch(f2l->get_resolved_path());
@@ -505,21 +372,6 @@ TEST_CASE("driver::processed_targets") {
         }
 
         SUBCASE("second lib needs update") {
-          SUBCASE("varying num. of workers") {
-            SUBCASE("1") {
-              // force 2 lines
-              driver_pt.limit_to_n_workers(1);
-            }
-            SUBCASE("2") {
-              // force 2 lines
-              driver_pt.limit_to_n_workers(2);
-            }
-            SUBCASE("max") {
-              // force 2 lines
-              driver_pt.limit_to_n_workers(n_workers);
-            }
-          }
-
           fake_fs.touch(f2l->get_resolved_path());
 
           fake_fs.touch(f2s->get_resolved_path());
@@ -537,21 +389,6 @@ TEST_CASE("driver::processed_targets") {
         }
 
         SUBCASE("first lib newest") {
-          SUBCASE("varying num. of workers") {
-            SUBCASE("1") {
-              // force 2 lines
-              driver_pt.limit_to_n_workers(1);
-            }
-            SUBCASE("2") {
-              // force 2 lines
-              driver_pt.limit_to_n_workers(2);
-            }
-            SUBCASE("max") {
-              // force 2 lines
-              driver_pt.limit_to_n_workers(n_workers);
-            }
-          }
-
           fake_fs.touch(f1s->get_resolved_path());
 
           fake_fs.touch(f2s->get_resolved_path());
@@ -568,21 +405,6 @@ TEST_CASE("driver::processed_targets") {
         }
 
         SUBCASE("second lib newest") {
-          SUBCASE("varying num. of workers") {
-            SUBCASE("1") {
-              // force 2 lines
-              driver_pt.limit_to_n_workers(1);
-            }
-            SUBCASE("2") {
-              // force 2 lines
-              driver_pt.limit_to_n_workers(2);
-            }
-            SUBCASE("max") {
-              // force 2 lines
-              driver_pt.limit_to_n_workers(n_workers);
-            }
-          }
-
           fake_fs.touch(f1s->get_resolved_path());
 
           fake_fs.touch(f2s->get_resolved_path());
@@ -599,21 +421,6 @@ TEST_CASE("driver::processed_targets") {
         }
 
         SUBCASE("third doesn't exist") {
-          SUBCASE("varying num. of workers") {
-            SUBCASE("1") {
-              // force 2 lines
-              driver_pt.limit_to_n_workers(1);
-            }
-            SUBCASE("2") {
-              // force 2 lines
-              driver_pt.limit_to_n_workers(2);
-            }
-            SUBCASE("max") {
-              // force 2 lines
-              driver_pt.limit_to_n_workers(n_workers);
-            }
-          }
-
           fake_fs.touch(f1s->get_resolved_path());
 
           fake_fs.touch(f2s->get_resolved_path());
@@ -628,21 +435,6 @@ TEST_CASE("driver::processed_targets") {
         }
 
         SUBCASE("only RO files exist") {
-          SUBCASE("varying num. of workers") {
-            SUBCASE("1") {
-              // force 2 lines
-              driver_pt.limit_to_n_workers(1);
-            }
-            SUBCASE("2") {
-              // force 2 lines
-              driver_pt.limit_to_n_workers(2);
-            }
-            SUBCASE("max") {
-              // force 2 lines
-              driver_pt.limit_to_n_workers(n_workers);
-            }
-          }
-
           fake_fs.touch(f1s->get_resolved_path());
 
           fake_fs.touch(f2s->get_resolved_path());
@@ -655,21 +447,6 @@ TEST_CASE("driver::processed_targets") {
         }
 
         SUBCASE("same modification times") {
-          SUBCASE("varying num. of workers") {
-            SUBCASE("1") {
-              // force 2 lines
-              driver_pt.limit_to_n_workers(1);
-            }
-            SUBCASE("2") {
-              // force 2 lines
-              driver_pt.limit_to_n_workers(2);
-            }
-            SUBCASE("max") {
-              // force 2 lines
-              driver_pt.limit_to_n_workers(n_workers);
-            }
-          }
-
           fake_fs.clock.freeze_time(true);
 
           fake_fs.touch(f1s->get_resolved_path());
@@ -689,21 +466,6 @@ TEST_CASE("driver::processed_targets") {
         }
 
         SUBCASE("third doesn't exist, otherwise same modification times") {
-          SUBCASE("varying num. of workers") {
-            SUBCASE("1") {
-              // force 2 lines
-              driver_pt.limit_to_n_workers(1);
-            }
-            SUBCASE("2") {
-              // force 2 lines
-              driver_pt.limit_to_n_workers(2);
-            }
-            SUBCASE("max") {
-              // force 2 lines
-              driver_pt.limit_to_n_workers(n_workers);
-            }
-          }
-
           fake_fs.clock.freeze_time(true);
 
           fake_fs.touch(f1s->get_resolved_path());
@@ -723,21 +485,6 @@ TEST_CASE("driver::processed_targets") {
 
         SUBCASE(
             "third and second don't exist, otherwise same modification times") {
-          SUBCASE("varying num. of workers") {
-            SUBCASE("1") {
-              // force 2 lines
-              driver_pt.limit_to_n_workers(1);
-            }
-            SUBCASE("2") {
-              // force 2 lines
-              driver_pt.limit_to_n_workers(2);
-            }
-            SUBCASE("max") {
-              // force 2 lines
-              driver_pt.limit_to_n_workers(n_workers);
-            }
-          }
-
           fake_fs.clock.freeze_time(true);
 
           fake_fs.touch(f1s->get_resolved_path());
@@ -789,21 +536,6 @@ TEST_CASE("driver::processed_targets") {
       REQUIRE(built_targets.empty());
 
       SUBCASE("first, up to date") {
-        SUBCASE("varying num. of workers") {
-          SUBCASE("1") {
-            // force 2 lines
-            driver_pt.limit_to_n_workers(1);
-          }
-          SUBCASE("2") {
-            // force 2 lines
-            driver_pt.limit_to_n_workers(2);
-          }
-          SUBCASE("max") {
-            // force 2 lines
-            driver_pt.limit_to_n_workers(n_workers);
-          }
-        }
-
         fake_fs.touch(fro->get_resolved_path());
 
         fake_fs.touch(f1->get_resolved_path());
@@ -814,21 +546,6 @@ TEST_CASE("driver::processed_targets") {
       }
 
       SUBCASE("first, out of date") {
-        SUBCASE("varying num. of workers") {
-          SUBCASE("1") {
-            // force 2 lines
-            driver_pt.limit_to_n_workers(1);
-          }
-          SUBCASE("2") {
-            // force 2 lines
-            driver_pt.limit_to_n_workers(2);
-          }
-          SUBCASE("max") {
-            // force 2 lines
-            driver_pt.limit_to_n_workers(n_workers);
-          }
-        }
-
         fake_fs.touch(f1->get_resolved_path());
 
         fake_fs.touch(fro->get_resolved_path());
@@ -840,21 +557,6 @@ TEST_CASE("driver::processed_targets") {
       }
 
       SUBCASE("first, nonexistent") {
-        SUBCASE("varying num. of workers") {
-          SUBCASE("1") {
-            // force 2 lines
-            driver_pt.limit_to_n_workers(1);
-          }
-          SUBCASE("2") {
-            // force 2 lines
-            driver_pt.limit_to_n_workers(2);
-          }
-          SUBCASE("max") {
-            // force 2 lines
-            driver_pt.limit_to_n_workers(n_workers);
-          }
-        }
-
         fake_fs.touch(fro->get_resolved_path());
 
         REQUIRE_NOTHROW(driver_pt.build_target(p1, false));
@@ -864,21 +566,6 @@ TEST_CASE("driver::processed_targets") {
       }
 
       SUBCASE("second, up to date") {
-        SUBCASE("varying num. of workers") {
-          SUBCASE("1") {
-            // force 2 lines
-            driver_pt.limit_to_n_workers(1);
-          }
-          SUBCASE("2") {
-            // force 2 lines
-            driver_pt.limit_to_n_workers(2);
-          }
-          SUBCASE("max") {
-            // force 2 lines
-            driver_pt.limit_to_n_workers(n_workers);
-          }
-        }
-
         fake_fs.touch(fro->get_resolved_path());
 
         fake_fs.touch(f2->get_resolved_path());
@@ -890,21 +577,6 @@ TEST_CASE("driver::processed_targets") {
       }
 
       SUBCASE("second, out of date") {
-        SUBCASE("varying num. of workers") {
-          SUBCASE("1") {
-            // force 2 lines
-            driver_pt.limit_to_n_workers(1);
-          }
-          SUBCASE("2") {
-            // force 2 lines
-            driver_pt.limit_to_n_workers(2);
-          }
-          SUBCASE("max") {
-            // force 2 lines
-            driver_pt.limit_to_n_workers(n_workers);
-          }
-        }
-
         fake_fs.touch(f2->get_resolved_path());
 
         fake_fs.touch(fro->get_resolved_path());
@@ -916,21 +588,6 @@ TEST_CASE("driver::processed_targets") {
       }
 
       SUBCASE("second, nonexistent") {
-        SUBCASE("varying num. of workers") {
-          SUBCASE("1") {
-            // force 2 lines
-            driver_pt.limit_to_n_workers(1);
-          }
-          SUBCASE("2") {
-            // force 2 lines
-            driver_pt.limit_to_n_workers(2);
-          }
-          SUBCASE("max") {
-            // force 2 lines
-            driver_pt.limit_to_n_workers(n_workers);
-          }
-        }
-
         fake_fs.touch(fro->get_resolved_path());
 
         REQUIRE_NOTHROW(driver_pt.build_target(f2, false));

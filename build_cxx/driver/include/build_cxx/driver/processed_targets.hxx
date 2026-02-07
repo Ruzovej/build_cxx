@@ -41,11 +41,6 @@ struct BUILD_CXX_DLL_EXPORT processed_targets {
     // force 2 lines
   }
 
-  void limit_to_n_workers(int const n) {
-    // force 2 lines
-    sched->utilize_n_workers(n);
-  }
-
   // TODO hide as many as possible behind getters, setters, etc.:
 
   void process_project(common::project const *const proj);

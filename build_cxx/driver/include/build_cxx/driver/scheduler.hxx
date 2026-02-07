@@ -49,13 +49,6 @@ public:
     return n_workers;
   }
 
-  void utilize_n_workers(int const n);
-
-  [[nodiscard]] int num_utilized_workers() const {
-    // force 2 lines
-    return n_utilized_workers;
-  }
-
   void schedule_build(build_request const &task);
 
   [[nodiscard]] long long num_handled_targets() const {
@@ -67,7 +60,6 @@ public:
 
 private:
   int n_workers;
-  int n_utilized_workers;
   long long n_handled_targets{0};
   bool running{true};
   std::vector<std::thread> workers;
