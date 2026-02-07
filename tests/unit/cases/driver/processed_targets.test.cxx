@@ -19,6 +19,8 @@
 
 #include "build_cxx/driver/processed_targets.hxx"
 
+#include <optional>
+
 #include <doctest/doctest.h>
 
 #include "build_cxx/client/core.hxx"
@@ -36,46 +38,74 @@ void test_impl(driver::scheduler &sched);
 
 // file scope ... so they won't get reinitialized for each test case:
 
-driver::scheduler sched_1{1};
+std::optional<driver::scheduler> sched_1{1};
 TEST_CASE("driver::processed_targets, 1 worker") {
   // force 2 lines
-  test_impl(sched_1);
+  test_impl(*sched_1);
+}
+TEST_CASE("sched_1 cleanup") {
+  // force 2 lines
+  REQUIRE_NOTHROW(sched_1.reset());
 }
 
-driver::scheduler sched_2{2};
+std::optional<driver::scheduler> sched_2{2};
 TEST_CASE("driver::processed_targets, 2 workers") {
   // force 2 lines
-  test_impl(sched_2);
+  test_impl(*sched_2);
+}
+TEST_CASE("sched_2 cleanup") {
+  // force 2 lines
+  REQUIRE_NOTHROW(sched_2.reset());
 }
 
-driver::scheduler sched_3{3};
+std::optional<driver::scheduler> sched_3{3};
 TEST_CASE("driver::processed_targets, 3 workers") {
   // force 2 lines
-  test_impl(sched_3);
+  test_impl(*sched_3);
+}
+TEST_CASE("sched_3 cleanup") {
+  // force 2 lines
+  REQUIRE_NOTHROW(sched_3.reset());
 }
 
-driver::scheduler sched_4{4};
+std::optional<driver::scheduler> sched_4{4};
 TEST_CASE("driver::processed_targets, 4 workers") {
   // force 2 lines
-  test_impl(sched_4);
+  test_impl(*sched_4);
+}
+TEST_CASE("sched_4 cleanup") {
+  // force 2 lines
+  REQUIRE_NOTHROW(sched_4.reset());
 }
 
-driver::scheduler sched_5{5};
+std::optional<driver::scheduler> sched_5{5};
 TEST_CASE("driver::processed_targets, 5 workers") {
   // force 2 lines
-  test_impl(sched_5);
+  test_impl(*sched_5);
+}
+TEST_CASE("sched_5 cleanup") {
+  // force 2 lines
+  REQUIRE_NOTHROW(sched_5.reset());
 }
 
-driver::scheduler sched_6{6};
+std::optional<driver::scheduler> sched_6{6};
 TEST_CASE("driver::processed_targets, 6 workers") {
   // force 2 lines
-  test_impl(sched_6);
+  test_impl(*sched_6);
+}
+TEST_CASE("sched_6 cleanup") {
+  // force 2 lines
+  REQUIRE_NOTHROW(sched_6.reset());
 }
 
-driver::scheduler sched_12{12};
+std::optional<driver::scheduler> sched_12{12};
 TEST_CASE("driver::processed_targets, 12 workers") {
   // force 2 lines
-  test_impl(sched_12);
+  test_impl(*sched_12);
+}
+TEST_CASE("sched_12 cleanup") {
+  // force 2 lines
+  REQUIRE_NOTHROW(sched_12.reset());
 }
 
 void test_impl(driver::scheduler &sched) {
