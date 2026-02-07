@@ -19,11 +19,13 @@
 
 #include "build_cxx/driver/scheduler.hxx"
 
+#include <algorithm>
 #include <stdexcept>
 
 namespace build_cxx::driver {
 
-scheduler::scheduler(int const aN_workers) noexcept : n_workers{aN_workers} {
+scheduler::scheduler(int const aN_workers) noexcept
+    : n_workers{std::max(aN_workers, 1)} {
   spawn_worker_threads();
 }
 

@@ -62,10 +62,6 @@ int main(int argc, char *argv[]) {
       } else if (next_arg == "--jobs" || next_arg == "-j") {
         n_jobs = std::stoi(
             std::string{consume_arg(true, "missing number after --jobs/-j")});
-        if (n_jobs <= 0) {
-          throw std::runtime_error("Invalid number of jobs: " +
-                                   std::to_string(n_jobs));
-        }
       } else {
         input_files.emplace_back(next_arg_cstr);
       }
