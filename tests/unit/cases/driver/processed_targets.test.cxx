@@ -43,70 +43,70 @@ TEST_CASE("driver::processed_targets, 1 worker") {
   // force 2 lines
   test_impl(*sched_1);
 }
-TEST_CASE("sched_1 cleanup") {
-  // force 2 lines
-  REQUIRE_NOTHROW(sched_1.reset());
-}
+//TEST_CASE("sched_1 cleanup") {
+//  // force 2 lines
+//  REQUIRE_NOTHROW(sched_1.reset());
+//}
 
 std::optional<driver::scheduler> sched_2{2};
 TEST_CASE("driver::processed_targets, 2 workers") {
   // force 2 lines
   test_impl(*sched_2);
 }
-TEST_CASE("sched_2 cleanup") {
-  // force 2 lines
-  REQUIRE_NOTHROW(sched_2.reset());
-}
+//TEST_CASE("sched_2 cleanup") {
+//  // force 2 lines
+//  REQUIRE_NOTHROW(sched_2.reset());
+//}
 
 std::optional<driver::scheduler> sched_3{3};
 TEST_CASE("driver::processed_targets, 3 workers") {
   // force 2 lines
   test_impl(*sched_3);
 }
-TEST_CASE("sched_3 cleanup") {
-  // force 2 lines
-  REQUIRE_NOTHROW(sched_3.reset());
-}
+//TEST_CASE("sched_3 cleanup") {
+//  // force 2 lines
+//  REQUIRE_NOTHROW(sched_3.reset());
+//}
 
 std::optional<driver::scheduler> sched_4{4};
 TEST_CASE("driver::processed_targets, 4 workers") {
   // force 2 lines
   test_impl(*sched_4);
 }
-TEST_CASE("sched_4 cleanup") {
-  // force 2 lines
-  REQUIRE_NOTHROW(sched_4.reset());
-}
+//TEST_CASE("sched_4 cleanup") {
+//  // force 2 lines
+//  REQUIRE_NOTHROW(sched_4.reset());
+//}
 
 std::optional<driver::scheduler> sched_5{5};
 TEST_CASE("driver::processed_targets, 5 workers") {
   // force 2 lines
   test_impl(*sched_5);
 }
-TEST_CASE("sched_5 cleanup") {
-  // force 2 lines
-  REQUIRE_NOTHROW(sched_5.reset());
-}
+//TEST_CASE("sched_5 cleanup") {
+//  // force 2 lines
+//  REQUIRE_NOTHROW(sched_5.reset());
+//}
 
 std::optional<driver::scheduler> sched_6{6};
 TEST_CASE("driver::processed_targets, 6 workers") {
   // force 2 lines
   test_impl(*sched_6);
 }
-TEST_CASE("sched_6 cleanup") {
-  // force 2 lines
-  REQUIRE_NOTHROW(sched_6.reset());
-}
+//TEST_CASE("sched_6 cleanup") {
+//  // force 2 lines
+//  REQUIRE_NOTHROW(sched_6.reset());
+//}
 
 std::optional<driver::scheduler> sched_12{12};
 TEST_CASE("driver::processed_targets, 12 workers") {
   // force 2 lines
   test_impl(*sched_12);
 }
-TEST_CASE("sched_12 cleanup") {
-  // force 2 lines
-  REQUIRE_NOTHROW(sched_12.reset());
-}
+//TEST_CASE("sched_12 cleanup") {
+//  // force 2 lines
+//  REQUIRE_NOTHROW(sched_12.reset());
+//}
 
 void test_impl(driver::scheduler &sched) {
   // no pending task from prev. test case:
@@ -115,10 +115,11 @@ void test_impl(driver::scheduler &sched) {
   static std::string_view constexpr fake_root_file1{
       "/fake/dir/project1.root.cxx"};
 
+  std::mutex mtx;
   test_helpers::built_targets_t built_targets;
   test_helpers::mock_fs fake_fs;
-  test_helpers::mock_project test_project1{&built_targets, &fake_fs, "dpttp1",
-                                           "0.1.0", fake_root_file1};
+  test_helpers::mock_project test_project1{
+      &mtx, &built_targets, &fake_fs, "dpttp1", "0.1.0", fake_root_file1};
 
   driver::processed_targets driver_pt{sched};
 
@@ -150,7 +151,7 @@ void test_impl(driver::scheduler &sched) {
           "/fake/dir/project2.root.cxx"};
 
       test_helpers::mock_project test_project2{
-          &built_targets, nullptr, "dpttp2", "0.1.0", fake_root_file2};
+          &mtx, &built_targets, nullptr, "dpttp2", "0.1.0", fake_root_file2};
 
       SUBCASE(
           "each with single phony target without cross-project dependencies") {

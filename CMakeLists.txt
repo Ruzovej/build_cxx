@@ -19,6 +19,35 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
+# TODO all interesting ones, e.g.: https://github.com/google/sanitizers
+option(BUILDCXX_ASAN "Enable AddressSanitizer" OFF)
+option(BUILDCXX_MSAN "Enable MemorySanitizer" OFF)
+option(BUILDCXX_TSAN "Enable ThreadSanitizer" OFF)
+option(BUILDCXX_UBSAN "Enable UndefinedBehaviorSanitizer" OFF)
+
+if (BUILDCXX_ASAN)
+    add_compile_options(-fsanitize=address -fno-omit-frame-pointer)
+    add_link_options(-fsanitize=address -fno-omit-frame-pointer)
+endif()
+
+# only for `clang`?!
+if (BUILDCXX_MSAN)
+    add_compile_options(-fsanitize=memory -fno-omit-frame-pointer)
+    add_link_options(-fsanitize=memory -fno-omit-frame-pointer)
+endif()
+
+if (BUILDCXX_TSAN)
+    add_compile_options(-fsanitize=thread -fno-omit-frame-pointer)
+    add_link_options(-fsanitize=thread -fno-omit-frame-pointer)
+endif()
+
+if (BUILDCXX_UBSAN)
+    add_compile_options(-fsanitize=undefined -fno-omit-frame-pointer)
+    add_link_options(-fsanitize=undefined -fno-omit-frame-pointer)
+endif()
+
+#add_compile_options(-Wall -Wextra -Wpedantic)
+
 include(FetchContent)
 
 add_subdirectory(build_cxx)

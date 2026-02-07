@@ -19,6 +19,8 @@
 
 #pragma once
 
+#include <mutex>
+
 #include "build_cxx/common/file_target.hxx"
 #include "build_cxx/test_helpers/built_targets_t.hxx"
 
@@ -27,6 +29,7 @@ namespace build_cxx::test_helpers {
 struct mock_file_target : common::file_target {
   using file_target::file_target;
 
+  std::mutex *mtx{nullptr};
   built_targets_t *built_targets{nullptr};
 
   void set_read_only(bool const aRead_only) {
@@ -44,6 +47,8 @@ struct mock_file_target : common::file_target {
     static_cast<void>(resolved_deps);
 
     if (!simulated_read_only) {
+      // why doesn't `tsan` report failure when not locking this?!
+      std::lock_guard lck{*mtx};
       if (built_targets) {
         built_targets->emplace(this);
       }

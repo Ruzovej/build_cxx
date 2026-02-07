@@ -141,8 +141,8 @@ void processed_targets::build_target(common::abstract_target *const tgt,
 }
 
 void processed_targets::build_all_targets(bool const verbose) {
-  for (auto const [_, tgts] : targets_by_project) {
-    for (auto const tgt : tgts) {
+  for (auto const &[_, tgts] : targets_by_project) {
+    for (auto *const tgt : tgts) {
       build_target(tgt, verbose);
     }
   }

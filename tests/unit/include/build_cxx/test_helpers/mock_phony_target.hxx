@@ -19,7 +19,7 @@
 
 #pragma once
 
-#include <unordered_set>
+#include <mutex>
 
 #include "build_cxx/common/phony_target.hxx"
 #include "build_cxx/test_helpers/built_targets_t.hxx"
@@ -29,6 +29,7 @@ namespace build_cxx::test_helpers {
 struct mock_phony_target : common::phony_target {
   using phony_target::phony_target;
 
+  std::mutex *mtx{nullptr};
   built_targets_t *built_targets{nullptr};
 
   void recipe(std::vector<common::abstract_target const *> const &resolved_deps)
@@ -36,6 +37,8 @@ struct mock_phony_target : common::phony_target {
     static_cast<void>(resolved_deps);
 
     if (built_targets) {
+      // why doesn't `tsan` report failure when not locking this?!
+      std::lock_guard lck{*mtx};
       built_targets->emplace(this);
     }
   }
