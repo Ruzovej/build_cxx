@@ -30,8 +30,10 @@
 
 namespace build_cxx::driver {
 
-// TODO should be BUILD_CXX_DLL_HIDE, but then unit tests won't compile ...
-struct BUILD_CXX_DLL_EXPORT scheduler {
+// This class is expected to be held & used from one particular thread. Or to be
+// more precise: its public methods aren't thread-safe.
+struct BUILD_CXX_DLL_EXPORT scheduler { // TODO should be BUILD_CXX_DLL_HIDE,
+                                        // but then unit tests won't compile ...
   explicit scheduler(int const aN_workers) noexcept;
 
   ~scheduler() noexcept;
@@ -49,7 +51,7 @@ public:
     return n_workers;
   }
 
-  void schedule_build(build_request const &task);
+  void schedule_build(build_request task);
 
   [[nodiscard]] long long num_handled_targets() const {
     return n_handled_targets;
@@ -61,11 +63,12 @@ public:
 private:
   int n_workers;
   long long n_handled_targets{0};
-  bool running{true};
+  bool running{true}; // used only for destruction
   std::vector<std::thread> workers;
 
   std::mutex mtx_todo;
   std::condition_variable cv_todo;
+  // TODO later change this to priority_queue (with customizable ordering, etc.)
   std::queue<build_request> todo;
 
   std::mutex mtx_done;

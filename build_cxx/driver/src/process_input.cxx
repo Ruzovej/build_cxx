@@ -50,7 +50,7 @@ void process_input(int const n_jobs, std::vector<char const *> const &targets,
   std::unordered_map<std::string_view, std::string_view> processed_projects;
 
   scheduler sched{n_jobs};
-  processed_targets pt{&sched};
+  processed_targets pt{sched};
 
   bool all_resolved{false};
 

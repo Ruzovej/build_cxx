@@ -37,9 +37,7 @@ namespace build_cxx::driver {
 struct BUILD_CXX_DLL_EXPORT processed_targets {
   // "loader" should ensure that projects are unique, and if same project is
   // required/loaded twice, it has exactly same version
-  explicit processed_targets(scheduler *const aSched) : sched{aSched} {
-    // force 2 lines
-  }
+  explicit processed_targets(scheduler &aSched) noexcept;
 
   // TODO hide as many as possible behind getters, setters, etc.:
 
@@ -118,7 +116,7 @@ private:
 
   long long unresolved{0};
 
-  scheduler *sched{nullptr};
+  scheduler &sched;
 
 private:
   processed_targets(processed_targets const &) = delete;

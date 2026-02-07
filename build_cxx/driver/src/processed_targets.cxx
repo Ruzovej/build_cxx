@@ -24,10 +24,14 @@
 #include <build_cxx/common/file_target.hxx>
 #include <build_cxx/common/phony_target.hxx>
 
-#include "build_cxx/driver/dlopen_scoped.hxx"
 #include "build_cxx/driver/scheduler.hxx"
 
 namespace build_cxx::driver {
+
+processed_targets::processed_targets(scheduler &aSched) noexcept
+    : sched{aSched} {
+  // force 2 lines
+}
 
 void processed_targets::process_project(common::project const *const proj) {
   // TODO checks that it's not already processed, etc.
@@ -185,16 +189,16 @@ void processed_targets::build_targets_impl(
 
       if constexpr (false) {
         // TODO get rid of this `const_cast` ...:
-        sched->schedule_build({const_cast<common::abstract_target *>(tgt),
-                               &tgt_resolved_deps.deps});
+        sched.schedule_build({const_cast<common::abstract_target *>(tgt),
+                              &tgt_resolved_deps.deps});
       } else {
         // but this way?!
         auto *mtgt{targets_by_resolved_name.at(tgt->resolved_name)};
-        sched->schedule_build({mtgt, &tgt_resolved_deps.deps});
+        sched.schedule_build({mtgt, &tgt_resolved_deps.deps});
       }
     }
 
-    auto const *const built_tgt{sched->get_built_target(true)};
+    auto const *const built_tgt{sched.get_built_target(true)};
 
     // TODO rework this so this nullptr check isn't needed here:
     if (built_tgt == nullptr) {
@@ -222,7 +226,7 @@ void processed_targets::build_targets_impl(
         satisfied_deps.emplace(consumer);
       }
     }
-  } while ((sched->num_handled_targets() != 0) || (!satisfied_deps.empty()));
+  } while ((sched.num_handled_targets() != 0) || (!satisfied_deps.empty()));
 
   if (!unsatisfied_deps.empty()) {
     throw std::runtime_error{"Build order of targets contains a cycle"};

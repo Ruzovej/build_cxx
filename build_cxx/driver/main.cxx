@@ -17,6 +17,7 @@
   with build_cxx. If not, see <https://www.gnu.org/licenses/>.
 */
 
+#include <algorithm>
 #include <exception>
 #include <iostream>
 #include <thread>

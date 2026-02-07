@@ -34,7 +34,7 @@ scheduler::~scheduler() noexcept {
   stop_worker_threads();
 }
 
-void scheduler::schedule_build(scheduler::build_request const &task) {
+void scheduler::schedule_build(scheduler::build_request task) {
   ++n_handled_targets;
   {
     std::lock_guard lck{mtx_todo};
@@ -56,7 +56,7 @@ scheduler::get_built_target(bool const blocking) {
   if (blocking && done.empty()) {
     cv_done.wait(lck, [this]() {
       // force 2 lines
-      return !done.empty() || !running;
+      return !done.empty();
     });
   }
 
@@ -66,6 +66,7 @@ scheduler::get_built_target(bool const blocking) {
     --n_handled_targets;
     return res;
   }
+
   return nullptr;
 }
 
@@ -73,7 +74,7 @@ void scheduler::spawn_worker_threads() {
   workers.reserve(n_workers);
 
   for (int idx{0}; idx < n_workers; ++idx) {
-    workers.emplace_back([&]() {
+    workers.emplace_back([this]() {
       while (true) {
         build_request task;
         {
