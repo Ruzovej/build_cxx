@@ -215,12 +215,12 @@ void processed_targets::build_targets_impl(
 
       if constexpr (false) {
         // TODO get rid of this `const_cast` ...:
-        sched.schedule_build({const_cast<common::abstract_target *>(tgt),
-                              &tgt_resolved_deps.deps});
+        sched.schedule_build(const_cast<common::abstract_target *>(tgt),
+                             &tgt_resolved_deps.deps);
       } else {
         // but this way?!
         auto *mtgt{targets_by_resolved_name.at(tgt->resolved_name)};
-        sched.schedule_build({mtgt, &tgt_resolved_deps.deps});
+        sched.schedule_build(mtgt, &tgt_resolved_deps.deps);
       }
     }
 

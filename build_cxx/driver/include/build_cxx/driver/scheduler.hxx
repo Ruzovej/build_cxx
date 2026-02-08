@@ -38,20 +38,14 @@ struct BUILD_CXX_DLL_EXPORT scheduler { // TODO should be BUILD_CXX_DLL_HIDE,
 
   ~scheduler() noexcept;
 
-  // TODO rework this weird "private-public dance":
-private:
-  struct build_request {
-    common::abstract_target *tgt{nullptr};
-    std::vector<common::abstract_target const *> const *deps{nullptr};
-  };
-
-public:
   [[nodiscard]] int num_workers() const {
     // force 2 lines
     return n_workers;
   }
 
-  void schedule_build(build_request task);
+  void schedule_build(
+      common::abstract_target *const tgt,
+      std::vector<common::abstract_target const *> const *const deps);
 
   [[nodiscard]] long long num_handled_targets() const {
     return n_handled_targets;
@@ -65,6 +59,11 @@ private:
   long long n_handled_targets{0};
   bool running{true}; // used only for destruction
   std::vector<std::thread> workers;
+
+  struct build_request {
+    common::abstract_target *tgt{nullptr};
+    std::vector<common::abstract_target const *> const *deps{nullptr};
+  };
 
   std::mutex mtx_todo;
   std::condition_variable cv_todo;

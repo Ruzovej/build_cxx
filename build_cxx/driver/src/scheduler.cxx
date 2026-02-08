@@ -20,6 +20,7 @@
 #include "build_cxx/driver/scheduler.hxx"
 
 #include <algorithm>
+#include <iostream>
 #include <stdexcept>
 
 namespace build_cxx::driver {
@@ -34,11 +35,13 @@ scheduler::~scheduler() noexcept {
   stop_worker_threads();
 }
 
-void scheduler::schedule_build(scheduler::build_request task) {
+void scheduler::schedule_build(
+    common::abstract_target *const tgt,
+    std::vector<common::abstract_target const *> const *const deps) {
   ++n_handled_targets;
   {
     std::lock_guard lck{mtx_todo};
-    todo.push(task);
+    todo.push({tgt, deps});
   }
   cv_todo.notify_one();
 }
@@ -76,29 +79,35 @@ void scheduler::spawn_worker_threads() {
   for (int idx{0}; idx < n_workers; ++idx) {
     workers.emplace_back([this]() {
       while (true) {
-        build_request task;
-        {
-          std::unique_lock lck{mtx_todo};
-          cv_todo.wait(lck, [&]() {
-            // force 2 lines
-            return !running || !todo.empty();
-          });
+        try { // TODO improve exception handling
+          build_request task;
+          {
+            std::unique_lock lck{mtx_todo};
+            cv_todo.wait(lck, [&]() {
+              // force 2 lines
+              return !running || !todo.empty();
+            });
 
-          if (!running) {
-            return;
+            if (!running) {
+              return;
+            }
+
+            task = todo.front();
+            todo.pop();
           }
 
-          task = todo.front();
-          todo.pop();
-        }
+          task.tgt->build(*task.deps);
 
-        task.tgt->build(*task.deps);
-
-        {
-          std::lock_guard lck{mtx_done};
-          done.push(task.tgt);
+          {
+            std::lock_guard lck{mtx_done};
+            done.push(task.tgt);
+          }
+          cv_done.notify_one();
+        } catch (std::exception const &e) {
+          std::cerr << "Error in worker thread: " << e.what() << '\n';
+        } catch (...) {
+          std::cerr << "Unknown error in worker thread" << '\n';
         }
-        cv_done.notify_one();
       }
     });
   }
