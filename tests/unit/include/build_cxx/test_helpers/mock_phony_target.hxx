@@ -34,25 +34,27 @@ struct mock_phony_target : common::phony_target {
 
   std::mutex *mtx{nullptr};
   built_targets_t *built_targets{nullptr};
-  int sleep_ms{0};
 
   void recipe(std::vector<common::abstract_target const *> const &resolved_deps)
       const override {
     static_cast<void>(resolved_deps);
 
-    std::clog << std::this_thread::get_id() << ": start building "
-              << resolved_name << std::endl;
-
-    std::this_thread::sleep_for(std::chrono::milliseconds{sleep_ms});
+    //{
+    //  std::lock_guard lck{*mtx};
+    //  std::cout << std::this_thread::get_id() << ": start building "
+    //            << resolved_name << std::endl;
+    //}
 
     if (built_targets) {
-      // why doesn't `tsan` report failure when not locking this?!
-      // std::lock_guard lck{*mtx};
+      std::lock_guard lck{*mtx};
       built_targets->emplace(this);
     }
 
-    std::clog << std::this_thread::get_id() << ": finished building "
-              << resolved_name << std::endl;
+    //{
+    //  std::lock_guard lck{*mtx};
+    //  std::cout << std::this_thread::get_id() << ": finished building "
+    //            << resolved_name << std::endl;
+    //}
   }
 };
 

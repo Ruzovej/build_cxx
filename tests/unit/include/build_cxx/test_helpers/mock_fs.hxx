@@ -20,6 +20,8 @@
 #pragma once
 
 #include <filesystem>
+#include <mutex>
+#include <optional>
 #include <unordered_map>
 
 #include "build_cxx/common/fs_proxy.hxx"
@@ -28,17 +30,26 @@
 namespace build_cxx::test_helpers {
 
 struct mock_fs : common::fs_proxy {
+  explicit mock_fs(std::mutex *const aMtx = nullptr)
+      : common::fs_proxy{}, mtx{aMtx} {
+    // force 2 lines
+  }
+
   [[nodiscard]] std::filesystem::path tmp_dir() const override {
     return "/fake/tmp";
   }
 
   [[nodiscard]] bool
   file_exists(std::filesystem::path const &path) const override {
+    auto const lck{lock()};
+
     return files.find(path) != files.cend();
   }
 
   [[nodiscard]] common::target_status::file_mod_time_t
   file_last_mod_time(std::filesystem::path const &path) const override {
+    auto const lck{lock()};
+
     return files.at(path).last_mod_time;
   }
 
@@ -47,10 +58,14 @@ struct mock_fs : common::fs_proxy {
       throw std::runtime_error{"Can't touch an empty filepath"};
     }
 
+    auto const lck{lock()};
+
     files[path].last_mod_time = clock.now_ns();
   }
 
   void rm(std::filesystem::path const &path) override {
+    auto const lck{lock()};
+
     auto const iter{files.find(path)};
 
     if (iter != files.end()) {
@@ -66,6 +81,14 @@ private:
     // std::string content; // TODO ...?!
   };
 
+  [[nodiscard]] std::optional<std::lock_guard<std::mutex>> lock() const {
+    if (mtx) {
+      return std::optional<std::lock_guard<std::mutex>>{*mtx};
+    }
+    return std::nullopt;
+  }
+
+  std::mutex *mtx{nullptr};
   std::unordered_map<std::filesystem::path, fake_file> files;
 };
 

@@ -43,70 +43,70 @@ TEST_CASE("driver::processed_targets, 1 worker") {
   // force 2 lines
   test_impl(*sched_1);
 }
-//TEST_CASE("sched_1 cleanup") {
-//  // force 2 lines
-//  REQUIRE_NOTHROW(sched_1.reset());
-//}
+// TEST_CASE("sched_1 cleanup") {
+//   // force 2 lines
+//   REQUIRE_NOTHROW(sched_1.reset());
+// }
 
 std::optional<driver::scheduler> sched_2{2};
 TEST_CASE("driver::processed_targets, 2 workers") {
   // force 2 lines
   test_impl(*sched_2);
 }
-//TEST_CASE("sched_2 cleanup") {
-//  // force 2 lines
-//  REQUIRE_NOTHROW(sched_2.reset());
-//}
+// TEST_CASE("sched_2 cleanup") {
+//   // force 2 lines
+//   REQUIRE_NOTHROW(sched_2.reset());
+// }
 
 std::optional<driver::scheduler> sched_3{3};
 TEST_CASE("driver::processed_targets, 3 workers") {
   // force 2 lines
   test_impl(*sched_3);
 }
-//TEST_CASE("sched_3 cleanup") {
-//  // force 2 lines
-//  REQUIRE_NOTHROW(sched_3.reset());
-//}
+// TEST_CASE("sched_3 cleanup") {
+//   // force 2 lines
+//   REQUIRE_NOTHROW(sched_3.reset());
+// }
 
 std::optional<driver::scheduler> sched_4{4};
 TEST_CASE("driver::processed_targets, 4 workers") {
   // force 2 lines
   test_impl(*sched_4);
 }
-//TEST_CASE("sched_4 cleanup") {
-//  // force 2 lines
-//  REQUIRE_NOTHROW(sched_4.reset());
-//}
+// TEST_CASE("sched_4 cleanup") {
+//   // force 2 lines
+//   REQUIRE_NOTHROW(sched_4.reset());
+// }
 
 std::optional<driver::scheduler> sched_5{5};
 TEST_CASE("driver::processed_targets, 5 workers") {
   // force 2 lines
   test_impl(*sched_5);
 }
-//TEST_CASE("sched_5 cleanup") {
-//  // force 2 lines
-//  REQUIRE_NOTHROW(sched_5.reset());
-//}
+// TEST_CASE("sched_5 cleanup") {
+//   // force 2 lines
+//   REQUIRE_NOTHROW(sched_5.reset());
+// }
 
 std::optional<driver::scheduler> sched_6{6};
 TEST_CASE("driver::processed_targets, 6 workers") {
   // force 2 lines
   test_impl(*sched_6);
 }
-//TEST_CASE("sched_6 cleanup") {
-//  // force 2 lines
-//  REQUIRE_NOTHROW(sched_6.reset());
-//}
+// TEST_CASE("sched_6 cleanup") {
+//   // force 2 lines
+//   REQUIRE_NOTHROW(sched_6.reset());
+// }
 
 std::optional<driver::scheduler> sched_12{12};
 TEST_CASE("driver::processed_targets, 12 workers") {
   // force 2 lines
   test_impl(*sched_12);
 }
-//TEST_CASE("sched_12 cleanup") {
-//  // force 2 lines
-//  REQUIRE_NOTHROW(sched_12.reset());
-//}
+// TEST_CASE("sched_12 cleanup") {
+//   // force 2 lines
+//   REQUIRE_NOTHROW(sched_12.reset());
+// }
 
 void test_impl(driver::scheduler &sched) {
   // no pending task from prev. test case:
@@ -117,7 +117,7 @@ void test_impl(driver::scheduler &sched) {
 
   std::mutex mtx;
   test_helpers::built_targets_t built_targets;
-  test_helpers::mock_fs fake_fs;
+  test_helpers::mock_fs fake_fs{&mtx};
   test_helpers::mock_project test_project1{
       &mtx, &built_targets, &fake_fs, "dpttp1", "0.1.0", fake_root_file1};
 
@@ -530,6 +530,124 @@ void test_impl(driver::scheduler &sched) {
           REQUIRE_EQ(built_targets.count(f2l), 1);
           REQUIRE_EQ(built_targets.count(f3), 1);
           REQUIRE_EQ(built_targets.size(), 2);
+        }
+      }
+
+      SUBCASE("Highly parallel build") {
+        static int constexpr num_files = 100;
+
+        // TODO initialize all of this only once ...
+        std::vector<test_helpers::mock_file_target *> ro_files;
+        ro_files.reserve(num_files);
+
+        std::vector<std::string> ro_file_names;
+        ro_file_names.reserve(num_files);
+
+        std::vector<test_helpers::mock_file_target *> obj_files;
+        obj_files.reserve(num_files);
+
+        std::vector<std::string> obj_file_names;
+        obj_file_names.reserve(num_files);
+
+        std::vector<std::string_view> obj_file_deps;
+        obj_file_deps.reserve(num_files);
+
+        for (int i{0}; i < num_files; ++i) {
+          ro_file_names.emplace_back("src/ro_file" + std::to_string(i) +
+                                     ".cxx");
+          obj_file_names.emplace_back("bin/obj_files/" + std::to_string(i) +
+                                      ".obj");
+          obj_file_deps.emplace_back(obj_file_names.back());
+
+          ro_files.emplace_back(test_project1.add_mock_file_target(
+              fake_root_file1, false, ro_file_names.back(), true, {}));
+
+          obj_files.emplace_back(test_project1.add_mock_file_target(
+              fake_root_file1, false, obj_file_deps.back(), false,
+              {ro_file_names.back()}));
+        }
+
+        auto *const flib{test_project1.add_mock_file_target(
+            fake_root_file1, true, "bin/fake.a", false,
+            std::move(obj_file_deps))};
+
+        REQUIRE_NOTHROW(driver_pt.process_project(&test_project1));
+
+        bool all_resolved{false};
+        REQUIRE_NOTHROW(all_resolved = driver_pt.resolve_deps());
+        REQUIRE(all_resolved);
+
+        REQUIRE(built_targets.empty());
+
+        SUBCASE("all up-to date") {
+          for (int j{0}; j < num_files; ++j) {
+            fake_fs.touch(ro_files[j]->get_resolved_path());
+
+            fake_fs.touch(obj_files[j]->get_resolved_path());
+          }
+
+          fake_fs.touch(flib->get_resolved_path());
+
+          REQUIRE_NOTHROW(driver_pt.build_all_targets(false));
+          REQUIRE_EQ(built_targets.size(), 0);
+        }
+
+        SUBCASE("none up-to date") {
+          for (int j{0}; j < num_files; ++j) {
+            fake_fs.touch(ro_files[j]->get_resolved_path());
+          }
+
+          REQUIRE_NOTHROW(driver_pt.build_all_targets(false));
+          REQUIRE_EQ(built_targets.size(), num_files + 1); // obj files + lib
+        }
+
+        SUBCASE("half up-to date, all exists") {
+          for (int j{0}; j < num_files / 2; ++j) {
+            fake_fs.touch(obj_files[j]->get_resolved_path());
+          }
+
+          for (int j{0}; j < num_files; ++j) {
+            fake_fs.touch(ro_files[j]->get_resolved_path());
+          }
+
+          for (int j{num_files / 2}; j < num_files; ++j) {
+            fake_fs.touch(obj_files[j]->get_resolved_path());
+          }
+
+          fake_fs.touch(flib->get_resolved_path());
+
+          REQUIRE_NOTHROW(driver_pt.build_all_targets(false));
+          REQUIRE_EQ(built_targets.size(), num_files / 2 + 1);
+        }
+
+        SUBCASE("half up-to date, half doesn't exist") {
+          for (int j{0}; j < num_files; ++j) {
+            fake_fs.touch(ro_files[j]->get_resolved_path());
+          }
+
+          for (int j{num_files / 2}; j < num_files; ++j) {
+            fake_fs.touch(obj_files[j]->get_resolved_path());
+          }
+
+          fake_fs.touch(flib->get_resolved_path());
+
+          REQUIRE_NOTHROW(driver_pt.build_all_targets(false));
+          REQUIRE_EQ(built_targets.size(), num_files / 2 + 1);
+        }
+
+        SUBCASE("half out of date, half doesn't exist") {
+          for (int j{num_files / 2}; j < num_files; ++j) {
+            fake_fs.touch(obj_files[j]->get_resolved_path());
+          }
+
+          for (int j{0}; j < num_files; ++j) {
+            fake_fs.touch(ro_files[j]->get_resolved_path());
+          }
+
+          fake_fs.touch(flib->get_resolved_path());
+
+          REQUIRE_NOTHROW(driver_pt.build_all_targets(false));
+          REQUIRE_EQ(built_targets.size(), num_files + 1);
         }
       }
 

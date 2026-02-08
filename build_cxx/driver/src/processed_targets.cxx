@@ -137,15 +137,23 @@ void processed_targets::build_target(common::abstract_target *const tgt,
                                      bool const verbose) {
   std::vector<common::abstract_target const *> tgts{tgt};
   std::string indent{};
+
   build_targets_impl(tgts, indent, verbose);
 }
 
 void processed_targets::build_all_targets(bool const verbose) {
+  std::vector<common::abstract_target const *> all_tgts{};
+  std::string indent{};
+
   for (auto const &[_, tgts] : targets_by_project) {
     for (auto *const tgt : tgts) {
-      build_target(tgt, verbose);
+      if (tgt->include_in_all) {
+        all_tgts.emplace_back(tgt);
+      }
     }
   }
+
+  build_targets_impl(all_tgts, indent, verbose);
 }
 
 // TODO split into multiple methods:
