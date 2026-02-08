@@ -109,16 +109,14 @@ void process_input(int const n_jobs, std::vector<char const *> const &targets,
       std::cout << '\n';
     }
   } else {
-    for (std::string_view const target : targets) {
-      auto const iter{pt.targets_by_resolved_name.find(target)};
+    std::vector<std::string_view> tgts{};
+    tgts.reserve(targets.size());
 
-      if (iter == pt.targets_by_resolved_name.cend()) {
-        throw std::runtime_error{"Requested target '" + std::string{target} +
-                                 "' not found"};
-      }
-
-      pt.build_target(iter->second, true);
+    for (auto *const tgt : targets) {
+      tgts.emplace_back(tgt);
     }
+
+    pt.build_targets(tgts, true);
   }
 }
 

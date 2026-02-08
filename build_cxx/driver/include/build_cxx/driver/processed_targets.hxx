@@ -86,18 +86,18 @@ struct BUILD_CXX_DLL_EXPORT processed_targets {
   // [[nodiscard]] bool whole_build_tree_valid() const;
 
   // TODO
-  // - parallelize
-  // - accept more targets at once: via `vector`, or even better -
-  //   `unordered_set`
-  // - switch for turning on/off logging to `stdout`, etc.
-  void build_target(common::abstract_target *const tgt, bool const verbose);
-
+  // - utilize `verbose` = logging to `stdout`, etc.
+  void build_target(std::string_view const tgt, bool const verbose);
+  void build_target(common::abstract_target const *const tgt,
+                    bool const verbose);
+  void build_targets(std::vector<std::string_view> const &tgts,
+                     bool const verbose);
+  void build_targets(std::vector<common::abstract_target const *> &tgts,
+                     bool const verbose);
   void build_all_targets(bool const verbose);
 
 private:
-  // TODO `unordered_set` instead of `vector` ...:
-  void build_targets_impl(std::vector<common::abstract_target const *> &tgts,
-                          std::string &indent, bool const verbose);
+  void build_targets_impl(std::vector<common::abstract_target const *> &tgts);
 
   // not owning any pointer(s):
   std::unordered_set<common::abstract_target const *> built_targets;
@@ -107,7 +107,7 @@ private:
     long long already_built{0};
     // not owning any pointer(s):
     std::vector<common::abstract_target const *> deps;
-    std::vector<common::abstract_target const *> dep_of;
+    std::unordered_set<common::abstract_target const *> dep_of;
   };
 
   // not owning any pointer(s):

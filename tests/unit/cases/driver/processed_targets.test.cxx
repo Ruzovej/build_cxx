@@ -19,8 +19,6 @@
 
 #include "build_cxx/driver/processed_targets.hxx"
 
-#include <optional>
-
 #include <doctest/doctest.h>
 
 #include "build_cxx/client/core.hxx"
@@ -36,77 +34,47 @@ namespace {
 
 void test_impl(driver::scheduler &sched);
 
-// file scope ... so they won't get reinitialized for each test case:
+template <int n_workers> struct sched {
+  static inline driver::scheduler inst{n_workers};
+};
 
-std::optional<driver::scheduler> sched_1{1};
+// better than using fixtures, etc.:
+// https://github.com/doctest/doctest/blob/master/doc/markdown/testcases.md#test-fixtures
+
 TEST_CASE("driver::processed_targets, 1 worker") {
   // force 2 lines
-  test_impl(*sched_1);
+  test_impl(sched<1>::inst);
 }
-// TEST_CASE("sched_1 cleanup") {
-//   // force 2 lines
-//   REQUIRE_NOTHROW(sched_1.reset());
-// }
 
-std::optional<driver::scheduler> sched_2{2};
 TEST_CASE("driver::processed_targets, 2 workers") {
   // force 2 lines
-  test_impl(*sched_2);
+  test_impl(sched<2>::inst);
 }
-// TEST_CASE("sched_2 cleanup") {
-//   // force 2 lines
-//   REQUIRE_NOTHROW(sched_2.reset());
-// }
 
-std::optional<driver::scheduler> sched_3{3};
 TEST_CASE("driver::processed_targets, 3 workers") {
   // force 2 lines
-  test_impl(*sched_3);
+  test_impl(sched<3>::inst);
 }
-// TEST_CASE("sched_3 cleanup") {
-//   // force 2 lines
-//   REQUIRE_NOTHROW(sched_3.reset());
-// }
 
-std::optional<driver::scheduler> sched_4{4};
 TEST_CASE("driver::processed_targets, 4 workers") {
   // force 2 lines
-  test_impl(*sched_4);
+  test_impl(sched<4>::inst);
 }
-// TEST_CASE("sched_4 cleanup") {
-//   // force 2 lines
-//   REQUIRE_NOTHROW(sched_4.reset());
-// }
 
-std::optional<driver::scheduler> sched_5{5};
 TEST_CASE("driver::processed_targets, 5 workers") {
   // force 2 lines
-  test_impl(*sched_5);
+  test_impl(sched<5>::inst);
 }
-// TEST_CASE("sched_5 cleanup") {
-//   // force 2 lines
-//   REQUIRE_NOTHROW(sched_5.reset());
-// }
 
-std::optional<driver::scheduler> sched_6{6};
 TEST_CASE("driver::processed_targets, 6 workers") {
   // force 2 lines
-  test_impl(*sched_6);
+  test_impl(sched<6>::inst);
 }
-// TEST_CASE("sched_6 cleanup") {
-//   // force 2 lines
-//   REQUIRE_NOTHROW(sched_6.reset());
-// }
 
-std::optional<driver::scheduler> sched_12{12};
 TEST_CASE("driver::processed_targets, 12 workers") {
   // force 2 lines
-  test_impl(*sched_12);
+  test_impl(sched<12>::inst);
 }
-// TEST_CASE("sched_12 cleanup") {
-//   // force 2 lines
-//   REQUIRE_NOTHROW(sched_12.reset());
-// }
 
 void test_impl(driver::scheduler &sched) {
   // no pending task from prev. test case:

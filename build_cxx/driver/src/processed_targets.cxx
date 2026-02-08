@@ -100,7 +100,7 @@ bool processed_targets::resolve_deps(common::abstract_target const *const at) {
 
             if (iter != targets_by_resolved_name.cend()) {
               deps.emplace_back(iter->second);
-              target_resolved_deps[iter->second].dep_of.emplace_back(at);
+              target_resolved_deps[iter->second].dep_of.emplace(at);
               return true;
             }
             return false;
@@ -114,6 +114,8 @@ bool processed_targets::resolve_deps(common::abstract_target const *const at) {
         // phony target from this project
       } else if (dep.at(0) == '/') {
         // absolute path - don't alter it
+        // TODO is it OK not to update `deps` and
+        // `target_resolved_deps[...].dep_of`?!
       } else if (try_resolve_dep(
                      common::file_target::resolve_path(at->loc->filename, dep)
                          .string())) {
@@ -126,24 +128,54 @@ bool processed_targets::resolve_deps(common::abstract_target const *const at) {
 
   if (all_deps_resolved) {
     --unresolved;
-  }
 
-  iter->second.deps = std::move(deps);
+    iter->second.deps = std::move(deps);
+  }
 
   return all_deps_resolved;
 }
 
-void processed_targets::build_target(common::abstract_target *const tgt,
+void processed_targets::build_target(std::string_view const tgt,
                                      bool const verbose) {
-  std::vector<common::abstract_target const *> tgts{tgt};
-  std::string indent{};
+  std::vector<std::string_view> tgts{tgt};
 
-  build_targets_impl(tgts, indent, verbose);
+  build_targets(tgts, verbose);
 }
 
-void processed_targets::build_all_targets(bool const verbose) {
+void processed_targets::build_target(common::abstract_target const *const tgt,
+                                     [[maybe_unused]] bool const verbose) {
+  std::vector<common::abstract_target const *> tgts{tgt};
+
+  build_targets(tgts, verbose);
+}
+
+void processed_targets::build_targets(std::vector<std::string_view> const &tgts,
+                                      bool const verbose) {
+  std::vector<common::abstract_target const *> resolved_tgts{};
+  resolved_tgts.reserve(tgts.size());
+
+  for (auto const &tgt : tgts) {
+    auto const iter{targets_by_resolved_name.find(tgt)};
+
+    if (iter == targets_by_resolved_name.cend()) {
+      throw std::runtime_error{"Requested target '" + std::string{tgt} +
+                               "' not found"};
+    }
+
+    resolved_tgts.emplace_back(iter->second);
+  }
+
+  build_targets(resolved_tgts, verbose);
+}
+
+void processed_targets::build_targets(
+    std::vector<common::abstract_target const *> &tgts,
+    [[maybe_unused]] bool const verbose) {
+  build_targets_impl(tgts);
+}
+
+void processed_targets::build_all_targets([[maybe_unused]] bool const verbose) {
   std::vector<common::abstract_target const *> all_tgts{};
-  std::string indent{};
 
   for (auto const &[_, tgts] : targets_by_project) {
     for (auto *const tgt : tgts) {
@@ -153,13 +185,12 @@ void processed_targets::build_all_targets(bool const verbose) {
     }
   }
 
-  build_targets_impl(all_tgts, indent, verbose);
+  build_targets_impl(all_tgts);
 }
 
 // TODO split into multiple methods:
 void processed_targets::build_targets_impl(
-    std::vector<common::abstract_target const *> &tgts, std::string &indent,
-    bool const verbose) {
+    std::vector<common::abstract_target const *> &tgts) {
   std::unordered_set<common::abstract_target const *> unsatisfied_deps;
   std::unordered_set<common::abstract_target const *> satisfied_deps;
 
@@ -179,7 +210,7 @@ void processed_targets::build_targets_impl(
       unsatisfied_deps.emplace(tgt);
     }
 
-    for (auto const dep : resolved_deps.deps) {
+    for (auto *const dep : resolved_deps.deps) {
       if ((unsatisfied_deps.count(dep) == 0) &&
           (satisfied_deps.count(dep) == 0)) {
         tgts.emplace_back(dep);
