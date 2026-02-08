@@ -53,18 +53,24 @@ void processed_targets::process_project(common::project const *const proj) {
   }
 }
 
-// TODO split into multiple methods:
-bool processed_targets::resolve_deps(common::abstract_target const *const at) {
-  if (at == nullptr) {
-    if (unresolved != 0) {
-      for (auto &[key, val] : target_resolved_deps) {
-        if (!val.resolved) {
-          // internally decrements by one `unresolved` in case of "success"
-          val.resolved = resolve_deps(key);
-        }
+bool processed_targets::resolve_deps_for_all() {
+  if (unresolved != 0) {
+    for (auto &[key, val] : target_resolved_deps) {
+      if (!val.resolved) {
+        // decrements `unresolved` in case of "success":
+        static_cast<void>(resolve_deps_for(key));
       }
     }
-    return unresolved == 0;
+  }
+  return unresolved == 0;
+}
+
+// TODO split into multiple methods:
+bool processed_targets::resolve_deps_for(
+    common::abstract_target const *const at) {
+  if (at == nullptr) {
+    throw std::runtime_error{
+        "Internal error: no target provided to resolve_deps_for()"};
   }
 
   auto const iter{target_resolved_deps.find(at)};
@@ -74,62 +80,56 @@ bool processed_targets::resolve_deps(common::abstract_target const *const at) {
         std::string{at->name}};
   }
 
-  if (iter->second.resolved) {
+  auto &res_deps{iter->second};
+
+  if (res_deps.resolved) {
     return true;
   }
 
   bool all_deps_resolved{true};
   std::vector<common::abstract_target const *> deps;
+  deps.reserve(at->num_deps);
 
-  { // the heavy lifting ...:
-    deps.reserve(at->num_deps);
+  // TODO separate method
+  auto const try_resolve_dep =
+      [&](std::string_view const candidate_resolved_name) {
+        auto const iter{targets_by_resolved_name.find(candidate_resolved_name)};
 
-    auto const at_proj_name{project_of_target.at(at)->name};
+        if (iter != targets_by_resolved_name.cend()) {
+          deps.emplace_back(iter->second);
+          target_resolved_deps.at(iter->second).dep_of.emplace(at);
+          return true;
+        }
+        return false;
+      };
 
-    auto const at_parent_path{
-        std::filesystem::path{at->loc->filename}.parent_path().string()};
+  auto const at_proj_name{project_of_target.at(at)->name};
 
-    for (std::size_t idx{0}; idx < at->num_deps; ++idx) {
-      std::string_view const dep{at->raw_deps[idx]};
+  for (std::size_t idx{0}; all_deps_resolved && (idx < at->num_deps); ++idx) {
+    std::string_view const dep{at->raw_deps[idx]};
 
-      // TODO simplify
-      auto const try_resolve_dep =
-          [&](std::string_view const candidate_resolved_name) {
-            auto const iter{
-                targets_by_resolved_name.find(candidate_resolved_name)};
-
-            if (iter != targets_by_resolved_name.cend()) {
-              deps.emplace_back(iter->second);
-              target_resolved_deps[iter->second].dep_of.emplace(at);
-              return true;
-            }
-            return false;
-          };
-
-      // TODO simplify
-      if (try_resolve_dep(dep)) {
-        // unchanged name -> phony target from other project
-      } else if (try_resolve_dep(
-                     common::phony_target::resolve_name(at_proj_name, dep))) {
-        // phony target from this project
-      } else if (dep.at(0) == '/') {
-        // absolute path - don't alter it
-        // TODO is it OK not to update `deps` and
-        // `target_resolved_deps[...].dep_of`?!
-      } else if (try_resolve_dep(
-                     common::file_target::resolve_path(at->loc->filename, dep)
-                         .string())) {
+    // TODO simplify it even more
+    // using short-circuiting with `OR` to avoid unnecessary checks:
+    all_deps_resolved =
+        // unchanged name -> (probably) phony target from other project:
+        try_resolve_dep(dep)
+        // phony target from this project:
+        ||
+        try_resolve_dep(common::phony_target::resolve_name(at_proj_name, dep))
+        // absolute path - don't alter it:
+        || (dep.at(0) == '/') // TODO is it OK not to update `deps` and
+                              // `target_resolved_deps[...].dep_of`?!
         // file target from this project - resolved path
-      } else {
-        all_deps_resolved = false;
-      }
-    }
+        ||
+        try_resolve_dep(
+            common::file_target::resolve_path(at->loc->filename, dep).string());
   }
 
   if (all_deps_resolved) {
     --unresolved;
 
-    iter->second.deps = std::move(deps);
+    res_deps.resolved = true;
+    res_deps.deps = std::move(deps);
   }
 
   return all_deps_resolved;

@@ -68,11 +68,10 @@ struct BUILD_CXX_DLL_EXPORT processed_targets {
                      std::vector<std::unique_ptr<common::abstract_target>>>
       intermediate_targets;
 
-  // resolve as many deps as possible for either provided `at` or for all
-  // "known" by default;
-  // returned value indicates whether all is resolved
-  [[nodiscard]] bool
-  resolve_deps(common::abstract_target const *const at = nullptr);
+  // resolve as many deps as possible; returned value indicates whether all is
+  // resolved:
+  [[nodiscard]] bool resolve_deps_for_all();
+  [[nodiscard]] bool resolve_deps_for(common::abstract_target const *const at);
 
   // TODO remove later ...
   [[nodiscard]] auto const &get_target_resolved_deps() const {

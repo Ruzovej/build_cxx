@@ -79,7 +79,7 @@ void process_input(int const n_jobs, std::vector<char const *> const &targets,
 
     pt.process_project(proj);
 
-    all_resolved = pt.resolve_deps();
+    all_resolved = pt.resolve_deps_for_all();
 
     std::cout << "Project '" << proj->name << "' version '" << proj->version
               << "' processed; so far, " << (all_resolved ? "" : "NOT ")

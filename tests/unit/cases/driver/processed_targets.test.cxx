@@ -107,7 +107,7 @@ void test_impl(driver::scheduler &sched) {
       // REQUIRE_EQ(pt.unresolved, 0); // private ...
 
       bool all_resolved{false};
-      REQUIRE_NOTHROW(all_resolved = driver_pt.resolve_deps());
+      REQUIRE_NOTHROW(all_resolved = driver_pt.resolve_deps_for_all());
       REQUIRE(all_resolved);
 
       REQUIRE_NOTHROW(driver_pt.build_all_targets(false));
@@ -150,7 +150,7 @@ void test_impl(driver::scheduler &sched) {
         // REQUIRE_EQ(pt.unresolved, 2); // private ...
 
         bool all_resolved{false};
-        REQUIRE_NOTHROW(all_resolved = driver_pt.resolve_deps());
+        REQUIRE_NOTHROW(all_resolved = driver_pt.resolve_deps_for_all());
         REQUIRE(all_resolved);
 
         REQUIRE(built_targets.empty());
@@ -179,7 +179,7 @@ void test_impl(driver::scheduler &sched) {
         REQUIRE_NOTHROW(driver_pt.process_project(&test_project2));
 
         bool all_resolved{false};
-        REQUIRE_NOTHROW(all_resolved = driver_pt.resolve_deps());
+        REQUIRE_NOTHROW(all_resolved = driver_pt.resolve_deps_for_all());
         REQUIRE(all_resolved);
 
         REQUIRE(built_targets.empty());
@@ -235,7 +235,7 @@ void test_impl(driver::scheduler &sched) {
         REQUIRE_NOTHROW(driver_pt.process_project(&test_project1));
 
         bool all_resolved{false};
-        REQUIRE_NOTHROW(all_resolved = driver_pt.resolve_deps());
+        REQUIRE_NOTHROW(all_resolved = driver_pt.resolve_deps_for_all());
         REQUIRE(all_resolved);
 
         SUBCASE("all up-to date") {
@@ -333,7 +333,7 @@ void test_impl(driver::scheduler &sched) {
         REQUIRE_NOTHROW(driver_pt.process_project(&test_project1));
 
         bool all_resolved{false};
-        REQUIRE_NOTHROW(all_resolved = driver_pt.resolve_deps());
+        REQUIRE_NOTHROW(all_resolved = driver_pt.resolve_deps_for_all());
         REQUIRE(all_resolved);
 
         REQUIRE(built_targets.empty());
@@ -542,7 +542,7 @@ void test_impl(driver::scheduler &sched) {
         REQUIRE_NOTHROW(driver_pt.process_project(&test_project1));
 
         bool all_resolved{false};
-        REQUIRE_NOTHROW(all_resolved = driver_pt.resolve_deps());
+        REQUIRE_NOTHROW(all_resolved = driver_pt.resolve_deps_for_all());
         REQUIRE(all_resolved);
 
         REQUIRE(built_targets.empty());
@@ -647,7 +647,7 @@ void test_impl(driver::scheduler &sched) {
       REQUIRE_NOTHROW(driver_pt.process_project(&test_project1));
 
       bool all_resolved{false};
-      REQUIRE_NOTHROW(all_resolved = driver_pt.resolve_deps());
+      REQUIRE_NOTHROW(all_resolved = driver_pt.resolve_deps_for_all());
       REQUIRE(all_resolved);
 
       REQUIRE(built_targets.empty());
