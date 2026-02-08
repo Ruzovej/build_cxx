@@ -21,6 +21,7 @@
 
 #include <memory>
 #include <mutex>
+#include <random>
 #include <unordered_set>
 #include <vector>
 
@@ -40,7 +41,10 @@ struct mock_project : common::project {
                         std::string_view const version,
                         std::string_view const root_file) noexcept
       : common::project{name, version, root_file}, mtx{aMtx},
-        built_targets{aBuilt_targets}, fake_fs{aFake_fs} {}
+        built_targets{aBuilt_targets}, fake_fs{aFake_fs},
+        gen{std::random_device{}()} {
+    // force 2 lines
+  }
 
   [[nodiscard]] mock_file_target *
   add_mock_file_target(std::string_view const fake_loc_filename,
@@ -74,6 +78,9 @@ private:
     std::unique_ptr<common::abstract_target> tgt;
   };
 
+  std::mt19937 gen;
+  std::uniform_int_distribution<int> dist{1, 10};
+
   // `unique_ptr` is needed to prevent dangling pointers to `location` member
   // ... kind of a hackish solution, good enough for now:
   std::vector<std::unique_ptr<target_holder>> fake_tgts;
@@ -99,6 +106,7 @@ private:
 
     uptr->mtx = mtx;
     uptr->built_targets = built_targets;
+    uptr->sleep_ms = dist(gen);
 
     auto *const ret{uptr.get()};
 

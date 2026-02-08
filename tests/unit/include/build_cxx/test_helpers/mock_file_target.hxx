@@ -19,7 +19,10 @@
 
 #pragma once
 
+#include <chrono>
+#include <iostream>
 #include <mutex>
+#include <thread>
 
 #include "build_cxx/common/file_target.hxx"
 #include "build_cxx/test_helpers/built_targets_t.hxx"
@@ -31,6 +34,7 @@ struct mock_file_target : common::file_target {
 
   std::mutex *mtx{nullptr};
   built_targets_t *built_targets{nullptr};
+  int sleep_ms{0};
 
   void set_read_only(bool const aRead_only) {
     // force 2 lines
@@ -46,14 +50,22 @@ struct mock_file_target : common::file_target {
       const override {
     static_cast<void>(resolved_deps);
 
+    std::clog << std::this_thread::get_id() << ": start building "
+              << resolved_name << std::endl;
+
+    std::this_thread::sleep_for(std::chrono::milliseconds{sleep_ms});
+
     if (!simulated_read_only) {
       // why doesn't `tsan` report failure when not locking this?!
-      std::lock_guard lck{*mtx};
+      // std::lock_guard lck{*mtx};
       if (built_targets) {
         built_targets->emplace(this);
       }
       fs->touch(resolved_path);
     }
+
+    std::clog << std::this_thread::get_id() << ": finished building "
+              << resolved_name << std::endl;
   }
 
   void update_status(common::target_status const newest_dep_status) override {
