@@ -55,17 +55,14 @@ void processed_targets::process_project(common::project const *const proj) {
 
 bool processed_targets::resolve_deps_for_all() {
   if (unresolved != 0) {
-    for (auto &[key, val] : target_resolved_deps) {
-      if (!val.resolved) {
-        // decrements `unresolved` in case of "success":
-        static_cast<void>(resolve_deps_for(key));
-      }
+    for (auto &[at, res_deps] : target_resolved_deps) {
+      // decrements `unresolved` in case of "success":
+      static_cast<void>(resolve_deps_for_impl(at, res_deps));
     }
   }
   return unresolved == 0;
 }
 
-// TODO split into multiple methods:
 bool processed_targets::resolve_deps_for(
     common::abstract_target const *const at) {
   if (at == nullptr) {
@@ -80,59 +77,7 @@ bool processed_targets::resolve_deps_for(
         std::string{at->name}};
   }
 
-  auto &res_deps{iter->second};
-
-  if (res_deps.resolved) {
-    return true;
-  }
-
-  bool all_deps_resolved{true};
-  std::vector<common::abstract_target const *> deps;
-  deps.reserve(at->num_deps);
-
-  // TODO separate method
-  auto const try_resolve_dep =
-      [&](std::string_view const candidate_resolved_name) {
-        auto const iter{targets_by_resolved_name.find(candidate_resolved_name)};
-
-        if (iter != targets_by_resolved_name.cend()) {
-          deps.emplace_back(iter->second);
-          target_resolved_deps.at(iter->second).dep_of.emplace(at);
-          return true;
-        }
-        return false;
-      };
-
-  auto const at_proj_name{project_of_target.at(at)->name};
-
-  for (std::size_t idx{0}; all_deps_resolved && (idx < at->num_deps); ++idx) {
-    std::string_view const dep{at->raw_deps[idx]};
-
-    // TODO simplify it even more
-    // using short-circuiting with `OR` to avoid unnecessary checks:
-    all_deps_resolved =
-        // unchanged name -> (probably) phony target from other project:
-        try_resolve_dep(dep)
-        // phony target from this project:
-        ||
-        try_resolve_dep(common::phony_target::resolve_name(at_proj_name, dep))
-        // absolute path - don't alter it:
-        || (dep.at(0) == '/') // TODO is it OK not to update `deps` and
-                              // `target_resolved_deps[...].dep_of`?!
-        // file target from this project - resolved path
-        ||
-        try_resolve_dep(
-            common::file_target::resolve_path(at->loc->filename, dep).string());
-  }
-
-  if (all_deps_resolved) {
-    --unresolved;
-
-    res_deps.resolved = true;
-    res_deps.deps = std::move(deps);
-  }
-
-  return all_deps_resolved;
+  return resolve_deps_for_impl(at, iter->second);
 }
 
 void processed_targets::build_target(std::string_view const tgt,
@@ -186,6 +131,48 @@ void processed_targets::build_all_targets([[maybe_unused]] bool const verbose) {
   }
 
   build_targets_impl(all_tgts);
+}
+
+common::abstract_target const *processed_targets::try_to_determine_target(
+    std::string_view const dep_raw_name,
+    std::string_view const relative_to_project,
+    std::string_view const relative_to_file) const {
+  if (auto *const dep{find_target_by_resolved_name(dep_raw_name)};
+      dep != nullptr) {
+    // unchanged name -> probably phony target (from other project?), or
+    // absolute path:
+    return dep;
+  }
+
+  if (auto *const dep{
+          find_target_by_resolved_name(common::phony_target::resolve_name(
+              relative_to_project, dep_raw_name))};
+      dep != nullptr) {
+    // phony target from this project:
+    return dep;
+  }
+
+  if (auto *const dep{find_target_by_resolved_name(
+          common::file_target::resolve_path(relative_to_file, dep_raw_name)
+              .string())};
+      dep != nullptr) {
+    // file target from this project:
+    return dep;
+  }
+
+  // not found ... abort the search:
+  return nullptr;
+}
+
+common::abstract_target const *processed_targets::find_target_by_resolved_name(
+    std::string_view const tgt_resolved_name) const {
+  auto const iter{targets_by_resolved_name.find(tgt_resolved_name)};
+
+  if (iter != targets_by_resolved_name.cend()) {
+    return iter->second;
+  }
+
+  return nullptr;
 }
 
 // TODO split into multiple methods:
@@ -270,6 +257,37 @@ void processed_targets::build_targets_impl(
   if (!unsatisfied_deps.empty()) {
     throw std::runtime_error{"Build order of targets contains a cycle"};
   }
+}
+
+bool processed_targets::resolve_deps_for_impl(
+    common::abstract_target const *const at, resolved_deps &res_deps) {
+  if (res_deps.resolved) {
+    return true;
+  }
+
+  res_deps.deps.reserve(at->num_deps);
+
+  auto const at_proj_name{project_of_target.at(at)->name};
+
+  for (std::size_t idx{0}; idx < at->num_deps; ++idx) {
+    auto *const depends_on_tgt{try_to_determine_target(
+        at->raw_deps[idx], at_proj_name, at->loc->filename)};
+
+    if (depends_on_tgt == nullptr) {
+      // prevent having there duplicates if it succceeds some next time:
+      res_deps.deps.clear();
+      return false;
+    }
+
+    // properly link them together:
+    res_deps.deps.emplace_back(depends_on_tgt);
+    target_resolved_deps.at(depends_on_tgt).dep_of.emplace(at);
+  }
+
+  res_deps.resolved = true;
+  --unresolved;
+
+  return true;
 }
 
 } // namespace build_cxx::driver

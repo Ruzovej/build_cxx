@@ -96,6 +96,13 @@ struct BUILD_CXX_DLL_EXPORT processed_targets {
   void build_all_targets(bool const verbose);
 
 private:
+  [[nodiscard]] common::abstract_target const *
+  try_to_determine_target(std::string_view const dep_raw_name,
+                          std::string_view const relative_to_project,
+                          std::string_view const relative_to_file) const;
+  [[nodiscard]] common::abstract_target const *
+  find_target_by_resolved_name(std::string_view const tgt_resolved_name) const;
+
   void build_targets_impl(std::vector<common::abstract_target const *> &tgts);
 
   // not owning any pointer(s):
@@ -104,10 +111,15 @@ private:
   struct resolved_deps {
     bool resolved{false};
     long long already_built{0};
-    // not owning any pointer(s):
+    // what "this" needs; not owning any pointer(s):
     std::vector<common::abstract_target const *> deps;
+    // what needs "this"; not owning any pointer(s):
     std::unordered_set<common::abstract_target const *> dep_of;
   };
+
+  [[nodiscard]] bool
+  resolve_deps_for_impl(common::abstract_target const *const at,
+                        resolved_deps &res_deps);
 
   // not owning any pointer(s):
   std::unordered_map<common::abstract_target const *, resolved_deps>

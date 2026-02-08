@@ -521,7 +521,7 @@ void test_impl(driver::scheduler &sched) {
         obj_file_deps.reserve(num_files);
 
         for (int i{0}; i < num_files; ++i) {
-          ro_file_names.emplace_back("src/ro_file" + std::to_string(i) +
+          ro_file_names.emplace_back("src/ro_file_" + std::to_string(i) +
                                      ".cxx");
           obj_file_names.emplace_back("bin/obj_files/" + std::to_string(i) +
                                       ".obj");
