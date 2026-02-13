@@ -105,6 +105,7 @@ private:
 
   void build_targets_impl(std::vector<common::abstract_target const *> &tgts);
 
+  // this is for unit-test specific situations -> TODO consider removing it
   // not owning any pointer(s):
   std::unordered_set<common::abstract_target const *> built_targets;
 

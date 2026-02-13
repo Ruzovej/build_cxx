@@ -21,7 +21,6 @@
 
 #include <filesystem>
 #include <mutex>
-#include <optional>
 #include <unordered_map>
 
 #include "build_cxx/common/fs_proxy.hxx"
@@ -81,11 +80,12 @@ private:
     // std::string content; // TODO ...?!
   };
 
-  [[nodiscard]] std::optional<std::lock_guard<std::mutex>> lock() const {
+  [[nodiscard]] std::unique_lock<std::mutex> lock() const {
     if (mtx) {
-      return std::optional<std::lock_guard<std::mutex>>{*mtx};
+      return std::unique_lock<std::mutex>{*mtx};
     }
-    return std::nullopt;
+
+    return {};
   }
 
   std::mutex *mtx{nullptr};

@@ -67,6 +67,8 @@ common::abstract_target const *scheduler::get_built_target() {
     done.pop();
   }
 
+  --n_handled_targets;
+
   if (res.tgt == nullptr) {
     throw std::runtime_error{
         "Serious error - worker failed to provide (finished) target"};
@@ -74,8 +76,6 @@ common::abstract_target const *scheduler::get_built_target() {
     throw std::runtime_error{"Failed to build target '" +
                              res.tgt->resolved_name + '\''};
   }
-
-  --n_handled_targets;
 
   return res.tgt;
 }
@@ -99,7 +99,7 @@ void scheduler::spawn_worker_threads() {
             });
 
             if (!running) {
-              return;
+              break;
             }
 
             task = todo.front();
