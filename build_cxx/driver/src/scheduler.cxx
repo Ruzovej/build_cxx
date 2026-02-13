@@ -19,7 +19,6 @@
 
 #include "build_cxx/driver/scheduler.hxx"
 
-#include <algorithm>
 #include <iostream>
 #include <stdexcept>
 
@@ -39,38 +38,46 @@ void scheduler::schedule_build(
     common::abstract_target *const tgt,
     std::vector<common::abstract_target const *> const *const deps) {
   ++n_handled_targets;
+
   {
     std::lock_guard lck{mtx_todo};
     todo.push({tgt, deps});
   }
+
   cv_todo.notify_one();
 }
 
-common::abstract_target const *
-scheduler::get_built_target(bool const blocking) {
+common::abstract_target const *scheduler::get_built_target() {
   if (n_handled_targets == 0) {
-    // TODO maybe rather throw exception, so user learns not to call it in this
-    // case - which can be checked, etc.:
-    return nullptr;
+    throw std::runtime_error{
+        "Workers are idle, without any job to complete nor hand over"};
   }
 
-  std::unique_lock lck{mtx_done};
+  build_result res;
 
-  if (blocking && done.empty()) {
+  {
+    std::unique_lock lck{mtx_done};
+
     cv_done.wait(lck, [this]() {
       // force 2 lines
       return !done.empty();
     });
-  }
 
-  if (!done.empty()) {
-    auto *const res{done.front()};
+    res = done.front();
     done.pop();
-    --n_handled_targets;
-    return res;
   }
 
-  return nullptr;
+  if (res.tgt == nullptr) {
+    throw std::runtime_error{
+        "Serious error - worker failed to provide (finished) target"};
+  } else if (res.success == false) {
+    throw std::runtime_error{"Failed to build target '" +
+                             res.tgt->resolved_name + '\''};
+  }
+
+  --n_handled_targets;
+
+  return res.tgt;
 }
 
 void scheduler::spawn_worker_threads() {
@@ -79,8 +86,11 @@ void scheduler::spawn_worker_threads() {
   for (int idx{0}; idx < n_workers; ++idx) {
     workers.emplace_back([this]() {
       while (true) {
-        try { // TODO improve exception handling
+        build_result res;
+
+        try {
           build_request task;
+
           {
             std::unique_lock lck{mtx_todo};
             cv_todo.wait(lck, [&]() {
@@ -96,18 +106,23 @@ void scheduler::spawn_worker_threads() {
             todo.pop();
           }
 
+          res.tgt = task.tgt;
+
           task.tgt->build(*task.deps);
 
-          {
-            std::lock_guard lck{mtx_done};
-            done.push(task.tgt);
-          }
-          cv_done.notify_one();
+          res.success = true;
         } catch (std::exception const &e) {
           std::cerr << "Error in worker thread: " << e.what() << '\n';
         } catch (...) {
-          std::cerr << "Unknown error in worker thread" << '\n';
+          std::cerr << "Unknown error in worker thread\n";
         }
+
+        {
+          std::lock_guard lck{mtx_done};
+          done.push(res);
+        }
+
+        cv_done.notify_one();
       }
     });
   }
@@ -118,6 +133,7 @@ void scheduler::stop_worker_threads() {
     std::lock_guard lck{mtx_todo};
     running = false;
   }
+
   cv_todo.notify_all();
 
   for (auto &worker : workers) {

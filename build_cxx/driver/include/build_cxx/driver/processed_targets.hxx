@@ -93,7 +93,7 @@ struct BUILD_CXX_DLL_EXPORT processed_targets {
                      bool const verbose);
   void build_targets(std::vector<common::abstract_target const *> &tgts,
                      bool const verbose);
-  void build_all_targets(bool const verbose);
+  void build_all(bool const verbose);
 
 private:
   [[nodiscard]] common::abstract_target const *

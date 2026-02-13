@@ -51,8 +51,7 @@ struct BUILD_CXX_DLL_EXPORT scheduler { // TODO should be BUILD_CXX_DLL_HIDE,
     return n_handled_targets;
   }
 
-  [[nodiscard]] common::abstract_target const *
-  get_built_target(bool const blocking = true);
+  [[nodiscard]] common::abstract_target const *get_built_target();
 
 private:
   int n_workers;
@@ -70,9 +69,14 @@ private:
   // TODO later change this to priority_queue (with customizable ordering, etc.)
   std::queue<build_request> todo;
 
+  struct build_result {
+    common::abstract_target const *tgt{nullptr};
+    bool success{false};
+  };
+
   std::mutex mtx_done;
   std::condition_variable cv_done;
-  std::queue<common::abstract_target const *> done;
+  std::queue<build_result> done;
 
   void spawn_worker_threads();
   void stop_worker_threads();

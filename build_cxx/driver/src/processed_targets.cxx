@@ -119,7 +119,7 @@ void processed_targets::build_targets(
   build_targets_impl(tgts);
 }
 
-void processed_targets::build_all_targets([[maybe_unused]] bool const verbose) {
+void processed_targets::build_all([[maybe_unused]] bool const verbose) {
   std::vector<common::abstract_target const *> all_tgts{};
 
   for (auto const &[_, tgts] : targets_by_project) {
@@ -178,6 +178,11 @@ common::abstract_target const *processed_targets::find_target_by_resolved_name(
 // TODO split into multiple methods:
 void processed_targets::build_targets_impl(
     std::vector<common::abstract_target const *> &tgts) {
+  if (tgts.empty()) {
+    // TODO throw or log error/warning/info that nothing to build was provided?!
+    return;
+  }
+
   std::unordered_set<common::abstract_target const *> unsatisfied_deps;
   std::unordered_set<common::abstract_target const *> satisfied_deps;
 
@@ -205,6 +210,18 @@ void processed_targets::build_targets_impl(
     }
   }
 
+  if (satisfied_deps.empty()) {
+    if (!unsatisfied_deps.empty()) {
+      throw std::runtime_error{"Build order of targets contains a cycle - no "
+                               "target with satisfied deps is available"};
+    } else {
+      // nothing to build - all has been built in prev rounds, etc.; this is
+      // very unit-test specific situation - TODO rework it & don't utilize it
+      // this way in unit tests?!
+      return;
+    }
+  }
+
   do {
     while (!satisfied_deps.empty()) {
       auto it{satisfied_deps.begin()};
@@ -219,17 +236,12 @@ void processed_targets::build_targets_impl(
                              &tgt_resolved_deps.deps);
       } else {
         // but this way?!
-        auto *mtgt{targets_by_resolved_name.at(tgt->resolved_name)};
+        auto *const mtgt{targets_by_resolved_name.at(tgt->resolved_name)};
         sched.schedule_build(mtgt, &tgt_resolved_deps.deps);
       }
     }
 
-    auto const *const built_tgt{sched.get_built_target(true)};
-
-    // TODO rework this so this nullptr check isn't needed here:
-    if (built_tgt == nullptr) {
-      continue;
-    }
+    auto const *const built_tgt{sched.get_built_target()};
 
     built_targets.emplace(built_tgt);
 
@@ -255,7 +267,8 @@ void processed_targets::build_targets_impl(
   } while ((sched.num_handled_targets() != 0) || (!satisfied_deps.empty()));
 
   if (!unsatisfied_deps.empty()) {
-    throw std::runtime_error{"Build order of targets contains a cycle"};
+    throw std::runtime_error{"Build order of targets contains a cycle - "
+                             "targets with unsatisfied deps remain"};
   }
 }
 
