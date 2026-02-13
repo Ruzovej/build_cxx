@@ -81,7 +81,7 @@ void test_impl(driver::scheduler &sched) {
   REQUIRE_EQ(sched.num_handled_targets(), 0);
 
   static std::string_view constexpr fake_root_file1{
-      "/fake/dir/project1.root.cxx"};
+      "/fake/dir_1/project1.root.cxx"};
 
   std::mutex mtx;
   test_helpers::built_targets_t built_targets;
@@ -116,7 +116,7 @@ void test_impl(driver::scheduler &sched) {
 
     SUBCASE("2 non-empty projects") {
       static std::string_view constexpr fake_root_file2{
-          "/fake/dir/project2.root.cxx"};
+          "/fake/dir2/project2.root.cxx"};
 
       test_helpers::mock_project test_project2{
           &mtx, &built_targets, nullptr, "dpttp2", "0.1.0", fake_root_file2};
