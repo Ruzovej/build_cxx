@@ -504,8 +504,8 @@ void test_impl(driver::scheduler &sched) {
 
       SUBCASE("Highly parallel build") {
         static int constexpr num_files = 100;
-
-        // TODO initialize all of this only once ...
+        
+        // TODO initialize all of this only once ...:
         std::vector<test_helpers::mock_file_target *> ro_files;
         ro_files.reserve(num_files);
 
@@ -660,7 +660,7 @@ void test_impl(driver::scheduler &sched) {
       built_targets.clear();
 
       REQUIRE_NOTHROW(driver_pt.build_all());
-      // all already up to date:
+      // all is already up to date:
       REQUIRE_EQ(built_targets.size(), 0);
     }
 
