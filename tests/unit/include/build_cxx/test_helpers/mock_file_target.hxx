@@ -19,6 +19,10 @@
 
 #pragma once
 
+//#include <iostream>
+#include <mutex>
+//#include <thread>
+
 #include "build_cxx/common/file_target.hxx"
 #include "build_cxx/test_helpers/built_targets_t.hxx"
 
@@ -27,6 +31,7 @@ namespace build_cxx::test_helpers {
 struct mock_file_target : common::file_target {
   using file_target::file_target;
 
+  std::mutex *mtx{nullptr};
   built_targets_t *built_targets{nullptr};
 
   void set_read_only(bool const aRead_only) {
@@ -40,15 +45,28 @@ struct mock_file_target : common::file_target {
   }
 
   void recipe(std::vector<common::abstract_target const *> const &resolved_deps)
-      override {
+      const override {
     static_cast<void>(resolved_deps);
+
+    //{
+    //  std::lock_guard lck{*mtx};
+    //  std::cout << std::this_thread::get_id() << ": start building "
+    //            << resolved_name << std::endl;
+    //}
 
     if (!simulated_read_only) {
       if (built_targets) {
+        std::lock_guard lck{*mtx};
         built_targets->emplace(this);
       }
       fs->touch(resolved_path);
     }
+
+    //{
+    //  std::lock_guard lck{*mtx};
+    //  std::cout << std::this_thread::get_id() << ": finished building "
+    //            << resolved_name << std::endl;
+    //}
   }
 
   void update_status(common::target_status const newest_dep_status) override {

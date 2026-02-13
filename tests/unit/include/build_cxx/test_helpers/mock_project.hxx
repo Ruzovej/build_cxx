@@ -20,6 +20,7 @@
 #pragma once
 
 #include <memory>
+#include <mutex>
 #include <unordered_set>
 #include <vector>
 
@@ -33,12 +34,15 @@
 namespace build_cxx::test_helpers {
 
 struct mock_project : common::project {
-  explicit mock_project(built_targets_t *const aBuilt_targets,
+  explicit mock_project(std::mutex *const aMtx,
+                        built_targets_t *const aBuilt_targets,
                         mock_fs *const aFake_fs, std::string_view const name,
                         std::string_view const version,
                         std::string_view const root_file) noexcept
-      : common::project{name, version, root_file},
-        built_targets{aBuilt_targets}, fake_fs{aFake_fs} {}
+      : common::project{name, version, root_file}, mtx{aMtx},
+        built_targets{aBuilt_targets}, fake_fs{aFake_fs} {
+    // force 2 lines
+  }
 
   [[nodiscard]] mock_file_target *
   add_mock_file_target(std::string_view const fake_loc_filename,
@@ -61,6 +65,7 @@ struct mock_project : common::project {
                                               tgt_name, std::move(deps));
   }
 
+  std::mutex *mtx{nullptr};
   built_targets_t *built_targets{nullptr};
   mock_fs *fake_fs{nullptr};
 
@@ -94,6 +99,7 @@ private:
 
     add_target(uptr.get());
 
+    uptr->mtx = mtx;
     uptr->built_targets = built_targets;
 
     auto *const ret{uptr.get()};

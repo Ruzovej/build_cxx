@@ -33,10 +33,11 @@ TEST_CASE("common::file_target") {
   static std::string_view constexpr fake_filename{
       "/fake/dir/file_target.test.cxx"};
 
+  std::mutex mtx;
   test_helpers::built_targets_t built_targets;
   test_helpers::mock_fs fake_fs;
-  test_helpers::mock_project test_project{&built_targets, &fake_fs, "cfttp",
-                                          "0.1.0", fake_filename};
+  test_helpers::mock_project test_project{
+      &mtx, &built_targets, &fake_fs, "cfttp", "0.1.0", fake_filename};
 
   SUBCASE("relative path") {
     auto *const ft{test_project.add_mock_file_target(fake_filename, true, "tft",

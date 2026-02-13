@@ -55,8 +55,8 @@ protected:
 struct BUILD_CXX_DLL_EXPORT read_only_file_target : file_target {
   using file_target::file_target;
 
-  void
-  recipe(std::vector<abstract_target const *> const &resolved_deps) override {
+  void recipe(std::vector<abstract_target const *> const &resolved_deps)
+      const override {
     // read-only -> nothing to do ...
     static_cast<void>(resolved_deps);
   }

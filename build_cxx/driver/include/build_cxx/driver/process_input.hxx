@@ -27,7 +27,7 @@ namespace build_cxx::driver {
 
 // TODO other args, ...
 BUILD_CXX_DLL_EXPORT void
-process_input(std::vector<char const *> const &targets,
+process_input(int const n_jobs, std::vector<char const *> const &targets,
               std::vector<char const *> const &input_files);
 
 } // namespace build_cxx::driver

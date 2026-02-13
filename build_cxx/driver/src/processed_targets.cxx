@@ -19,18 +19,20 @@
 
 #include "build_cxx/driver/processed_targets.hxx"
 
-#include <algorithm>
-#include <filesystem>
-#include <iostream>
-#include <string_view>
+#include <stdexcept>
 #include <utility>
 
 #include <build_cxx/common/file_target.hxx>
 #include <build_cxx/common/phony_target.hxx>
 
-#include "build_cxx/driver/dlopen_scoped.hxx"
+#include "build_cxx/driver/scheduler.hxx"
 
 namespace build_cxx::driver {
+
+processed_targets::processed_targets(scheduler &aSched) noexcept
+    : sched{aSched} {
+  // force 2 lines
+}
 
 void processed_targets::process_project(common::project const *const proj) {
   // TODO checks that it's not already processed, etc.
@@ -52,17 +54,21 @@ void processed_targets::process_project(common::project const *const proj) {
   }
 }
 
-bool processed_targets::resolve_deps(common::abstract_target const *const at) {
-  if (at == nullptr) {
-    if (unresolved != 0) {
-      for (auto &[key, val] : target_resolved_deps) {
-        if (!val.resolved) {
-          // internally decrements by one `unresolved` in case of "success"
-          val.resolved = resolve_deps(key);
-        }
-      }
+bool processed_targets::resolve_deps_for_all() {
+  if (unresolved != 0) {
+    for (auto &[at, res_deps] : target_resolved_deps) {
+      // decrements `unresolved` in case of "success":
+      static_cast<void>(resolve_deps_for_impl(at, res_deps));
     }
-    return unresolved == 0;
+  }
+  return unresolved == 0;
+}
+
+bool processed_targets::resolve_deps_for(
+    common::abstract_target const *const at) {
+  if (at == nullptr) {
+    throw std::runtime_error{
+        "Internal error: no target provided to resolve_deps_for()"};
   }
 
   auto const iter{target_resolved_deps.find(at)};
@@ -72,125 +78,245 @@ bool processed_targets::resolve_deps(common::abstract_target const *const at) {
         std::string{at->name}};
   }
 
-  if (iter->second.resolved) {
-    return true;
+  return resolve_deps_for_impl(at, iter->second);
+}
+
+void processed_targets::build_target(std::string_view const tgt,
+                                     bool const verbose) {
+  std::vector<std::string_view> tgts{tgt};
+
+  build_targets(tgts, verbose);
+}
+
+void processed_targets::build_target(common::abstract_target const *const tgt,
+                                     [[maybe_unused]] bool const verbose) {
+  build_targets({tgt}, verbose);
+}
+
+void processed_targets::build_targets(std::vector<std::string_view> const &tgts,
+                                      bool const verbose) {
+  std::vector<common::abstract_target const *> resolved_tgts;
+  resolved_tgts.reserve(tgts.size());
+
+  for (auto const &tgt : tgts) {
+    auto const iter{targets_by_resolved_name.find(tgt)};
+
+    if (iter == targets_by_resolved_name.cend()) {
+      throw std::runtime_error{"Requested target '" + std::string{tgt} +
+                               "' not found"};
+    }
+
+    resolved_tgts.emplace_back(iter->second);
   }
 
-  bool all_deps_resolved{true};
-  std::vector<common::abstract_target const *> deps;
+  build_targets(std::move(resolved_tgts), verbose);
+}
 
-  { // the heavy lifting ...:
-    deps.reserve(at->num_deps);
+void processed_targets::build_targets(
+    std::vector<common::abstract_target const *> &&tgts,
+    [[maybe_unused]] bool const verbose) {
+  build_targets_impl(std::move(tgts));
+}
 
-    auto const at_proj_name{project_of_target.at(at)->name};
+void processed_targets::build_all([[maybe_unused]] bool const verbose) {
+  std::vector<common::abstract_target const *> all_tgts;
 
-    auto const at_parent_path{
-        std::filesystem::path{at->loc->filename}.parent_path().string()};
-
-    for (std::size_t idx{0}; idx < at->num_deps; ++idx) {
-      std::string_view const dep{at->raw_deps[idx]};
-
-      // TODO simplify
-      auto const try_resolve_dep =
-          [&](std::string_view const candidate_resolved_name) {
-            auto const iter{
-                targets_by_resolved_name.find(candidate_resolved_name)};
-
-            if (iter != targets_by_resolved_name.cend()) {
-              deps.emplace_back(iter->second);
-              return true;
-            }
-            return false;
-          };
-
-      // TODO simplify
-      if (try_resolve_dep(dep)) {
-        // unchanged name -> phony target from other project
-      } else if (try_resolve_dep(
-                     common::phony_target::resolve_name(at_proj_name, dep))) {
-        // phony target from this project
-      } else if (dep.at(0) == '/') {
-        // absolute path - don't alter it
-      } else if (try_resolve_dep(
-                     common::file_target::resolve_path(at->loc->filename, dep)
-                         .string())) {
-        // file target from this project - resolved path
-      } else {
-        all_deps_resolved = false;
+  for (auto const &[_, tgts] : targets_by_project) {
+    for (auto *const tgt : tgts) {
+      if (tgt->include_in_all) {
+        all_tgts.emplace_back(tgt);
       }
     }
   }
 
-  if (all_deps_resolved) {
-    --unresolved;
+  build_targets_impl(std::move(all_tgts));
+}
+
+common::abstract_target const *processed_targets::try_to_determine_target(
+    std::string_view const dep_raw_name,
+    std::string_view const relative_to_project,
+    std::string_view const relative_to_file) const {
+  if (auto *const dep{find_target_by_resolved_name(dep_raw_name)};
+      dep != nullptr) {
+    // unchanged name -> probably phony target (from other project?), or
+    // absolute path:
+    return dep;
   }
 
-  iter->second.resolved = all_deps_resolved;
-  iter->second.deps = std::move(deps);
+  if (auto *const dep{
+          find_target_by_resolved_name(common::phony_target::resolve_name(
+              relative_to_project, dep_raw_name))};
+      dep != nullptr) {
+    // phony target from this project:
+    return dep;
+  }
 
-  return all_deps_resolved;
+  if (auto *const dep{find_target_by_resolved_name(
+          common::file_target::resolve_path(relative_to_file, dep_raw_name)
+              .string())};
+      dep != nullptr) {
+    // file target from this project:
+    return dep;
+  }
+
+  // not found ... abort the search:
+  return nullptr;
 }
 
-void processed_targets::build_target(common::abstract_target *const tgt,
-                                     bool const verbose) {
-  std::string indent{};
-  build_target_impl(tgt, indent, verbose);
+common::abstract_target const *processed_targets::find_target_by_resolved_name(
+    std::string_view const tgt_resolved_name) const {
+  auto const iter{targets_by_resolved_name.find(tgt_resolved_name)};
+
+  if (iter != targets_by_resolved_name.cend()) {
+    return iter->second;
+  }
+
+  return nullptr;
 }
 
-void processed_targets::build_all_targets(bool const verbose) {
-  for (auto const [_, tgts] : targets_by_project) {
-    for (auto const tgt : tgts) {
-      build_target(tgt, verbose);
+processed_targets::categorized_targets
+processed_targets::get_all_dependencies_of(
+    std::vector<common::abstract_target const *> &&tgts) {
+  categorized_targets res;
+
+  while (!tgts.empty()) {
+    auto *const tgt{tgts.back()};
+    tgts.pop_back();
+
+    if (built_targets.find(tgt) != built_targets.cend()) {
+      continue;
+    }
+
+    auto const &resolved_deps{target_resolved_deps.at(tgt)};
+
+    if (!resolved_deps.resolved) {
+      throw std::runtime_error{"Trying to build target '" + tgt->resolved_name +
+                               "' with unresolved dependencies"};
+    }
+
+    if (resolved_deps.already_built == resolved_deps.deps.size()) {
+      res.buildable_targets.emplace(tgt);
+    } else {
+      res.blocked_targets.emplace(tgt);
+    }
+
+    for (auto *const dep : resolved_deps.deps) {
+      if ((res.blocked_targets.find(dep) == res.blocked_targets.cend()) &&
+          (res.buildable_targets.find(dep) == res.buildable_targets.cend())) {
+        tgts.emplace_back(dep);
+      }
     }
   }
+
+  return res;
 }
 
-void processed_targets::build_target_impl(common::abstract_target *const tgt,
-                                          std::string &indent,
-                                          bool const verbose) {
-  if (built_targets.find(tgt) != built_targets.cend()) {
+void processed_targets::schedule_target_build(
+    common::abstract_target const *const tgt) {
+  auto const &tgt_resolved_deps{target_resolved_deps.at(tgt)};
+
+  if constexpr (false) {
+    // TODO get rid of this `const_cast` ...:
+    sched.schedule_build(const_cast<common::abstract_target *>(tgt),
+                         &tgt_resolved_deps.deps);
+  } else {
+    // but this way?!
+    auto *const mtgt{targets_by_resolved_name.at(tgt->resolved_name)};
+    if (tgt != mtgt) {
+      throw std::runtime_error{
+          "Serious internal error - failure in 'const_cast' substitution"};
+    }
+    sched.schedule_build(mtgt, &tgt_resolved_deps.deps);
+  }
+}
+
+void processed_targets::build_targets_impl(
+    std::vector<common::abstract_target const *> &&tgts) {
+  if (tgts.empty()) {
+    // TODO
+    // - throw or log error/warning/info that nothing to build was provided?!
+    // - or maybe ditch this check, and adjust the ones below, etc., to this
+    // purpose
     return;
-  } else if (target_resolved_deps.find(tgt) == target_resolved_deps.cend()) {
-    throw std::runtime_error{
-        "Internal error: trying to build unknown target '" +
-        std::string{tgt->name} + "'"};
-  } else if (!target_resolved_deps.at(tgt).resolved) {
-    throw std::runtime_error{"Internal error: trying to build target '" +
-                             std::string{tgt->name} +
-                             "' with unresolved dependencies"};
   }
 
-  if (verbose) {
-    std::cout << indent << "Building target '" << tgt->resolved_name << "':\n";
-    indent += '\t';
+  auto to_build{get_all_dependencies_of(std::move(tgts))};
+
+  if (to_build.buildable_targets.empty() && to_build.blocked_targets.empty()) {
+    // nothing to build - all has been built in prev rounds, etc.; this is
+    // very unit-test specific situation - TODO rework it & don't invoke it
+    // this way in unit tests?!
+    return;
   }
 
-  // TODO remove later ...
-  // if (tgt->name == "build/src/CCC.cxx.o") {
-  //  [[maybe_unused]] volatile bool a = false;
-  //  a = true;
-  //}
+  for (auto *const tgt : to_build.buildable_targets) {
+    schedule_target_build(tgt);
+  }
+  // not necessary, but saves (probably little) memory, etc.:
+  to_build.buildable_targets.clear();
 
-  auto const &deps{target_resolved_deps.at(tgt).deps};
+  do {
+    auto *const built_tgt{sched.get_built_target()};
 
-  for (auto const dep : deps) {
-    // TODO get rid of this ugly `const_cast` ...
-    build_target_impl(const_cast<common::abstract_target *>(dep), indent,
-                      verbose);
+    built_targets.emplace(built_tgt);
+
+    auto const &built_tgt_resolved_deps{target_resolved_deps.at(built_tgt)};
+
+    for (auto *const consumer : built_tgt_resolved_deps.dep_of) {
+      auto &consumer_resolved_deps{target_resolved_deps.at(consumer)};
+
+      ++consumer_resolved_deps.already_built;
+
+      auto const iter{to_build.blocked_targets.find(consumer)};
+
+      if (iter == to_build.blocked_targets.cend()) {
+        // `consumer` wasn't requested or isn't needed
+        continue;
+      }
+
+      if (consumer_resolved_deps.already_built ==
+          consumer_resolved_deps.deps.size()) {
+        to_build.blocked_targets.erase(iter);
+        schedule_target_build(consumer);
+      }
+    }
+  } while (sched.num_handled_targets() != 0);
+
+  if (!to_build.blocked_targets.empty()) {
+    throw std::runtime_error{"Build order of targets contains a cycle - no "
+                             "target with satisfied deps is available"};
+  }
+}
+
+bool processed_targets::resolve_deps_for_impl(
+    common::abstract_target const *const at, resolved_deps &res_deps) {
+  if (res_deps.resolved) {
+    return true;
   }
 
-  if (verbose) {
-    indent.pop_back();
-    std::cout << indent << "-> ";
+  res_deps.deps.reserve(at->num_deps);
+
+  auto const at_proj_name{project_of_target.at(at)->name};
+
+  for (std::size_t idx{0}; idx < at->num_deps; ++idx) {
+    auto *const depends_on_tgt{try_to_determine_target(
+        at->raw_deps[idx], at_proj_name, at->loc->filename)};
+
+    if (depends_on_tgt == nullptr) {
+      // prevent having there duplicates if it succeeds some next time:
+      res_deps.deps.clear();
+      return false;
+    }
+
+    // properly link them together:
+    res_deps.deps.emplace_back(depends_on_tgt);
+    target_resolved_deps.at(depends_on_tgt).dep_of.emplace(at);
   }
 
-  tgt->build(deps);
+  res_deps.resolved = true;
+  --unresolved;
 
-  if (verbose) {
-    std::cout << '\n';
-  }
-
-  built_targets.emplace(tgt);
+  return true;
 }
 
 } // namespace build_cxx::driver

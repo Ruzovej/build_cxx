@@ -29,13 +29,15 @@
 #include <build_cxx/common/macros.h>
 #include <build_cxx/common/project.hxx>
 
+#include "build_cxx/driver/scheduler.hxx"
+
 namespace build_cxx::driver {
 
 // TODO should be BUILD_CXX_DLL_HIDE, but then unit tests won't compile ...
 struct BUILD_CXX_DLL_EXPORT processed_targets {
   // "loader" should ensure that projects are unique, and if same project is
   // required/loaded twice, it has exactly same version
-  processed_targets() = default;
+  explicit processed_targets(scheduler &aSched) noexcept;
 
   // TODO hide as many as possible behind getters, setters, etc.:
 
@@ -59,50 +61,85 @@ struct BUILD_CXX_DLL_EXPORT processed_targets {
       targets_by_resolved_name;
 
   // TODO use later, or delete ...
-  // (values) obviously owned here; targets implied by user-defined ones (e.g.
-  // translation unit: `foo.cxx` -> `foo.o` may have intermediate target
-  // `foo.cxx.pp` for preprocessed source):
+  // not owning "keys", "values" (obviously) yes; targets implied by
+  // user-defined ones (e.g. translation unit: `foo.cxx` -> `foo.o` may have
+  // intermediate target `foo.cxx.pp` for preprocessed source):
   std::unordered_map<common::abstract_target const *,
                      std::vector<std::unique_ptr<common::abstract_target>>>
       intermediate_targets;
 
-  // resolve as many deps as possible for either provided `at` or for all
-  // "known" by default;
-  // returned value indicates whether all is resolved
-  [[nodiscard]] bool
-  resolve_deps(common::abstract_target const *const at = nullptr);
+  // resolve as many deps as possible; returned value indicates whether all
+  // processed was resolved:
+  [[nodiscard]] bool resolve_deps_for_all();
+  [[nodiscard]] bool resolve_deps_for(common::abstract_target const *const at);
 
   // TODO remove later ...
   [[nodiscard]] auto const &get_target_resolved_deps() const {
     return target_resolved_deps;
   }
 
-  // TODO
-  // - parallelize
-  // - accept more targets at once
-  // - switch for turning on/off logging to `stdout`, etc.
-  void build_target(common::abstract_target *const tgt, bool const verbose);
+  // TODO - methods for detecting cycles, etc.:
+  // [[nodiscard]] bool
+  // build_tree_valid_for(const common::abstract_target *const root) const;
+  //
+  // [[nodiscard]] bool whole_build_tree_valid() const;
 
-  void build_all_targets(bool const verbose);
+  // TODO
+  // - utilize `verbose` = logging to `stdout`, etc.:
+  void build_target(std::string_view const tgt, bool const verbose = false);
+  void build_target(common::abstract_target const *const tgt,
+                    bool const verbose = false);
+  void build_targets(std::vector<std::string_view> const &tgts,
+                     bool const verbose = false);
+  void build_targets(std::vector<common::abstract_target const *> &&tgts,
+                     bool const verbose = false);
+  void build_all(bool const verbose = false);
 
 private:
-  void build_target_impl(common::abstract_target *const tgt,
-                         std::string &indent, bool const verbose);
+  [[nodiscard]] common::abstract_target const *
+  try_to_determine_target(std::string_view const dep_raw_name,
+                          std::string_view const relative_to_project,
+                          std::string_view const relative_to_file) const;
+  [[nodiscard]] common::abstract_target const *
+  find_target_by_resolved_name(std::string_view const tgt_resolved_name) const;
 
+  struct categorized_targets {
+    // not owning any pointer(s):
+    std::unordered_set<common::abstract_target const *> blocked_targets;
+    std::unordered_set<common::abstract_target const *> buildable_targets;
+  };
+
+  [[nodiscard]] categorized_targets
+  get_all_dependencies_of(std::vector<common::abstract_target const *> &&tgts);
+
+  void schedule_target_build(common::abstract_target const *const tgt);
+
+  void build_targets_impl(std::vector<common::abstract_target const *> &&tgts);
+
+  // this is for unit-test specific situations -> TODO consider removing it
   // not owning any pointer(s):
   std::unordered_set<common::abstract_target const *> built_targets;
 
   struct resolved_deps {
     bool resolved{false};
-    // not owning any pointer(s):
+    long long already_built{0};
+    // what "this" needs; not owning any pointer(s):
     std::vector<common::abstract_target const *> deps;
+    // what needs "this"; not owning any pointer(s):
+    std::unordered_set<common::abstract_target const *> dep_of;
   };
+
+  [[nodiscard]] bool
+  resolve_deps_for_impl(common::abstract_target const *const at,
+                        resolved_deps &res_deps);
 
   // not owning any pointer(s):
   std::unordered_map<common::abstract_target const *, resolved_deps>
       target_resolved_deps;
 
   long long unresolved{0};
+
+  scheduler &sched;
 
 private:
   processed_targets(processed_targets const &) = delete;

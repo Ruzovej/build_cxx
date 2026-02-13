@@ -33,10 +33,11 @@
 
 #include "build_cxx/driver/dlopen_scoped.hxx"
 #include "build_cxx/driver/processed_targets.hxx"
+#include "build_cxx/driver/scheduler.hxx"
 
 namespace build_cxx::driver {
 
-void process_input(std::vector<char const *> const &targets,
+void process_input(int const n_jobs, std::vector<char const *> const &targets,
                    std::vector<char const *> const &input_files) {
   std::vector<build_cxx::driver::dlopen_scoped> dl_handles;
   dl_handles.reserve(input_files.size());
@@ -45,9 +46,11 @@ void process_input(std::vector<char const *> const &targets,
     dl_handles.emplace_back(input_file);
   }
 
+  // TODO "hide" this & related checks in relevant "processed_targets"s method
   std::unordered_map<std::string_view, std::string_view> processed_projects;
 
-  processed_targets pt{};
+  scheduler sched{n_jobs};
+  processed_targets pt{sched};
 
   bool all_resolved{false};
 
@@ -76,7 +79,7 @@ void process_input(std::vector<char const *> const &targets,
 
     pt.process_project(proj);
 
-    all_resolved = pt.resolve_deps();
+    all_resolved = pt.resolve_deps_for_all();
 
     std::cout << "Project '" << proj->name << "' version '" << proj->version
               << "' processed; so far, " << (all_resolved ? "" : "NOT ")
@@ -106,16 +109,14 @@ void process_input(std::vector<char const *> const &targets,
       std::cout << '\n';
     }
   } else {
-    for (std::string_view const target : targets) {
-      auto const iter{pt.targets_by_resolved_name.find(target)};
+    std::vector<std::string_view> tgts;
+    tgts.reserve(targets.size());
 
-      if (iter == pt.targets_by_resolved_name.cend()) {
-        throw std::runtime_error{"Requested target '" + std::string{target} +
-                                 "' not found"};
-      }
-
-      pt.build_target(iter->second, true);
+    for (auto *const tgt : targets) {
+      tgts.emplace_back(tgt);
     }
+
+    pt.build_targets(tgts, true);
   }
 }
 

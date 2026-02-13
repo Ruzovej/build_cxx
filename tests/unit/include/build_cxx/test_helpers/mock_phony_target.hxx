@@ -19,7 +19,9 @@
 
 #pragma once
 
-#include <unordered_set>
+//#include <iostream>
+#include <mutex>
+//#include <thread>
 
 #include "build_cxx/common/phony_target.hxx"
 #include "build_cxx/test_helpers/built_targets_t.hxx"
@@ -29,15 +31,29 @@ namespace build_cxx::test_helpers {
 struct mock_phony_target : common::phony_target {
   using phony_target::phony_target;
 
+  std::mutex *mtx{nullptr};
   built_targets_t *built_targets{nullptr};
 
   void recipe(std::vector<common::abstract_target const *> const &resolved_deps)
-      override {
+      const override {
     static_cast<void>(resolved_deps);
 
+    //{
+    //  std::lock_guard lck{*mtx};
+    //  std::cout << std::this_thread::get_id() << ": start building "
+    //            << resolved_name << std::endl;
+    //}
+
     if (built_targets) {
+      std::lock_guard lck{*mtx};
       built_targets->emplace(this);
     }
+
+    //{
+    //  std::lock_guard lck{*mtx};
+    //  std::cout << std::this_thread::get_id() << ": finished building "
+    //            << resolved_name << std::endl;
+    //}
   }
 };
 

@@ -30,9 +30,8 @@ namespace build_cxx {
 namespace {
 
 TEST_CASE("client::debug_helper") {
-  test_helpers::built_targets_t built_targets;
-  test_helpers::mock_project test_project{&built_targets, nullptr, "cdhtp",
-                                          "0.1.0", __FILE__};
+  test_helpers::mock_project test_project{nullptr, nullptr, nullptr,
+                                          "cdhtp", "0.1.0", __FILE__};
 
   // testing it on single "isolated" target should be enough:
   auto *const pt{test_project.add_mock_phony_target(__FILE__, true,

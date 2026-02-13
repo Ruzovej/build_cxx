@@ -17,8 +17,11 @@
   with build_cxx. If not, see <https://www.gnu.org/licenses/>.
 */
 
+#include <algorithm>
 #include <exception>
 #include <iostream>
+#include <optional>
+#include <thread>
 #include <vector>
 
 #include "build_cxx/driver/process_input.hxx"
@@ -44,6 +47,7 @@ int main(int argc, char *argv[]) {
 
   try {
     std::vector<char const *> targets;
+    std::optional<int> n_jobs;
     std::vector<char const *> input_files;
 
     // skip executable name ...
@@ -56,12 +60,18 @@ int main(int argc, char *argv[]) {
       if (next_arg == "--target" || next_arg == "-t") {
         targets.emplace_back(
             consume_arg(true, "missing target name after --target/-t"));
+      } else if (next_arg == "--jobs" || next_arg == "-j") {
+        n_jobs.emplace(std::stoi(
+            std::string{consume_arg(true, "missing number after --jobs/-j")}));
       } else {
         input_files.emplace_back(next_arg_cstr);
       }
     }
 
-    build_cxx::driver::process_input(targets, input_files);
+    build_cxx::driver::process_input(
+        n_jobs.value_or(
+            std::max(1, static_cast<int>(std::thread::hardware_concurrency()))),
+        targets, input_files);
 
     return EXIT_SUCCESS;
   } catch (std::exception const &e) {
