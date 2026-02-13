@@ -25,11 +25,12 @@ namespace build_cxx {
 namespace {
 
 constexpr common::target_status uninitialized() {
-  return common::target_status{};
+  // force 2 lines
+  return {};
 }
 
 constexpr common::target_status needs_update() {
-  return common::target_status{common::target_status::needs_update};
+  return common::target_status::needs_update;
 }
 
 constexpr common::target_status

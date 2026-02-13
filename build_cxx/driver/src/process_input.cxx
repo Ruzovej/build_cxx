@@ -109,7 +109,7 @@ void process_input(int const n_jobs, std::vector<char const *> const &targets,
       std::cout << '\n';
     }
   } else {
-    std::vector<std::string_view> tgts{};
+    std::vector<std::string_view> tgts;
     tgts.reserve(targets.size());
 
     for (auto *const tgt : targets) {

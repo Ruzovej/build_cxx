@@ -90,14 +90,12 @@ void processed_targets::build_target(std::string_view const tgt,
 
 void processed_targets::build_target(common::abstract_target const *const tgt,
                                      [[maybe_unused]] bool const verbose) {
-  std::vector<common::abstract_target const *> tgts{tgt};
-
-  build_targets(tgts, verbose);
+  build_targets({tgt}, verbose);
 }
 
 void processed_targets::build_targets(std::vector<std::string_view> const &tgts,
                                       bool const verbose) {
-  std::vector<common::abstract_target const *> resolved_tgts{};
+  std::vector<common::abstract_target const *> resolved_tgts;
   resolved_tgts.reserve(tgts.size());
 
   for (auto const &tgt : tgts) {
@@ -111,17 +109,17 @@ void processed_targets::build_targets(std::vector<std::string_view> const &tgts,
     resolved_tgts.emplace_back(iter->second);
   }
 
-  build_targets(resolved_tgts, verbose);
+  build_targets(std::move(resolved_tgts), verbose);
 }
 
 void processed_targets::build_targets(
-    std::vector<common::abstract_target const *> &tgts,
+    std::vector<common::abstract_target const *> &&tgts,
     [[maybe_unused]] bool const verbose) {
-  build_targets_impl(tgts);
+  build_targets_impl(std::move(tgts));
 }
 
 void processed_targets::build_all([[maybe_unused]] bool const verbose) {
-  std::vector<common::abstract_target const *> all_tgts{};
+  std::vector<common::abstract_target const *> all_tgts;
 
   for (auto const &[_, tgts] : targets_by_project) {
     for (auto *const tgt : tgts) {
@@ -131,7 +129,7 @@ void processed_targets::build_all([[maybe_unused]] bool const verbose) {
     }
   }
 
-  build_targets_impl(all_tgts);
+  build_targets_impl(std::move(all_tgts));
 }
 
 common::abstract_target const *processed_targets::try_to_determine_target(
@@ -176,16 +174,10 @@ common::abstract_target const *processed_targets::find_target_by_resolved_name(
   return nullptr;
 }
 
-// TODO split into multiple methods:
-void processed_targets::build_targets_impl(
-    std::vector<common::abstract_target const *> &tgts) {
-  if (tgts.empty()) {
-    // TODO throw or log error/warning/info that nothing to build was provided?!
-    return;
-  }
-
-  std::unordered_set<common::abstract_target const *> unsatisfied_deps;
-  std::unordered_set<common::abstract_target const *> satisfied_deps;
+processed_targets::categorized_targets
+processed_targets::get_all_dependencies_of(
+    std::vector<common::abstract_target const *> &&tgts) {
+  categorized_targets res;
 
   while (!tgts.empty()) {
     auto *const tgt{tgts.back()};
@@ -203,47 +195,61 @@ void processed_targets::build_targets_impl(
     }
 
     if (resolved_deps.already_built == resolved_deps.deps.size()) {
-      satisfied_deps.emplace(tgt);
+      res.buildable_targets.emplace(tgt);
     } else {
-      unsatisfied_deps.emplace(tgt);
+      res.blocked_targets.emplace(tgt);
     }
 
     for (auto *const dep : resolved_deps.deps) {
-      if ((unsatisfied_deps.find(dep) == unsatisfied_deps.cend()) &&
-          (satisfied_deps.find(dep) == satisfied_deps.cend())) {
+      if ((res.blocked_targets.find(dep) == res.blocked_targets.cend()) &&
+          (res.buildable_targets.find(dep) == res.buildable_targets.cend())) {
         tgts.emplace_back(dep);
       }
     }
   }
 
-  if (satisfied_deps.empty() && unsatisfied_deps.empty()) {
+  return res;
+}
+
+void processed_targets::schedule_target_build(
+    common::abstract_target const *const tgt) {
+  auto const &tgt_resolved_deps{target_resolved_deps.at(tgt)};
+
+  if constexpr (false) {
+    // TODO get rid of this `const_cast` ...:
+    sched.schedule_build(const_cast<common::abstract_target *>(tgt),
+                         &tgt_resolved_deps.deps);
+  } else {
+    // but this way?!
+    auto *const mtgt{targets_by_resolved_name.at(tgt->resolved_name)};
+    sched.schedule_build(mtgt, &tgt_resolved_deps.deps);
+  }
+}
+
+void processed_targets::build_targets_impl(
+    std::vector<common::abstract_target const *> &&tgts) {
+  if (tgts.empty()) {
+    // TODO throw or log error/warning/info that nothing to build was provided?!
+    return;
+  }
+
+  auto to_build{get_all_dependencies_of(std::move(tgts))};
+
+  if (to_build.buildable_targets.empty() && to_build.blocked_targets.empty()) {
     // nothing to build - all has been built in prev rounds, etc.; this is
     // very unit-test specific situation - TODO rework it & don't invoke it
     // this way in unit tests?!
     return;
   }
 
-  auto const schedule_build = [this](common::abstract_target const *const tgt) {
-    auto const &tgt_resolved_deps{target_resolved_deps.at(tgt)};
-
-    if constexpr (false) {
-      // TODO get rid of this `const_cast` ...:
-      sched.schedule_build(const_cast<common::abstract_target *>(tgt),
-                           &tgt_resolved_deps.deps);
-    } else {
-      // but this way?!
-      auto *const mtgt{targets_by_resolved_name.at(tgt->resolved_name)};
-      sched.schedule_build(mtgt, &tgt_resolved_deps.deps);
-    }
-  };
-
-  for (auto *const tgt : satisfied_deps) {
-    schedule_build(tgt);
+  for (auto *const tgt : to_build.buildable_targets) {
+    schedule_target_build(tgt);
   }
-  satisfied_deps.clear();
+  // not necessary, but saves (probably little) memory, etc.:
+  to_build.buildable_targets.clear();
 
   do {
-    auto const *const built_tgt{sched.get_built_target()};
+    auto *const built_tgt{sched.get_built_target()};
 
     built_targets.emplace(built_tgt);
 
@@ -254,21 +260,22 @@ void processed_targets::build_targets_impl(
 
       ++consumer_resolved_deps.already_built;
 
-      auto const iter{unsatisfied_deps.find(consumer)};
+      auto const iter{to_build.blocked_targets.find(consumer)};
 
-      if (iter == unsatisfied_deps.cend()) {
+      if (iter == to_build.blocked_targets.cend()) {
+        // `consumer` wasn't requested or isn't needed
         continue;
       }
 
       if (consumer_resolved_deps.already_built ==
           consumer_resolved_deps.deps.size()) {
-        unsatisfied_deps.erase(iter);
-        schedule_build(consumer);
+        to_build.blocked_targets.erase(iter);
+        schedule_target_build(consumer);
       }
     }
   } while (sched.num_handled_targets() != 0);
 
-  if (!unsatisfied_deps.empty()) {
+  if (!to_build.blocked_targets.empty()) {
     throw std::runtime_error{"Build order of targets contains a cycle - no "
                              "target with satisfied deps is available"};
   }

@@ -71,7 +71,7 @@ struct dflt_impl : fs_proxy {
   }
 };
 
-dflt_impl inst{};
+dflt_impl inst;
 
 } // namespace
 

@@ -29,10 +29,10 @@ struct BUILD_CXX_DLL_EXPORT target_status {
   struct needs_update_t {};
   using file_mod_time_t = long long;
 
-  static needs_update_t constexpr needs_update{};
-
   using status_t =
       std::variant<std::monostate, needs_update_t, file_mod_time_t>;
+
+  static needs_update_t constexpr needs_update{};
 
   constexpr target_status() = default;
   constexpr target_status(needs_update_t) : status{needs_update} {}

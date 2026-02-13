@@ -91,7 +91,7 @@ struct BUILD_CXX_DLL_EXPORT processed_targets {
                     bool const verbose);
   void build_targets(std::vector<std::string_view> const &tgts,
                      bool const verbose);
-  void build_targets(std::vector<common::abstract_target const *> &tgts,
+  void build_targets(std::vector<common::abstract_target const *> &&tgts,
                      bool const verbose);
   void build_all(bool const verbose);
 
@@ -103,7 +103,18 @@ private:
   [[nodiscard]] common::abstract_target const *
   find_target_by_resolved_name(std::string_view const tgt_resolved_name) const;
 
-  void build_targets_impl(std::vector<common::abstract_target const *> &tgts);
+  struct categorized_targets {
+    // not owning any pointer(s):
+    std::unordered_set<common::abstract_target const *> blocked_targets;
+    std::unordered_set<common::abstract_target const *> buildable_targets;
+  };
+
+  [[nodiscard]] categorized_targets
+  get_all_dependencies_of(std::vector<common::abstract_target const *> &&tgts);
+
+  void schedule_target_build(common::abstract_target const *const tgt);
+
+  void build_targets_impl(std::vector<common::abstract_target const *> &&tgts);
 
   // this is for unit-test specific situations -> TODO consider removing it
   // not owning any pointer(s):
