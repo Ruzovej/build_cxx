@@ -34,7 +34,7 @@ namespace build_cxx::driver {
 // more precise: its public methods aren't thread-safe.
 struct BUILD_CXX_DLL_EXPORT scheduler { // TODO should be BUILD_CXX_DLL_HIDE,
                                         // but then unit tests won't compile ...
-  explicit scheduler(int const aN_workers) noexcept;
+  explicit scheduler(int const n_workers) noexcept;
 
   ~scheduler() noexcept;
 
@@ -42,16 +42,16 @@ struct BUILD_CXX_DLL_EXPORT scheduler { // TODO should be BUILD_CXX_DLL_HIDE,
       common::abstract_target *const tgt,
       std::vector<common::abstract_target const *> const *const deps);
 
-  [[nodiscard]] long long num_handled_targets() const {
+  [[nodiscard]] auto num_handled_targets() const {
+    // force 2 lines
     return n_handled_targets;
   }
 
   [[nodiscard]] common::abstract_target const *get_built_target();
 
 private:
-  long long n_handled_targets{0};
-  int n_workers;
-  bool running{true}; // used only for destruction
+  int n_handled_targets{0};
+  bool should_run{true}; // used only for destruction
   std::vector<std::thread> workers;
 
   struct build_request {
@@ -72,9 +72,6 @@ private:
   std::mutex mtx_done;
   std::condition_variable cv_done;
   std::queue<build_result> done;
-
-  void spawn_worker_threads();
-  void stop_worker_threads();
 
 private:
   scheduler(const scheduler &) = delete;

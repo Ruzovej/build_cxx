@@ -24,14 +24,65 @@
 
 namespace build_cxx::driver {
 
-scheduler::scheduler(int const aN_workers) noexcept
-    : n_workers{std::max(aN_workers, 1)} {
-  spawn_worker_threads();
+scheduler::scheduler(int const n_workers) noexcept {
+  workers.reserve(std::max(n_workers, 1));
+
+  for (int idx{0}; idx < workers.capacity(); ++idx) {
+    workers.emplace_back([this]() {
+      while (true) {
+        build_result res;
+
+        try {
+          build_request task;
+
+          {
+            std::unique_lock lck{mtx_todo};
+            cv_todo.wait(lck, [&]() {
+              // force 2 lines
+              return !should_run || !todo.empty();
+            });
+
+            if (!should_run) {
+              break;
+            }
+
+            task = todo.front();
+            todo.pop();
+          }
+
+          res.tgt = task.tgt;
+
+          task.tgt->build(*task.deps);
+
+          res.success = true;
+        } catch (std::exception const &e) {
+          std::cerr << "Error in worker thread: " << e.what() << '\n';
+        } catch (...) {
+          std::cerr << "Unknown error in worker thread\n";
+        }
+
+        {
+          std::lock_guard lck{mtx_done};
+          done.push(res);
+        }
+
+        cv_done.notify_one();
+      }
+    });
+  }
 }
 
 scheduler::~scheduler() noexcept {
-  // force 2 lines
-  stop_worker_threads();
+  {
+    std::lock_guard lck{mtx_todo};
+    should_run = false;
+  }
+
+  cv_todo.notify_all();
+
+  for (auto &worker : workers) {
+    worker.join();
+  }
 }
 
 void scheduler::schedule_build(
@@ -78,67 +129,6 @@ common::abstract_target const *scheduler::get_built_target() {
   }
 
   return res.tgt;
-}
-
-void scheduler::spawn_worker_threads() {
-  workers.reserve(n_workers);
-
-  for (int idx{0}; idx < n_workers; ++idx) {
-    workers.emplace_back([this]() {
-      while (true) {
-        build_result res;
-
-        try {
-          build_request task;
-
-          {
-            std::unique_lock lck{mtx_todo};
-            cv_todo.wait(lck, [&]() {
-              // force 2 lines
-              return !running || !todo.empty();
-            });
-
-            if (!running) {
-              break;
-            }
-
-            task = todo.front();
-            todo.pop();
-          }
-
-          res.tgt = task.tgt;
-
-          task.tgt->build(*task.deps);
-
-          res.success = true;
-        } catch (std::exception const &e) {
-          std::cerr << "Error in worker thread: " << e.what() << '\n';
-        } catch (...) {
-          std::cerr << "Unknown error in worker thread\n";
-        }
-
-        {
-          std::lock_guard lck{mtx_done};
-          done.push(res);
-        }
-
-        cv_done.notify_one();
-      }
-    });
-  }
-}
-
-void scheduler::stop_worker_threads() {
-  {
-    std::lock_guard lck{mtx_todo};
-    running = false;
-  }
-
-  cv_todo.notify_all();
-
-  for (auto &worker : workers) {
-    worker.join();
-  }
 }
 
 } // namespace build_cxx::driver
