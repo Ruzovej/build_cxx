@@ -754,8 +754,11 @@ void test_impl(driver::scheduler &sched) {
 
   // TODO test for proper termination (via exception, etc.):
   // - builds containing cycles
+  //   - "simple circle"
+  //   - "hidden circles"
+  //   - ...
   // - "target->build(...)" fails (in the worker, etc.)
-  // - multiple `mock_project`s (e.g. >= 2 leafs) with file targets, etc.
+  // - multiple `mock_project`s (e.g. >= 2 leafs) with (only) file targets, etc.
 
   // TODO after doing those above - verify: above cases for various nontrivial
   // "graphs" of dependencies should be "enough"
