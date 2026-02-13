@@ -19,6 +19,7 @@
 
 #include "build_cxx/driver/processed_targets.hxx"
 
+#include <stdexcept>
 #include <utility>
 
 #include <build_cxx/common/file_target.hxx>
@@ -190,11 +191,16 @@ void processed_targets::build_targets_impl(
     auto *const tgt{tgts.back()};
     tgts.pop_back();
 
-    if (built_targets.count(tgt) == 1) {
+    if (built_targets.find(tgt) != built_targets.cend()) {
       continue;
     }
 
     auto const &resolved_deps{target_resolved_deps.at(tgt)};
+
+    if (!resolved_deps.resolved) {
+      throw std::runtime_error{"Trying to build target '" + tgt->resolved_name +
+                               "' with unresolved dependencies"};
+    }
 
     if (resolved_deps.already_built == resolved_deps.deps.size()) {
       satisfied_deps.emplace(tgt);
@@ -203,44 +209,40 @@ void processed_targets::build_targets_impl(
     }
 
     for (auto *const dep : resolved_deps.deps) {
-      if ((unsatisfied_deps.count(dep) == 0) &&
-          (satisfied_deps.count(dep) == 0)) {
+      if ((unsatisfied_deps.find(dep) == unsatisfied_deps.cend()) &&
+          (satisfied_deps.find(dep) == satisfied_deps.cend())) {
         tgts.emplace_back(dep);
       }
     }
   }
 
-  if (satisfied_deps.empty()) {
-    if (!unsatisfied_deps.empty()) {
-      throw std::runtime_error{"Build order of targets contains a cycle - no "
-                               "target with satisfied deps is available"};
-    } else {
-      // nothing to build - all has been built in prev rounds, etc.; this is
-      // very unit-test specific situation - TODO rework it & don't utilize it
-      // this way in unit tests?!
-      return;
-    }
+  if (satisfied_deps.empty() && unsatisfied_deps.empty()) {
+    // nothing to build - all has been built in prev rounds, etc.; this is
+    // very unit-test specific situation - TODO rework it & don't invoke it
+    // this way in unit tests?!
+    return;
   }
 
-  do {
-    while (!satisfied_deps.empty()) {
-      auto it{satisfied_deps.begin()};
-      auto *const tgt{*it};
-      satisfied_deps.erase(it);
+  auto const schedule_build = [this](common::abstract_target const *const tgt) {
+    auto const &tgt_resolved_deps{target_resolved_deps.at(tgt)};
 
-      auto const &tgt_resolved_deps{target_resolved_deps.at(tgt)};
-
-      if constexpr (false) {
-        // TODO get rid of this `const_cast` ...:
-        sched.schedule_build(const_cast<common::abstract_target *>(tgt),
-                             &tgt_resolved_deps.deps);
-      } else {
-        // but this way?!
-        auto *const mtgt{targets_by_resolved_name.at(tgt->resolved_name)};
-        sched.schedule_build(mtgt, &tgt_resolved_deps.deps);
-      }
+    if constexpr (false) {
+      // TODO get rid of this `const_cast` ...:
+      sched.schedule_build(const_cast<common::abstract_target *>(tgt),
+                           &tgt_resolved_deps.deps);
+    } else {
+      // but this way?!
+      auto *const mtgt{targets_by_resolved_name.at(tgt->resolved_name)};
+      sched.schedule_build(mtgt, &tgt_resolved_deps.deps);
     }
+  };
 
+  for (auto *const tgt : satisfied_deps) {
+    schedule_build(tgt);
+  }
+  satisfied_deps.clear();
+
+  do {
     auto const *const built_tgt{sched.get_built_target()};
 
     built_targets.emplace(built_tgt);
@@ -261,14 +263,14 @@ void processed_targets::build_targets_impl(
       if (consumer_resolved_deps.already_built ==
           consumer_resolved_deps.deps.size()) {
         unsatisfied_deps.erase(iter);
-        satisfied_deps.emplace(consumer);
+        schedule_build(consumer);
       }
     }
-  } while ((sched.num_handled_targets() != 0) || (!satisfied_deps.empty()));
+  } while (sched.num_handled_targets() != 0);
 
   if (!unsatisfied_deps.empty()) {
-    throw std::runtime_error{"Build order of targets contains a cycle - "
-                             "targets with unsatisfied deps remain"};
+    throw std::runtime_error{"Build order of targets contains a cycle - no "
+                             "target with satisfied deps is available"};
   }
 }
 

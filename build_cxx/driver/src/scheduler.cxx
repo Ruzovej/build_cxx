@@ -72,7 +72,7 @@ common::abstract_target const *scheduler::get_built_target() {
   if (res.tgt == nullptr) {
     throw std::runtime_error{
         "Serious error - worker failed to provide (finished) target"};
-  } else if (res.success == false) {
+  } else if (!res.success) {
     throw std::runtime_error{"Failed to build target '" +
                              res.tgt->resolved_name + '\''};
   }
