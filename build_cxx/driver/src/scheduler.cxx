@@ -101,7 +101,7 @@ void scheduler::schedule_build(
 common::abstract_target const *scheduler::get_built_target() {
   if (n_handled_targets == 0) {
     throw std::runtime_error{
-        "Workers are idle, without any job to complete nor hand over"};
+        "Workers are idle, without any job to complete nor to hand over"};
   }
 
   build_result res;

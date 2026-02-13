@@ -222,6 +222,10 @@ void processed_targets::schedule_target_build(
   } else {
     // but this way?!
     auto *const mtgt{targets_by_resolved_name.at(tgt->resolved_name)};
+    if (tgt != mtgt) {
+      throw std::runtime_error{
+          "Serious internal error - failure in 'const_cast' substitution"};
+    }
     sched.schedule_build(mtgt, &tgt_resolved_deps.deps);
   }
 }
@@ -229,7 +233,10 @@ void processed_targets::schedule_target_build(
 void processed_targets::build_targets_impl(
     std::vector<common::abstract_target const *> &&tgts) {
   if (tgts.empty()) {
-    // TODO throw or log error/warning/info that nothing to build was provided?!
+    // TODO
+    // - throw or log error/warning/info that nothing to build was provided?!
+    // - or maybe ditch this check, and adjust the ones below, etc., to this
+    // purpose
     return;
   }
 
@@ -296,7 +303,7 @@ bool processed_targets::resolve_deps_for_impl(
         at->raw_deps[idx], at_proj_name, at->loc->filename)};
 
     if (depends_on_tgt == nullptr) {
-      // prevent having there duplicates if it succceeds some next time:
+      // prevent having there duplicates if it succeeds some next time:
       res_deps.deps.clear();
       return false;
     }

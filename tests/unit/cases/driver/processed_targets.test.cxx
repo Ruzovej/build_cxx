@@ -759,6 +759,9 @@ void test_impl(driver::scheduler &sched) {
 
   // TODO after doing those above - verify: above cases for various nontrivial
   // "graphs" of dependencies should be "enough"
+
+  // scheduler is "empty"
+  REQUIRE_EQ(sched.num_handled_targets(), 0);
 }
 
 } // namespace
