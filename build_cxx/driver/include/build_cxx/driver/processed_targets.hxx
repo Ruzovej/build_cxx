@@ -86,14 +86,14 @@ struct BUILD_CXX_DLL_EXPORT processed_targets {
 
   // TODO
   // - utilize `verbose` = logging to `stdout`, etc.:
-  void build_target(std::string_view const tgt, bool const verbose);
+  void build_target(std::string_view const tgt, bool const verbose = false);
   void build_target(common::abstract_target const *const tgt,
-                    bool const verbose);
+                    bool const verbose = false);
   void build_targets(std::vector<std::string_view> const &tgts,
-                     bool const verbose);
+                     bool const verbose = false);
   void build_targets(std::vector<common::abstract_target const *> &&tgts,
-                     bool const verbose);
-  void build_all(bool const verbose);
+                     bool const verbose = false);
+  void build_all(bool const verbose = false);
 
 private:
   [[nodiscard]] common::abstract_target const *

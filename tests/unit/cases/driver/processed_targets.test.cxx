@@ -32,14 +32,15 @@
 namespace build_cxx {
 namespace {
 
-void test_impl(driver::scheduler &sched);
+// IMHO better than using fixtures, etc.:
+// https://github.com/doctest/doctest/blob/master/doc/markdown/testcases.md#test-fixtures
 
 template <int n_workers> struct sched {
+  // avoid cost of starting up all the threads for each test case:
   static inline driver::scheduler inst{n_workers};
 };
 
-// better than using fixtures, etc.:
-// https://github.com/doctest/doctest/blob/master/doc/markdown/testcases.md#test-fixtures
+void test_impl(driver::scheduler &sched);
 
 TEST_CASE("driver::processed_targets, 1 worker") {
   // force 2 lines
@@ -80,16 +81,16 @@ void test_impl(driver::scheduler &sched) {
   // no pending task from prev. test case:
   REQUIRE_EQ(sched.num_handled_targets(), 0);
 
+  driver::processed_targets driver_pt{sched};
+
   static std::string_view constexpr fake_root_file1{
-      "/fake/dir_1/project1.root.cxx"};
+      "/fake/dir_1/project.root.cxx"};
 
   std::mutex mtx;
   test_helpers::built_targets_t built_targets;
   test_helpers::mock_fs fake_fs{&mtx};
   test_helpers::mock_project test_project1{
       &mtx, &built_targets, &fake_fs, "dpttp1", "0.1.0", fake_root_file1};
-
-  driver::processed_targets driver_pt{sched};
 
   SUBCASE("basics") {
     SUBCASE("empty project") {
@@ -110,13 +111,13 @@ void test_impl(driver::scheduler &sched) {
       REQUIRE_NOTHROW(all_resolved = driver_pt.resolve_deps_for_all());
       REQUIRE(all_resolved);
 
-      REQUIRE_NOTHROW(driver_pt.build_all(false));
+      REQUIRE_NOTHROW(driver_pt.build_all());
       REQUIRE_EQ(built_targets.size(), 0);
     }
 
     SUBCASE("2 non-empty projects") {
       static std::string_view constexpr fake_root_file2{
-          "/fake/dir2/project2.root.cxx"};
+          "/fake/dir2/project.root.cxx"};
 
       test_helpers::mock_project test_project2{
           &mtx, &built_targets, nullptr, "dpttp2", "0.1.0", fake_root_file2};
@@ -154,12 +155,12 @@ void test_impl(driver::scheduler &sched) {
         REQUIRE(all_resolved);
 
         REQUIRE(built_targets.empty());
-        REQUIRE_NOTHROW(driver_pt.build_target(pt_1, false));
+        REQUIRE_NOTHROW(driver_pt.build_target(pt_1));
         REQUIRE_EQ(built_targets.count(pt_1), 1);
         REQUIRE_EQ(built_targets.size(), 1);
 
         built_targets.clear();
-        REQUIRE_NOTHROW(driver_pt.build_target(pt_2, false));
+        REQUIRE_NOTHROW(driver_pt.build_target(pt_2));
         REQUIRE_EQ(built_targets.count(pt_2), 1);
         REQUIRE_EQ(built_targets.size(), 1);
       }
@@ -186,7 +187,7 @@ void test_impl(driver::scheduler &sched) {
 
         SUBCASE("build them separately") {
           // without deps
-          REQUIRE_NOTHROW(driver_pt.build_target(pt_1, false));
+          REQUIRE_NOTHROW(driver_pt.build_target(pt_1));
           REQUIRE_EQ(built_targets.count(pt_1), 1);
           REQUIRE_EQ(built_targets.size(), 1);
 
@@ -195,7 +196,7 @@ void test_impl(driver::scheduler &sched) {
           built_targets.clear();
 
           // builds even its dependency
-          REQUIRE_NOTHROW(driver_pt.build_target(pt_2, false));
+          REQUIRE_NOTHROW(driver_pt.build_target(pt_2));
           REQUIRE_EQ(*built_targets.begin(), pt_2);
           REQUIRE_EQ(built_targets.size(), 1);
 
@@ -203,13 +204,13 @@ void test_impl(driver::scheduler &sched) {
           built_targets.clear();
 
           // ...
-          REQUIRE_NOTHROW(driver_pt.build_target(pt_3, false));
+          REQUIRE_NOTHROW(driver_pt.build_target(pt_3));
           REQUIRE_EQ(built_targets.count(pt_3), 1);
           REQUIRE_EQ(built_targets.size(), 1);
         }
 
         SUBCASE("build them together") {
-          REQUIRE_NOTHROW(driver_pt.build_all(false));
+          REQUIRE_NOTHROW(driver_pt.build_all());
           REQUIRE_EQ(built_targets.count(pt_1), 1);
           REQUIRE_EQ(built_targets.count(pt_2), 1);
           REQUIRE_EQ(built_targets.count(pt_3), 1);
@@ -245,7 +246,7 @@ void test_impl(driver::scheduler &sched) {
 
           fake_fs.touch(f3->get_resolved_path());
 
-          REQUIRE_NOTHROW(driver_pt.build_all(false));
+          REQUIRE_NOTHROW(driver_pt.build_all());
           REQUIRE_EQ(built_targets.size(), 0);
         }
 
@@ -256,7 +257,7 @@ void test_impl(driver::scheduler &sched) {
 
           fake_fs.touch(f1->get_resolved_path());
 
-          REQUIRE_NOTHROW(driver_pt.build_all(false));
+          REQUIRE_NOTHROW(driver_pt.build_all());
           REQUIRE_EQ(built_targets.count(f3), 1);
           REQUIRE_EQ(built_targets.size(), 1);
         }
@@ -268,7 +269,7 @@ void test_impl(driver::scheduler &sched) {
 
           fake_fs.touch(f2->get_resolved_path());
 
-          REQUIRE_NOTHROW(driver_pt.build_all(false));
+          REQUIRE_NOTHROW(driver_pt.build_all());
           REQUIRE_EQ(built_targets.count(f3), 1);
           REQUIRE_EQ(built_targets.size(), 1);
         }
@@ -278,7 +279,7 @@ void test_impl(driver::scheduler &sched) {
 
           fake_fs.touch(f2->get_resolved_path());
 
-          REQUIRE_NOTHROW(driver_pt.build_all(false));
+          REQUIRE_NOTHROW(driver_pt.build_all());
           REQUIRE_EQ(built_targets.count(f3), 1);
           REQUIRE_EQ(built_targets.size(), 1);
         }
@@ -294,7 +295,7 @@ void test_impl(driver::scheduler &sched) {
 
           fake_fs.clock.freeze_time(false);
 
-          REQUIRE_NOTHROW(driver_pt.build_all(false));
+          REQUIRE_NOTHROW(driver_pt.build_all());
           REQUIRE_EQ(built_targets.size(), 0);
         }
 
@@ -307,7 +308,7 @@ void test_impl(driver::scheduler &sched) {
 
           fake_fs.clock.freeze_time(false);
 
-          REQUIRE_NOTHROW(driver_pt.build_all(false));
+          REQUIRE_NOTHROW(driver_pt.build_all());
           REQUIRE_EQ(built_targets.count(f3), 1);
           REQUIRE_EQ(built_targets.size(), 1);
         }
@@ -349,7 +350,7 @@ void test_impl(driver::scheduler &sched) {
 
           fake_fs.touch(f3->get_resolved_path());
 
-          REQUIRE_NOTHROW(driver_pt.build_all(false));
+          REQUIRE_NOTHROW(driver_pt.build_all());
           REQUIRE_EQ(built_targets.size(), 0);
         }
 
@@ -364,7 +365,7 @@ void test_impl(driver::scheduler &sched) {
 
           fake_fs.touch(f3->get_resolved_path());
 
-          REQUIRE_NOTHROW(driver_pt.build_all(false));
+          REQUIRE_NOTHROW(driver_pt.build_all());
           REQUIRE_EQ(built_targets.count(f1l), 1);
           REQUIRE_EQ(built_targets.count(f3), 1);
           REQUIRE_EQ(built_targets.size(), 2);
@@ -381,7 +382,7 @@ void test_impl(driver::scheduler &sched) {
 
           fake_fs.touch(f3->get_resolved_path());
 
-          REQUIRE_NOTHROW(driver_pt.build_all(false));
+          REQUIRE_NOTHROW(driver_pt.build_all());
           REQUIRE_EQ(built_targets.count(f2l), 1);
           REQUIRE_EQ(built_targets.count(f3), 1);
           REQUIRE_EQ(built_targets.size(), 2);
@@ -398,7 +399,7 @@ void test_impl(driver::scheduler &sched) {
 
           fake_fs.touch(f1l->get_resolved_path());
 
-          REQUIRE_NOTHROW(driver_pt.build_all(false));
+          REQUIRE_NOTHROW(driver_pt.build_all());
           REQUIRE_EQ(built_targets.count(f3), 1);
           REQUIRE_EQ(built_targets.size(), 1);
         }
@@ -414,7 +415,7 @@ void test_impl(driver::scheduler &sched) {
 
           fake_fs.touch(f2l->get_resolved_path());
 
-          REQUIRE_NOTHROW(driver_pt.build_all(false));
+          REQUIRE_NOTHROW(driver_pt.build_all());
           REQUIRE_EQ(built_targets.count(f3), 1);
           REQUIRE_EQ(built_targets.size(), 1);
         }
@@ -428,7 +429,7 @@ void test_impl(driver::scheduler &sched) {
 
           fake_fs.touch(f1l->get_resolved_path());
 
-          REQUIRE_NOTHROW(driver_pt.build_all(false));
+          REQUIRE_NOTHROW(driver_pt.build_all());
           REQUIRE_EQ(built_targets.count(f3), 1);
           REQUIRE_EQ(built_targets.size(), 1);
         }
@@ -438,7 +439,7 @@ void test_impl(driver::scheduler &sched) {
 
           fake_fs.touch(f2s->get_resolved_path());
 
-          REQUIRE_NOTHROW(driver_pt.build_all(false));
+          REQUIRE_NOTHROW(driver_pt.build_all());
           REQUIRE_EQ(built_targets.count(f1l), 1);
           REQUIRE_EQ(built_targets.count(f2l), 1);
           REQUIRE_EQ(built_targets.count(f3), 1);
@@ -460,7 +461,7 @@ void test_impl(driver::scheduler &sched) {
 
           fake_fs.clock.freeze_time(false);
 
-          REQUIRE_NOTHROW(driver_pt.build_all(false));
+          REQUIRE_NOTHROW(driver_pt.build_all());
           REQUIRE_EQ(built_targets.size(), 0);
         }
 
@@ -477,7 +478,7 @@ void test_impl(driver::scheduler &sched) {
 
           fake_fs.clock.freeze_time(false);
 
-          REQUIRE_NOTHROW(driver_pt.build_all(false));
+          REQUIRE_NOTHROW(driver_pt.build_all());
           REQUIRE_EQ(built_targets.count(f3), 1);
           REQUIRE_EQ(built_targets.size(), 1);
         }
@@ -494,7 +495,7 @@ void test_impl(driver::scheduler &sched) {
 
           fake_fs.clock.freeze_time(false);
 
-          REQUIRE_NOTHROW(driver_pt.build_all(false));
+          REQUIRE_NOTHROW(driver_pt.build_all());
           REQUIRE_EQ(built_targets.count(f2l), 1);
           REQUIRE_EQ(built_targets.count(f3), 1);
           REQUIRE_EQ(built_targets.size(), 2);
@@ -556,7 +557,7 @@ void test_impl(driver::scheduler &sched) {
 
           fake_fs.touch(flib->get_resolved_path());
 
-          REQUIRE_NOTHROW(driver_pt.build_all(false));
+          REQUIRE_NOTHROW(driver_pt.build_all());
           REQUIRE_EQ(built_targets.size(), 0);
         }
 
@@ -565,8 +566,12 @@ void test_impl(driver::scheduler &sched) {
             fake_fs.touch(ro_files[j]->get_resolved_path());
           }
 
-          REQUIRE_NOTHROW(driver_pt.build_all(false));
-          REQUIRE_EQ(built_targets.size(), num_files + 1); // obj files + lib
+          REQUIRE_NOTHROW(driver_pt.build_all());
+          REQUIRE_EQ(built_targets.count(flib), 1);
+          for (int j{0}; j < num_files; ++j) {
+            REQUIRE_EQ(built_targets.count(obj_files[j]), 1);
+          }
+          REQUIRE_EQ(built_targets.size(), num_files + 1);
         }
 
         SUBCASE("half up-to date, all exists") {
@@ -584,7 +589,11 @@ void test_impl(driver::scheduler &sched) {
 
           fake_fs.touch(flib->get_resolved_path());
 
-          REQUIRE_NOTHROW(driver_pt.build_all(false));
+          REQUIRE_NOTHROW(driver_pt.build_all());
+          REQUIRE_EQ(built_targets.count(flib), 1);
+          for (int j{0}; j < num_files / 2; ++j) {
+            REQUIRE_EQ(built_targets.count(obj_files[j]), 1);
+          }
           REQUIRE_EQ(built_targets.size(), num_files / 2 + 1);
         }
 
@@ -599,7 +608,11 @@ void test_impl(driver::scheduler &sched) {
 
           fake_fs.touch(flib->get_resolved_path());
 
-          REQUIRE_NOTHROW(driver_pt.build_all(false));
+          REQUIRE_NOTHROW(driver_pt.build_all());
+          REQUIRE_EQ(built_targets.count(flib), 1);
+          for (int j{0}; j < num_files / 2; ++j) {
+            REQUIRE_EQ(built_targets.count(obj_files[j]), 1);
+          }
           REQUIRE_EQ(built_targets.size(), num_files / 2 + 1);
         }
 
@@ -614,7 +627,11 @@ void test_impl(driver::scheduler &sched) {
 
           fake_fs.touch(flib->get_resolved_path());
 
-          REQUIRE_NOTHROW(driver_pt.build_all(false));
+          REQUIRE_NOTHROW(driver_pt.build_all());
+          REQUIRE_EQ(built_targets.count(flib), 1);
+          for (int j{0}; j < num_files; ++j) {
+            REQUIRE_EQ(built_targets.count(obj_files[j]), 1);
+          }
           REQUIRE_EQ(built_targets.size(), num_files + 1);
         }
       }
@@ -622,7 +639,7 @@ void test_impl(driver::scheduler &sched) {
       // ...
       built_targets.clear();
 
-      REQUIRE_NOTHROW(driver_pt.build_all(false));
+      REQUIRE_NOTHROW(driver_pt.build_all());
       // all already up to date:
       REQUIRE_EQ(built_targets.size(), 0);
     }
@@ -657,7 +674,7 @@ void test_impl(driver::scheduler &sched) {
 
         fake_fs.touch(f1->get_resolved_path());
 
-        REQUIRE_NOTHROW(driver_pt.build_target(p1, false));
+        REQUIRE_NOTHROW(driver_pt.build_target(p1));
         REQUIRE_EQ(built_targets.count(p1), 1);
         REQUIRE_EQ(built_targets.size(), 1);
       }
@@ -667,7 +684,7 @@ void test_impl(driver::scheduler &sched) {
 
         fake_fs.touch(fro->get_resolved_path());
 
-        REQUIRE_NOTHROW(driver_pt.build_target(p1, false));
+        REQUIRE_NOTHROW(driver_pt.build_target(p1));
         REQUIRE_EQ(built_targets.count(p1), 1);
         REQUIRE_EQ(built_targets.count(f1), 1);
         REQUIRE_EQ(built_targets.size(), 2);
@@ -676,7 +693,7 @@ void test_impl(driver::scheduler &sched) {
       SUBCASE("first, nonexistent") {
         fake_fs.touch(fro->get_resolved_path());
 
-        REQUIRE_NOTHROW(driver_pt.build_target(p1, false));
+        REQUIRE_NOTHROW(driver_pt.build_target(p1));
         REQUIRE_EQ(built_targets.count(p1), 1);
         REQUIRE_EQ(built_targets.count(f1), 1);
         REQUIRE_EQ(built_targets.size(), 2);
@@ -687,7 +704,7 @@ void test_impl(driver::scheduler &sched) {
 
         fake_fs.touch(f2->get_resolved_path());
 
-        REQUIRE_NOTHROW(driver_pt.build_target(f2, false));
+        REQUIRE_NOTHROW(driver_pt.build_target(f2));
         REQUIRE_EQ(built_targets.count(p2), 1);
         REQUIRE_EQ(built_targets.count(f2), 1);
         REQUIRE_EQ(built_targets.size(), 2);
@@ -698,7 +715,7 @@ void test_impl(driver::scheduler &sched) {
 
         fake_fs.touch(fro->get_resolved_path());
 
-        REQUIRE_NOTHROW(driver_pt.build_target(f2, false));
+        REQUIRE_NOTHROW(driver_pt.build_target(f2));
         REQUIRE_EQ(built_targets.count(p2), 1);
         REQUIRE_EQ(built_targets.count(f2), 1);
         REQUIRE_EQ(built_targets.size(), 2);
@@ -707,7 +724,7 @@ void test_impl(driver::scheduler &sched) {
       SUBCASE("second, nonexistent") {
         fake_fs.touch(fro->get_resolved_path());
 
-        REQUIRE_NOTHROW(driver_pt.build_target(f2, false));
+        REQUIRE_NOTHROW(driver_pt.build_target(f2));
         REQUIRE_EQ(built_targets.count(p2), 1);
         REQUIRE_EQ(built_targets.count(f2), 1);
         REQUIRE_EQ(built_targets.size(), 2);
