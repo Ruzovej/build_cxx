@@ -549,6 +549,7 @@ void test_impl(driver::scheduler &sched) {
         REQUIRE(built_targets.empty());
 
         SUBCASE("all up-to date") {
+          // arrange
           for (int j{0}; j < num_files; ++j) {
             fake_fs.touch(ro_files[j]->get_resolved_path());
 
@@ -557,16 +558,23 @@ void test_impl(driver::scheduler &sched) {
 
           fake_fs.touch(flib->get_resolved_path());
 
+          // act
           REQUIRE_NOTHROW(driver_pt.build_all());
+
+          // assert
           REQUIRE_EQ(built_targets.size(), 0);
         }
 
         SUBCASE("none up-to date") {
+          // arrange
           for (int j{0}; j < num_files; ++j) {
             fake_fs.touch(ro_files[j]->get_resolved_path());
           }
 
+          // act
           REQUIRE_NOTHROW(driver_pt.build_all());
+
+          // assert
           REQUIRE_EQ(built_targets.count(flib), 1);
           for (int j{0}; j < num_files; ++j) {
             REQUIRE_EQ(built_targets.count(obj_files[j]), 1);
@@ -575,6 +583,7 @@ void test_impl(driver::scheduler &sched) {
         }
 
         SUBCASE("half up-to date, all exists") {
+          // arrange
           for (int j{0}; j < num_files / 2; ++j) {
             fake_fs.touch(obj_files[j]->get_resolved_path());
           }
@@ -589,7 +598,10 @@ void test_impl(driver::scheduler &sched) {
 
           fake_fs.touch(flib->get_resolved_path());
 
+          // act
           REQUIRE_NOTHROW(driver_pt.build_all());
+
+          // assert
           REQUIRE_EQ(built_targets.count(flib), 1);
           for (int j{0}; j < num_files / 2; ++j) {
             REQUIRE_EQ(built_targets.count(obj_files[j]), 1);
@@ -598,6 +610,7 @@ void test_impl(driver::scheduler &sched) {
         }
 
         SUBCASE("half up-to date, half doesn't exist") {
+          // arrange
           for (int j{0}; j < num_files; ++j) {
             fake_fs.touch(ro_files[j]->get_resolved_path());
           }
@@ -608,7 +621,10 @@ void test_impl(driver::scheduler &sched) {
 
           fake_fs.touch(flib->get_resolved_path());
 
+          // act
           REQUIRE_NOTHROW(driver_pt.build_all());
+
+          // assert
           REQUIRE_EQ(built_targets.count(flib), 1);
           for (int j{0}; j < num_files / 2; ++j) {
             REQUIRE_EQ(built_targets.count(obj_files[j]), 1);
@@ -617,6 +633,7 @@ void test_impl(driver::scheduler &sched) {
         }
 
         SUBCASE("half out of date, half doesn't exist") {
+          // arrange
           for (int j{num_files / 2}; j < num_files; ++j) {
             fake_fs.touch(obj_files[j]->get_resolved_path());
           }
@@ -627,7 +644,10 @@ void test_impl(driver::scheduler &sched) {
 
           fake_fs.touch(flib->get_resolved_path());
 
+          // act
           REQUIRE_NOTHROW(driver_pt.build_all());
+
+          // assert
           REQUIRE_EQ(built_targets.count(flib), 1);
           for (int j{0}; j < num_files; ++j) {
             REQUIRE_EQ(built_targets.count(obj_files[j]), 1);
