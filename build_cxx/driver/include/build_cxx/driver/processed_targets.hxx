@@ -61,15 +61,15 @@ struct BUILD_CXX_DLL_EXPORT processed_targets {
       targets_by_resolved_name;
 
   // TODO use later, or delete ...
-  // (values) obviously owned here; targets implied by user-defined ones (e.g.
-  // translation unit: `foo.cxx` -> `foo.o` may have intermediate target
-  // `foo.cxx.pp` for preprocessed source):
+  // not owning "keys", "values" (obviously) yes; targets implied by
+  // user-defined ones (e.g. translation unit: `foo.cxx` -> `foo.o` may have
+  // intermediate target `foo.cxx.pp` for preprocessed source):
   std::unordered_map<common::abstract_target const *,
                      std::vector<std::unique_ptr<common::abstract_target>>>
       intermediate_targets;
 
-  // resolve as many deps as possible; returned value indicates whether all is
-  // resolved:
+  // resolve as many deps as possible; returned value indicates whether all
+  // processed was resolved:
   [[nodiscard]] bool resolve_deps_for_all();
   [[nodiscard]] bool resolve_deps_for(common::abstract_target const *const at);
 
@@ -85,7 +85,7 @@ struct BUILD_CXX_DLL_EXPORT processed_targets {
   // [[nodiscard]] bool whole_build_tree_valid() const;
 
   // TODO
-  // - utilize `verbose` = logging to `stdout`, etc.
+  // - utilize `verbose` = logging to `stdout`, etc.:
   void build_target(std::string_view const tgt, bool const verbose);
   void build_target(common::abstract_target const *const tgt,
                     bool const verbose);

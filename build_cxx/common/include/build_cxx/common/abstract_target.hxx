@@ -87,7 +87,7 @@ struct BUILD_CXX_DLL_EXPORT abstract_target {
   std::string resolved_name;
 
 protected:
-  target_status status{};
+  target_status status;
 
 private:
   abstract_target(abstract_target const &) = delete;
