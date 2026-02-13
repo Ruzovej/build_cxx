@@ -38,11 +38,6 @@ struct BUILD_CXX_DLL_EXPORT scheduler { // TODO should be BUILD_CXX_DLL_HIDE,
 
   ~scheduler() noexcept;
 
-  [[nodiscard]] int num_workers() const {
-    // force 2 lines
-    return n_workers;
-  }
-
   void schedule_build(
       common::abstract_target *const tgt,
       std::vector<common::abstract_target const *> const *const deps);
@@ -54,8 +49,8 @@ struct BUILD_CXX_DLL_EXPORT scheduler { // TODO should be BUILD_CXX_DLL_HIDE,
   [[nodiscard]] common::abstract_target const *get_built_target();
 
 private:
-  int n_workers;
   long long n_handled_targets{0};
+  int n_workers;
   bool running{true}; // used only for destruction
   std::vector<std::thread> workers;
 
