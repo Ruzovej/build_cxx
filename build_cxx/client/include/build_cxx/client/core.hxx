@@ -192,3 +192,11 @@ private:
 
 #define BUILD_CXX_HIDDEN_PHONY_TARGET(name, ...)                               \
   BUILD_CXX_CUSTOM_TARGET(phony_target, false, name, __VA_ARGS__)
+
+// 05.4
+
+#define BUILD_CXX_TARGET_ALIAS(name, ...)                                      \
+  BUILD_CXX_FINAL_TARGET(target_alias, true, name, __VA_ARGS__)
+
+#define BUILD_CXX_HIDDEN_TARGET_ALIAS(name, ...)                               \
+  BUILD_CXX_FINAL_TARGET(target_alias, false, name, __VA_ARGS__)

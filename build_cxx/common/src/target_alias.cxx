@@ -17,29 +17,28 @@
   with build_cxx. If not, see <https://www.gnu.org/licenses/>.
 */
 
-#include "build_cxx/common/phony_target.hxx"
+#include "build_cxx/common/target_alias.hxx"
 
-#include "build_cxx/common/project.hxx"
+#include <stdexcept>
 
 namespace build_cxx::common {
 
-std::string phony_target::resolve_name(std::string_view const project_name,
-                                       std::string_view const target_name) {
-  return std::string{project_name} + "::" + std::string{target_name};
+void target_alias::initialize_status() {
+  status = target_status::transitively_needs_update;
 }
 
-void phony_target::resolve_own_traits() {
-  resolved_kind = kind;
-  resolved_name = resolve_name(parent_project->name, name);
+void target_alias::update_status(target_status const newest_dep_status) {
+  status = newest_dep_status;
 }
 
-void phony_target::initialize_status() {
-  status = target_status::explicitly_needs_update;
-}
-
-void phony_target::update_status(target_status const newest_dep_status) {
-  // this kind of target is always out of date -> nothing to do ...
-  static_cast<void>(newest_dep_status);
+void target_alias::recipe(
+    std::vector<abstract_target const *> const &resolved_deps) const {
+  if (resolved_deps.empty()) {
+    throw std::runtime_error{"target_alias (" + resolved_name +
+                             ") must have at least one dependency"};
+  }
+  // this kind of target doesn't have a recipe -> due to proper order, all that
+  // is aliased is built before
 }
 
 } // namespace build_cxx::common

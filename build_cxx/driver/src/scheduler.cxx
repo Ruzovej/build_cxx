@@ -24,7 +24,8 @@
 
 namespace build_cxx::driver {
 
-scheduler::scheduler(int const n_workers) noexcept {
+scheduler::scheduler(int const n_workers, bool const aVerbose) noexcept
+    : verbose{aVerbose} {
   workers.reserve(std::max(n_workers, 1));
 
   for (int idx{0}; idx < workers.capacity(); ++idx) {
@@ -56,9 +57,23 @@ scheduler::scheduler(int const n_workers) noexcept {
 
           res.success = true;
         } catch (std::exception const &e) {
-          std::cerr << "Error in worker thread: " << e.what() << '\n';
+          if (verbose) {
+            if (res.tgt) {
+              std::cerr << "Error in worker thread when processing '"
+                        << res.tgt->name << "': " << e.what() << '\n';
+            } else {
+              std::cerr << "Error in worker thread: " << e.what() << '\n';
+            }
+          }
         } catch (...) {
-          std::cerr << "Unknown error in worker thread\n";
+          if (verbose) {
+            if (res.tgt) {
+              std::cerr << "Unknown error in worker thread when processing '"
+                        << res.tgt->name << "'\n";
+            } else {
+              std::cerr << "Unknown error in worker thread\n";
+            }
+          }
         }
 
         {
@@ -129,6 +144,23 @@ common::abstract_target const *scheduler::get_built_target() {
   }
 
   return res.tgt;
+}
+
+void scheduler::discard_all_running_tasks() {
+  while (n_handled_targets > 0) {
+    try {
+      // discard it:
+      static_cast<void>(get_built_target());
+    } catch (std::exception const &e) {
+      if (verbose) {
+        std::cerr << e.what() << '\n';
+      }
+    } catch (...) {
+      if (verbose) {
+        std::cerr << "Unknown error when discarding running tasks\n";
+      }
+    }
+  }
 }
 
 } // namespace build_cxx::driver

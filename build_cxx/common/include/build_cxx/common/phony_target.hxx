@@ -23,6 +23,7 @@
 
 #include "build_cxx/common/abstract_target.hxx"
 #include "build_cxx/common/macros.h"
+#include "build_cxx/common/target_status.hxx"
 
 namespace build_cxx::common {
 

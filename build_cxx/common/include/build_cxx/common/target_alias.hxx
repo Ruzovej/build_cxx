@@ -17,29 +17,26 @@
   with build_cxx. If not, see <https://www.gnu.org/licenses/>.
 */
 
-#include "build_cxx/common/phony_target.hxx"
+#pragma once
 
-#include "build_cxx/common/project.hxx"
+#include <vector>
+
+#include "build_cxx/common/abstract_target.hxx"
+#include "build_cxx/common/macros.h"
+#include "build_cxx/common/phony_target.hxx"
 
 namespace build_cxx::common {
 
-std::string phony_target::resolve_name(std::string_view const project_name,
-                                       std::string_view const target_name) {
-  return std::string{project_name} + "::" + std::string{target_name};
-}
+// Recommendation: don't alias any phony target, because then it behaves exactly
+// the same as if this was phony target itself
+struct BUILD_CXX_DLL_EXPORT target_alias : phony_target {
+  using phony_target::phony_target;
 
-void phony_target::resolve_own_traits() {
-  resolved_kind = kind;
-  resolved_name = resolve_name(parent_project->name, name);
-}
+  void initialize_status() override;
+  void update_status(target_status const newest_dep_status) override;
 
-void phony_target::initialize_status() {
-  status = target_status::explicitly_needs_update;
-}
-
-void phony_target::update_status(target_status const newest_dep_status) {
-  // this kind of target is always out of date -> nothing to do ...
-  static_cast<void>(newest_dep_status);
-}
+  void recipe(
+      std::vector<abstract_target const *> const &resolved_deps) const override;
+};
 
 } // namespace build_cxx::common

@@ -21,6 +21,7 @@
 
 //#include <iostream>
 #include <mutex>
+#include <string_view>
 //#include <thread>
 
 #include "build_cxx/common/file_target.hxx"
@@ -34,14 +35,18 @@ struct mock_file_target : common::file_target {
   std::mutex *mtx{nullptr};
   built_targets_t *built_targets{nullptr};
 
+  void set_fs_proxy(common::fs_proxy *aFs) {
+    // force 2 lines
+    fs = aFs;
+  }
+
   void set_read_only(bool const aRead_only) {
     // force 2 lines
     simulated_read_only = aRead_only;
   }
 
-  void set_fs_proxy(common::fs_proxy *aFs) {
-    // force 2 lines
-    fs = aFs;
+  void set_throw_from_recipe(bool const aThrow_from_recipe) {
+    throw_from_recipe = aThrow_from_recipe;
   }
 
   void recipe(std::vector<common::abstract_target const *> const &resolved_deps)
@@ -53,6 +58,10 @@ struct mock_file_target : common::file_target {
     //  std::cout << std::this_thread::get_id() << ": start building "
     //            << resolved_name << std::endl;
     //}
+
+    if (throw_from_recipe) {
+      throw std::runtime_error{"simulated failure from recipe"};
+    }
 
     if (!simulated_read_only) {
       if (built_targets) {
@@ -79,6 +88,7 @@ struct mock_file_target : common::file_target {
 
 protected:
   bool simulated_read_only{false};
+  bool throw_from_recipe{false};
 };
 
 } // namespace build_cxx::test_helpers

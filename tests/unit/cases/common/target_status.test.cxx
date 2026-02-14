@@ -29,13 +29,17 @@ constexpr common::target_status uninitialized() {
   return {};
 }
 
-constexpr common::target_status needs_update() {
-  return common::target_status::needs_update;
+constexpr common::target_status explicitly_needs_update() {
+  return common::target_status::explicitly_needs_update;
 }
 
 constexpr common::target_status
 file_mod_time(common::target_status::file_mod_time_t const mod_time = 42) {
   return common::target_status{mod_time};
+}
+
+constexpr common::target_status transitively_needs_update() {
+  return common::target_status::transitively_needs_update;
 }
 
 TEST_CASE("common::target_status") {
@@ -49,13 +53,19 @@ TEST_CASE("common::target_status") {
     }
 
     SUBCASE("needs update") {
-      auto const ts{needs_update()};
+      auto const ts{explicitly_needs_update()};
 
       REQUIRE(ts.certainly_needs_update());
     }
 
     SUBCASE("file mod time") {
       auto const ts{file_mod_time()};
+
+      REQUIRE(!ts.certainly_needs_update());
+    }
+
+    SUBCASE("transitively needs update") {
+      auto const ts{transitively_needs_update()};
 
       REQUIRE(!ts.certainly_needs_update());
     }
@@ -70,7 +80,7 @@ TEST_CASE("common::target_status") {
       }
 
       SUBCASE("second needs update") {
-        REQUIRE_NOTHROW(ts.merge_with(needs_update()));
+        REQUIRE_NOTHROW(ts.merge_with(explicitly_needs_update()));
         REQUIRE(ts.certainly_needs_update()); // for example ...
       }
 
@@ -78,22 +88,32 @@ TEST_CASE("common::target_status") {
         REQUIRE_NOTHROW(ts.merge_with(file_mod_time()));
         REQUIRE(!ts.certainly_needs_update()); // for example ...
       }
+
+      SUBCASE("second transitively needs update") {
+        REQUIRE_NOTHROW(ts.merge_with(transitively_needs_update()));
+        REQUIRE(!ts.certainly_needs_update()); // for example ...
+      }
     }
 
     SUBCASE("first needs update") {
-      auto ts{needs_update()};
+      auto ts{explicitly_needs_update()};
 
       SUBCASE("second uninitialized") {
         REQUIRE_THROWS(ts.merge_with(uninitialized()));
       }
 
       SUBCASE("second needs update") {
-        REQUIRE_NOTHROW(ts.merge_with(needs_update()));
+        REQUIRE_NOTHROW(ts.merge_with(explicitly_needs_update()));
         REQUIRE(ts.certainly_needs_update()); // for example ...
       }
 
       SUBCASE("second file mod time") {
         REQUIRE_NOTHROW(ts.merge_with(file_mod_time()));
+        REQUIRE(ts.certainly_needs_update()); // for example ...
+      }
+
+      SUBCASE("second transitively needs update") {
+        REQUIRE_NOTHROW(ts.merge_with(transitively_needs_update()));
         REQUIRE(ts.certainly_needs_update()); // for example ...
       }
     }
@@ -106,12 +126,40 @@ TEST_CASE("common::target_status") {
       }
 
       SUBCASE("second needs update") {
-        REQUIRE_NOTHROW(ts.merge_with(needs_update()));
+        REQUIRE_NOTHROW(ts.merge_with(explicitly_needs_update()));
         REQUIRE(ts.certainly_needs_update()); // for example ...
       }
 
       SUBCASE("second file mod time") {
         REQUIRE_NOTHROW(ts.merge_with(file_mod_time()));
+        REQUIRE(!ts.certainly_needs_update()); // for example ...
+      }
+
+      SUBCASE("second transitively needs update") {
+        REQUIRE_NOTHROW(ts.merge_with(transitively_needs_update()));
+        REQUIRE(!ts.certainly_needs_update()); // for example ...
+      }
+    }
+
+    SUBCASE("first transitively needs update") {
+      auto ts{transitively_needs_update()};
+
+      SUBCASE("second uninitialized") {
+        REQUIRE_THROWS(ts.merge_with(uninitialized()));
+      }
+
+      SUBCASE("second needs update") {
+        REQUIRE_NOTHROW(ts.merge_with(explicitly_needs_update()));
+        REQUIRE(ts.certainly_needs_update()); // for example ...
+      }
+
+      SUBCASE("second file mod time") {
+        REQUIRE_NOTHROW(ts.merge_with(file_mod_time()));
+        REQUIRE(!ts.certainly_needs_update()); // for example ...
+      }
+
+      SUBCASE("second transitively needs update") {
+        REQUIRE_NOTHROW(ts.merge_with(transitively_needs_update()));
         REQUIRE(!ts.certainly_needs_update()); // for example ...
       }
     }
@@ -127,17 +175,23 @@ TEST_CASE("common::target_status") {
       }
 
       SUBCASE("second needs update") {
-        REQUIRE_THROWS(discarded = ts.needs_update_compared_to(needs_update()));
+        REQUIRE_THROWS(
+            discarded = ts.needs_update_compared_to(explicitly_needs_update()));
       }
 
       SUBCASE("second file mod time") {
         REQUIRE_THROWS(discarded =
                            ts.needs_update_compared_to(file_mod_time()));
       }
+
+      SUBCASE("second transitively needs update") {
+        REQUIRE_THROWS(discarded = ts.needs_update_compared_to(
+                           transitively_needs_update()));
+      }
     }
 
     SUBCASE("first needs update") {
-      auto ts{needs_update()};
+      auto ts{explicitly_needs_update()};
 
       SUBCASE("second uninitialized") {
         REQUIRE_THROWS(discarded =
@@ -145,11 +199,15 @@ TEST_CASE("common::target_status") {
       }
 
       SUBCASE("second needs update") {
-        REQUIRE(ts.needs_update_compared_to(needs_update()));
+        REQUIRE(ts.needs_update_compared_to(explicitly_needs_update()));
       }
 
       SUBCASE("second file mod time") {
         REQUIRE(ts.needs_update_compared_to(file_mod_time()));
+      }
+
+      SUBCASE("second transitively needs update") {
+        REQUIRE(ts.needs_update_compared_to(transitively_needs_update()));
       }
     }
 
@@ -168,7 +226,7 @@ TEST_CASE("common::target_status") {
       }
 
       SUBCASE("second needs update") {
-        REQUIRE(ts.needs_update_compared_to(needs_update()));
+        REQUIRE(ts.needs_update_compared_to(explicitly_needs_update()));
       }
 
       SUBCASE("second file mod time") {
@@ -185,6 +243,34 @@ TEST_CASE("common::target_status") {
         SUBCASE("second modified sooner") {
           REQUIRE(!ts.needs_update_compared_to(file_mod_time(sooner)));
         }
+      }
+
+      SUBCASE("second transitively needs update") {
+        REQUIRE_THROWS(discarded = ts.needs_update_compared_to(
+                           transitively_needs_update()));
+      }
+    }
+
+    SUBCASE("first transitively needs update") {
+      using mod_time_t = common::target_status::file_mod_time_t;
+
+      auto ts{transitively_needs_update()};
+
+      SUBCASE("second uninitialized") {
+        REQUIRE_THROWS(discarded =
+                           ts.needs_update_compared_to(uninitialized()));
+      }
+
+      SUBCASE("second needs update") {
+        REQUIRE(ts.needs_update_compared_to(explicitly_needs_update()));
+      }
+
+      SUBCASE("second file mod time") {
+        REQUIRE(ts.needs_update_compared_to(file_mod_time()));
+      }
+
+      SUBCASE("second transitively needs update") {
+        REQUIRE(ts.needs_update_compared_to(transitively_needs_update()));
       }
     }
   }
