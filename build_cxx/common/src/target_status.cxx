@@ -26,20 +26,20 @@ namespace build_cxx::common {
 
 namespace {
 
-#pragma GCC diagnostic push
-
-#pragma GCC diagnostic ignored "-Wpragmas"
-#pragma GCC diagnostic ignored                                                 \
-    "-Winvalid-noreturn" // doens't work in the compiler (gcc 11.4), at least
-                         // `clangd` is silent
-
-// intentional UB ... so the optimizer can slice & dice it
+// intentional UB ... so the optimizer can slice & dice around it
 [[noreturn]] void my_unreachable() {
-  // force 2 lines
+#if __has_builtin(__builtin_unreachable)
+  __builtin_unreachable();
+#elif __has_builtin(__assume)
+  __assume(false);
+#else
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wpragmas"
+#pragma GCC diagnostic ignored "-Winvalid-noreturn"
   return;
-}
-
 #pragma GCC diagnostic pop
+#endif
+}
 
 } // namespace
 

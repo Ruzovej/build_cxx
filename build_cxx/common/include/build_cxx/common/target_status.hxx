@@ -28,27 +28,32 @@ struct BUILD_CXX_DLL_EXPORT target_status {
 
   enum class kind_t : char {
     uninitialized,
-    // lowest priority, serves only as a placeholder and must be overwritten
-    // (except "uninitialized"):
-    explicitly_needs_update,
+    // lowest priority; serves only as a placeholder and must be overwritten by
+    // one of those below (or comparison, etc. will throw):
+    transitively_needs_update,
     // when comparing with other, it may indicate to build/skip this:
     file_mod_time,
     // highest priority; indicates this should be built:
-    transitively_needs_update,
+    explicitly_needs_update,
   };
 
-  static auto constexpr explicitly_needs_update{
-      kind_t::explicitly_needs_update};
-  static auto constexpr transitively_needs_update{
-      kind_t::transitively_needs_update};
+  struct transitively_needs_update_t {};
+  static transitively_needs_update_t constexpr transitively_needs_update{};
+
+  struct explicitly_needs_update_t {};
+  static explicitly_needs_update_t constexpr explicitly_needs_update{};
 
   constexpr target_status() = default;
-  // TODO safer c-tor params, e.g. dedicated `struct tag...`:
-  constexpr target_status(kind_t const k) noexcept : kind{k} {
+  constexpr target_status(transitively_needs_update_t const) noexcept
+      : kind{kind_t::transitively_needs_update} {
     // force 2 lines
   }
   constexpr explicit target_status(file_mod_time_t const mod_time) noexcept
       : kind{kind_t::file_mod_time}, mod_time{mod_time} {
+    // force 2 lines
+  }
+  constexpr target_status(explicitly_needs_update_t const) noexcept
+      : kind{kind_t::explicitly_needs_update} {
     // force 2 lines
   }
 
