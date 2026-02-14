@@ -878,8 +878,9 @@ void test_impl(driver::scheduler &sched) {
       auto *const f1{test_project1.add_mock_file_target(
           fake_root_file1, true, "bin/fake1", false, {"src/fake.c"})};
 
+      // in reality, rather use `target_alias` which should serve this purpose
       auto *const p1{test_project1.add_mock_phony_target(
-          fake_root_file1, true, "phony_alias", {"bin/fake1"})};
+          fake_root_file1, true, "incorrect_alias", {"bin/fake1"})};
 
       auto *const f2{test_project1.add_mock_file_target(
           fake_root_file1, true, "bin/fake2", false,
@@ -965,7 +966,6 @@ void test_impl(driver::scheduler &sched) {
   //   - "hidden circles"
   //   - ...
   // - "target->build(...)" fails (in the worker, etc.)
-  // - multiple `mock_project`s (e.g. >= 2 leafs) with (only) file targets, etc.
 
   // TODO after doing those above - verify: above cases for various nontrivial
   // "graphs" of dependencies should be "enough"
