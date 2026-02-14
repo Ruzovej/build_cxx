@@ -960,9 +960,39 @@ void test_impl(driver::scheduler &sched) {
     }
   }
 
+  SUBCASE("invalid dependency specification") {
+    SUBCASE("simple circle") {
+      auto *const t1{test_project1.add_mock_phony_target(fake_root_file1, true,
+                                                         "t1", {"t2"})};
+
+      auto *const t2{test_project1.add_mock_phony_target(fake_root_file1, true,
+                                                         "t2", {"t1"})};
+
+      REQUIRE_NOTHROW(driver_pt.process_project(&test_project1));
+
+      bool resolved{false};
+      REQUIRE_NOTHROW(resolved = driver_pt.resolve_deps_for_all());
+      REQUIRE(resolved);
+
+      SUBCASE("build 1st") {
+        REQUIRE_THROWS(driver_pt.build_target(t1));
+        REQUIRE_EQ(built_targets.size(), 0);
+      }
+
+      SUBCASE("build 2nd") {
+        REQUIRE_THROWS(driver_pt.build_target(t2));
+        REQUIRE_EQ(built_targets.size(), 0);
+      }
+
+      SUBCASE("build all") {
+        REQUIRE_THROWS(driver_pt.build_all());
+        REQUIRE_EQ(built_targets.size(), 0);
+      }
+    }
+  }
+
   // TODO test for proper termination (via exception, etc.):
   // - builds containing cycles
-  //   - "simple circle"
   //   - "hidden circles"
   //   - ...
   // - "target->build(...)" fails (in the worker, etc.)
