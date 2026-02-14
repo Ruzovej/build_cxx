@@ -24,7 +24,8 @@
 
 namespace build_cxx::driver {
 
-scheduler::scheduler(int const n_workers) noexcept {
+scheduler::scheduler(int const n_workers, bool const aVerbose) noexcept
+    : verbose{aVerbose} {
   workers.reserve(std::max(n_workers, 1));
 
   for (int idx{0}; idx < workers.capacity(); ++idx) {
@@ -56,9 +57,23 @@ scheduler::scheduler(int const n_workers) noexcept {
 
           res.success = true;
         } catch (std::exception const &e) {
-          std::cerr << "Error in worker thread: " << e.what() << '\n';
+          if (verbose) {
+            if (res.tgt) {
+              std::cerr << "Error in worker thread when processing "
+                        << res.tgt->name << "': " << e.what() << '\n';
+            } else {
+              std::cerr << "Error in worker thread: " << e.what() << '\n';
+            }
+          }
         } catch (...) {
-          std::cerr << "Unknown error in worker thread\n";
+          if (verbose) {
+            if (res.tgt) {
+              std::cerr << "Unknown error in worker thread when processing "
+                        << res.tgt->name << "'\n";
+            } else {
+              std::cerr << "Unknown error in worker thread\n";
+            }
+          }
         }
 
         {

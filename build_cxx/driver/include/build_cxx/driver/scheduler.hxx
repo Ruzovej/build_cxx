@@ -34,7 +34,7 @@ namespace build_cxx::driver {
 // more precise: its public methods aren't thread-safe.
 struct BUILD_CXX_DLL_EXPORT scheduler { // TODO should be BUILD_CXX_DLL_HIDE,
                                         // but then unit tests won't compile ...
-  explicit scheduler(int const n_workers) noexcept;
+  explicit scheduler(int const n_workers, bool const aVerbose = true) noexcept;
 
   ~scheduler() noexcept;
 
@@ -51,6 +51,7 @@ struct BUILD_CXX_DLL_EXPORT scheduler { // TODO should be BUILD_CXX_DLL_HIDE,
 
 private:
   int n_handled_targets{0};
+  bool verbose;
   bool should_run{true}; // used only for destruction
   std::vector<std::thread> workers;
 

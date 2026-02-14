@@ -37,7 +37,7 @@ namespace {
 
 template <int n_workers> struct sched {
   // avoid cost of starting up all the threads for each test case:
-  static inline driver::scheduler inst{n_workers};
+  static inline driver::scheduler inst{n_workers, false};
 };
 
 void test_impl(driver::scheduler &sched);
@@ -1074,8 +1074,27 @@ void test_impl(driver::scheduler &sched) {
     }
   }
 
-  // TODO test for proper termination (via exception, etc.):
-  // - "target->build(...)" fails (in the worker, etc.)
+  SUBCASE("build failure handling") {
+    SUBCASE("single target") {
+      auto *const f1{test_project1.add_mock_file_target(fake_root_file1, false,
+                                                        "f1", true, {})};
+
+      auto *const f2{test_project1.add_mock_file_target(fake_root_file1, true,
+                                                        "f2", false, {"f1"})};
+
+      f2->set_throw_from_recipe(true);
+
+      REQUIRE_NOTHROW(driver_pt.process_project(&test_project1));
+
+      bool resolved{false};
+      REQUIRE_NOTHROW(resolved = driver_pt.resolve_deps_for_all());
+      REQUIRE(resolved);
+
+      REQUIRE_THROWS(driver_pt.build_target(f2));
+
+      REQUIRE_THROWS(driver_pt.build_all());
+    }
+  }
 
   // scheduler is "empty" ~ all has been finished
   REQUIRE_EQ(sched.num_handled_targets(), 0);
