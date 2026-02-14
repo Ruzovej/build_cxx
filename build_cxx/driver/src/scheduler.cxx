@@ -146,4 +146,21 @@ common::abstract_target const *scheduler::get_built_target() {
   return res.tgt;
 }
 
+void scheduler::discard_all_running_tasks() {
+  while (n_handled_targets > 0) {
+    try {
+      // discard it:
+      static_cast<void>(get_built_target());
+    } catch (std::exception const &e) {
+      if (verbose) {
+        std::cerr << e.what() << '\n';
+      }
+    } catch (...) {
+      if (verbose) {
+        std::cerr << "Unknown error when discarding running tasks\n";
+      }
+    }
+  }
+}
+
 } // namespace build_cxx::driver

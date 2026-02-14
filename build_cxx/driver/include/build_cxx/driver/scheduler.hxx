@@ -49,6 +49,8 @@ struct BUILD_CXX_DLL_EXPORT scheduler { // TODO should be BUILD_CXX_DLL_HIDE,
 
   [[nodiscard]] common::abstract_target const *get_built_target();
 
+  void discard_all_running_tasks();
+
 private:
   int n_handled_targets{0};
   bool verbose;

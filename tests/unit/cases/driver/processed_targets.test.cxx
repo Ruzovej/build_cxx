@@ -1075,7 +1075,7 @@ void test_impl(driver::scheduler &sched) {
   }
 
   SUBCASE("build failure handling") {
-    SUBCASE("single target") {
+    SUBCASE("simple dep. chain with failure at the end") {
       auto *const f1{test_project1.add_mock_file_target(fake_root_file1, false,
                                                         "f1", true, {})};
 
@@ -1094,6 +1094,72 @@ void test_impl(driver::scheduler &sched) {
 
       REQUIRE_THROWS(driver_pt.build_all());
     }
+
+    SUBCASE("simple dep. chain with failure in the middle") {
+      auto *const f1{test_project1.add_mock_file_target(fake_root_file1, false,
+                                                        "f1", true, {})};
+
+      auto *const f2{test_project1.add_mock_file_target(fake_root_file1, false,
+                                                        "f2", false, {"f1"})};
+
+      f2->set_throw_from_recipe(true);
+
+      auto *const f3{test_project1.add_mock_file_target(fake_root_file1, true,
+                                                        "f3", false, {"f2"})};
+
+      REQUIRE_NOTHROW(driver_pt.process_project(&test_project1));
+
+      bool resolved{false};
+      REQUIRE_NOTHROW(resolved = driver_pt.resolve_deps_for_all());
+      REQUIRE(resolved);
+
+      REQUIRE_THROWS(driver_pt.build_target(f3));
+
+      REQUIRE_THROWS(driver_pt.build_all());
+    }
+
+    SUBCASE("broader dep. tree with single failure") {
+      auto *const f1{test_project1.add_mock_file_target(fake_root_file1, false,
+                                                        "f1", true, {})};
+
+      auto *const f2{test_project1.add_mock_file_target(fake_root_file1, false,
+                                                        "f2", true, {})};
+
+      SUBCASE("(middle) leaf fails") {
+        // force 2 lines
+        f2->set_throw_from_recipe(true);
+      }
+
+      auto *const f3{test_project1.add_mock_file_target(fake_root_file1, false,
+                                                        "f3", true, {})};
+
+      SUBCASE("all leafs fail") {
+        f1->set_throw_from_recipe(true);
+        f2->set_throw_from_recipe(true);
+        f3->set_throw_from_recipe(true);
+      }
+
+      auto *const c{test_project1.add_mock_file_target(
+          fake_root_file1, true, "consumer", false, {"f1", "f2", "f3"})};
+
+      SUBCASE("consumer fails") {
+        // force 2 lines
+        c->set_throw_from_recipe(true);
+      }
+
+      REQUIRE_NOTHROW(driver_pt.process_project(&test_project1));
+
+      bool resolved{false};
+      REQUIRE_NOTHROW(resolved = driver_pt.resolve_deps_for_all());
+      REQUIRE(resolved);
+
+      REQUIRE_THROWS(driver_pt.build_target(c));
+
+      REQUIRE_THROWS(driver_pt.build_all());
+    }
+
+    // just to be sure - clean it up:
+    REQUIRE_NOTHROW(sched.discard_all_running_tasks());
   }
 
   // scheduler is "empty" ~ all has been finished
