@@ -960,7 +960,7 @@ void test_impl(driver::scheduler &sched) {
     }
   }
 
-  SUBCASE("invalid dependency specification") {
+  SUBCASE("cyclic dependencies") {
     SUBCASE("simple circle") {
       auto *const t1{test_project1.add_mock_phony_target(fake_root_file1, true,
                                                          "t1", {"t2"})};
