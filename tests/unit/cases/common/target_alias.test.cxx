@@ -27,7 +27,7 @@
 namespace build_cxx {
 namespace {
 
-TEST_CASE("common::phony_target") {
+TEST_CASE("common::target_alias") {
   std::mutex mtx;
   test_helpers::built_targets_t built_targets;
   test_helpers::mock_project test_project{&mtx,    &built_targets, nullptr,
