@@ -989,11 +989,57 @@ void test_impl(driver::scheduler &sched) {
         REQUIRE_EQ(built_targets.size(), 0);
       }
     }
+
+    SUBCASE("hidden circle") {
+      auto *const t1{
+          test_project1.add_mock_phony_target(fake_root_file1, true, "t1", {})};
+
+      auto *const t2{test_project1.add_mock_phony_target(fake_root_file1, true,
+                                                         "t2", {"t1"})};
+
+      // circle is in the next 3:
+      auto *const t3{test_project1.add_mock_phony_target(fake_root_file1, true,
+                                                         "t3", {"t2", "t5"})};
+
+      auto *const t4{test_project1.add_mock_phony_target(fake_root_file1, true,
+                                                         "t4", {"t3"})};
+
+      auto *const t5{test_project1.add_mock_phony_target(fake_root_file1, true,
+                                                         "t5", {"t4"})};
+
+      REQUIRE_NOTHROW(driver_pt.process_project(&test_project1));
+
+      bool resolved{false};
+      REQUIRE_NOTHROW(resolved = driver_pt.resolve_deps_for_all());
+      REQUIRE(resolved);
+
+      SUBCASE("build 2nd (OK)") {
+        REQUIRE_NOTHROW(driver_pt.build_target(t2));
+        REQUIRE_EQ(built_targets.count(t1), 1);
+        REQUIRE_EQ(built_targets.count(t2), 1);
+        REQUIRE_EQ(built_targets.size(), 2);
+      }
+
+      SUBCASE("build 3rd (fails)") {
+        REQUIRE_THROWS(driver_pt.build_target(t3));
+        // it manages to build those "unflawed" targets:
+        REQUIRE_EQ(built_targets.count(t1), 1);
+        REQUIRE_EQ(built_targets.count(t2), 1);
+        REQUIRE_EQ(built_targets.size(), 2);
+      }
+
+      SUBCASE("build all") {
+        REQUIRE_THROWS(driver_pt.build_all());
+        // it manages to build those "unflawed" targets:
+        REQUIRE_EQ(built_targets.count(t1), 1);
+        REQUIRE_EQ(built_targets.count(t2), 1);
+        REQUIRE_EQ(built_targets.size(), 2);
+      }
+    }
   }
 
   // TODO test for proper termination (via exception, etc.):
   // - builds containing cycles
-  //   - "hidden circles"
   //   - ...
   // - "target->build(...)" fails (in the worker, etc.)
 
