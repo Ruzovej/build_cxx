@@ -207,7 +207,8 @@ TEST_CASE("common::target_status") {
       }
 
       SUBCASE("second transitively needs update") {
-        REQUIRE(ts.needs_update_compared_to(transitively_needs_update()));
+        REQUIRE_THROWS(discarded = ts.needs_update_compared_to(
+                           transitively_needs_update()));
       }
     }
 
@@ -270,7 +271,8 @@ TEST_CASE("common::target_status") {
       }
 
       SUBCASE("second transitively needs update") {
-        REQUIRE(ts.needs_update_compared_to(transitively_needs_update()));
+        REQUIRE_THROWS(discarded = ts.needs_update_compared_to(
+                           transitively_needs_update()));
       }
     }
   }

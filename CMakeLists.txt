@@ -23,6 +23,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 # - https://github.com/google/sanitizers
 # - https://hpc-wiki.info/hpc/Compiler_Sanitizers
 # - https://clang.llvm.org/docs/index.html (search for `sanitizer`)
+# - https://clang.llvm.org/docs/UsersManual.html#command-line-options (or here ...)
 # - https://gcc.gnu.org/onlinedocs/gcc/Instrumentation-Options.html (ditto)
 option(BUILDCXX_ASAN "Enable AddressSanitizer" OFF)
 option(BUILDCXX_MSAN "Enable MemorySanitizer" OFF) # Why this one doesn't work?! Maybe it's only for `clang`?
@@ -49,6 +50,9 @@ if (BUILDCXX_UBSAN)
     add_link_options(-fsanitize=undefined -fno-omit-frame-pointer)
 endif()
 
+# TODO all interesting ones, e.g.:
+# - https://gcc.gnu.org/onlinedocs/gcc/Option-Summary.html
+# - https://clang.llvm.org/docs/DiagnosticsReference.html
 #add_compile_options(-Wall -Wextra -Wpedantic)
 
 include(FetchContent)

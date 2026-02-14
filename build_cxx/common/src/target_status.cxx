@@ -19,117 +19,104 @@
 
 #include "build_cxx/common/target_status.hxx"
 
+#include <algorithm>
 #include <stdexcept>
 
 namespace build_cxx::common {
 
 namespace {
 
-struct merge_visitor {
-  explicit merge_visitor(target_status::status_t &aDest) : dest{aDest} {
-    // force 2 lines
-  }
+#pragma GCC diagnostic push
 
-  void operator()(std::monostate const) {
-    throw std::runtime_error{
-        "Internal error: merging with uninitialized target status"};
-  }
+#pragma GCC diagnostic ignored "-Wpragmas"
+#pragma GCC diagnostic ignored                                                 \
+    "-Winvalid-noreturn" // doens't work in the compiler (gcc 11.4), at least
+                         // `clangd` is silent
 
-  void operator()(target_status::needs_update_t const val) {
-    if (val.certain || std::holds_alternative<std::monostate>(dest)) {
-      dest = val;
-    }
-  }
+// intentional UB ... so the optimizer can slice & dice it
+[[noreturn]] void my_unreachable() {
+  // force 2 lines
+  return;
+}
 
-  void operator()(target_status::file_mod_time_t const value) {
-    // TODO untangle those enormous spaghetti ...:
-    if (auto *const dest_mod_time_ptr =
-            std::get_if<target_status::file_mod_time_t>(&dest);
-        dest_mod_time_ptr != nullptr) {
-      *dest_mod_time_ptr = std::max(*dest_mod_time_ptr, value);
-    } else if (std::holds_alternative<std::monostate>(dest)) {
-      dest = value;
-    } else if (auto *const dest_needs_update_ptr =
-                   std::get_if<target_status::needs_update_t>(&dest);
-               (dest_needs_update_ptr != nullptr) &&
-               !dest_needs_update_ptr->certain) {
-      dest = value;
-    }
-  }
-
-private:
-  target_status::status_t &dest;
-};
+#pragma GCC diagnostic pop
 
 } // namespace
 
 void target_status::merge_with(target_status const rhs) {
   rhs.require_initialized();
 
-  std::visit(merge_visitor{status}, rhs.status);
+  switch (rhs.kind) {
+  case kind_t::explicitly_needs_update: {
+    kind = kind_t::explicitly_needs_update;
+    return;
+  }
+  case kind_t::file_mod_time: {
+    if (kind == kind_t::file_mod_time) {
+      mod_time = std::max(mod_time, rhs.mod_time);
+    } else if (kind != kind_t::explicitly_needs_update) {
+      // overwrites uninitialized and transitively_needs_update
+      *this = rhs;
+    }
+    return;
+  }
+  case kind_t::transitively_needs_update: {
+    if (kind == kind_t::uninitialized) {
+      kind = kind_t::transitively_needs_update;
+    }
+    return;
+  }
+  default: {
+    my_unreachable();
+    break;
+  }
+  }
 }
 
 bool target_status::certainly_needs_update() const {
   require_initialized();
 
-  auto *const dest_needs_update_ptr =
-      std::get_if<target_status::needs_update_t>(&status);
-
-  return (dest_needs_update_ptr != nullptr) && dest_needs_update_ptr->certain;
+  return kind == kind_t::explicitly_needs_update;
 }
-
-namespace {
-
-struct needs_update_visitor {
-  explicit needs_update_visitor(
-      target_status::file_mod_time_t const aMy_mod_time)
-      : my_mod_time{aMy_mod_time} {
-    // force 2 lines
-  }
-
-  // other is empty
-  [[nodiscard]] bool operator()(std::monostate const) const {
-    throw std::runtime_error{
-        "Internal error: comparing with uninitialized target status"};
-  }
-
-  // other needs update
-  [[nodiscard]] bool operator()(target_status::needs_update_t const val) const {
-    if (!val.certain) {
-      throw std::runtime_error{
-          "Internal error: comparing with 'needs_update_t' (with certain == "
-          "false) target status"};
-    }
-    return true;
-  }
-
-  [[nodiscard]] bool
-  operator()(target_status::file_mod_time_t const other_mod_time) const {
-    return my_mod_time < other_mod_time;
-  }
-
-private:
-  target_status::file_mod_time_t my_mod_time;
-};
-
-} // namespace
 
 bool target_status::needs_update_compared_to(target_status const other) const {
   require_initialized();
   other.require_initialized();
 
-  // TODO untangle those spaghetti ...:
-  if (std::holds_alternative<needs_update_t>(status)) {
+  if (kind != kind_t::file_mod_time) {
+    // ==> this: explicitly or transitively needs update
+
+    if (other.kind == kind_t::transitively_needs_update) {
+      throw std::runtime_error{"Internal error: comparing with "
+                               "'transitively_needs_update' target status"};
+    }
+
+    // ==> other: file mod time or explicitly needs update
+
+    return true; // whatever the combination, this is the result
+  }
+
+  // ==> this: file mod time
+  switch (other.kind) {
+  case kind_t::explicitly_needs_update: {
     return true;
-  } else {
-    auto *const self_mod_time_ptr =
-        std::get_if<target_status::file_mod_time_t>(&status);
-    return std::visit(needs_update_visitor{*self_mod_time_ptr}, other.status);
+  }
+  case kind_t::file_mod_time: {
+    return mod_time < other.mod_time;
+  }
+  case kind_t::transitively_needs_update: {
+    throw std::runtime_error{"Internal error: comparing with "
+                             "'transitively_needs_update' target status"};
+  }
+  default: {
+    my_unreachable();
+    return true; // to silence compiler warning
+  }
   }
 }
 
 void target_status::require_initialized() const {
-  if (std::holds_alternative<std::monostate>(status)) {
+  if (kind == kind_t::uninitialized) {
     throw std::runtime_error{
         "Internal error: querying uninitialized target status"};
   }
