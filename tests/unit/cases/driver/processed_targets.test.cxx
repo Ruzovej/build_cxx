@@ -1089,8 +1089,6 @@ void test_impl(driver::scheduler &sched) {
       REQUIRE(resolved);
 
       REQUIRE_THROWS(driver_pt.build_target(f2));
-
-      REQUIRE_THROWS(driver_pt.build_all());
     }
 
     SUBCASE("simple dep. chain with failure in the middle") {
@@ -1112,8 +1110,6 @@ void test_impl(driver::scheduler &sched) {
       REQUIRE(resolved);
 
       REQUIRE_THROWS(driver_pt.build_target(f3));
-
-      REQUIRE_THROWS(driver_pt.build_all());
     }
 
     SUBCASE("broader dep. tree with single failure") {
@@ -1152,9 +1148,17 @@ void test_impl(driver::scheduler &sched) {
       REQUIRE(resolved);
 
       REQUIRE_THROWS(driver_pt.build_target(c));
-
-      REQUIRE_THROWS(driver_pt.build_all());
     }
+
+    // wait for all pending jobs - probable cause of failure described in
+    // https://github.com/Ruzovej/build_cxx/issues/13 was that e.g.
+    // `REQUIRE_THROWS(driver_pt.build_target(c));` still may have had running
+    // job for the same file that `REQUIRE_THROWS(driver_pt.build_all());`
+    // "started touching"
+    REQUIRE_NOTHROW(sched.discard_all_running_tasks());
+
+    // it behaves the same (as building the "bad" target directly):
+    REQUIRE_THROWS(driver_pt.build_all());
 
     // just to be sure - clean it up:
     REQUIRE_NOTHROW(sched.discard_all_running_tasks());
