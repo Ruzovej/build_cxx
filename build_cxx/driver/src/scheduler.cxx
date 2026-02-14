@@ -59,7 +59,7 @@ scheduler::scheduler(int const n_workers, bool const aVerbose) noexcept
         } catch (std::exception const &e) {
           if (verbose) {
             if (res.tgt) {
-              std::cerr << "Error in worker thread when processing "
+              std::cerr << "Error in worker thread when processing '"
                         << res.tgt->name << "': " << e.what() << '\n';
             } else {
               std::cerr << "Error in worker thread: " << e.what() << '\n';
@@ -68,7 +68,7 @@ scheduler::scheduler(int const n_workers, bool const aVerbose) noexcept
         } catch (...) {
           if (verbose) {
             if (res.tgt) {
-              std::cerr << "Unknown error in worker thread when processing "
+              std::cerr << "Unknown error in worker thread when processing '"
                         << res.tgt->name << "'\n";
             } else {
               std::cerr << "Unknown error in worker thread\n";

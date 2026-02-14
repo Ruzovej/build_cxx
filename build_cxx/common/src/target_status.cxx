@@ -42,7 +42,7 @@ struct merge_visitor {
   }
 
   void operator()(target_status::file_mod_time_t const value) {
-    // TODO untabgle those enormous spaghetti ...:
+    // TODO untangle those enormous spaghetti ...:
     if (auto *const dest_mod_time_ptr =
             std::get_if<target_status::file_mod_time_t>(&dest);
         dest_mod_time_ptr != nullptr) {
@@ -96,8 +96,9 @@ struct needs_update_visitor {
   // other needs update
   [[nodiscard]] bool operator()(target_status::needs_update_t const val) const {
     if (!val.certain) {
-      throw std::runtime_error{"Internal error: comparing with "
-                               "'needs_update_transitive_t' target status"};
+      throw std::runtime_error{
+          "Internal error: comparing with 'needs_update_t' (with certain == "
+          "false) target status"};
     }
     return true;
   }
@@ -117,7 +118,7 @@ bool target_status::needs_update_compared_to(target_status const other) const {
   require_initialized();
   other.require_initialized();
 
-  // TODO untabgle those spaghetti ...:
+  // TODO untangle those spaghetti ...:
   if (std::holds_alternative<needs_update_t>(status)) {
     return true;
   } else {
