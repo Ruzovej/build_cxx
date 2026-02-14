@@ -26,16 +26,23 @@
 namespace build_cxx::common {
 
 struct BUILD_CXX_DLL_EXPORT target_status {
-  struct needs_update_t {};
+  struct needs_update_t {
+    // if `false`, `file_mod_time_t` has higher precedence; same type with
+    // `true` has highest precedence
+    bool certain{true};
+  };
+
   using file_mod_time_t = long long;
 
   using status_t =
       std::variant<std::monostate, needs_update_t, file_mod_time_t>;
 
-  static needs_update_t constexpr needs_update{};
+  // TODO better names ...:
+  static needs_update_t constexpr explicitly_needs_update{true};
+  static needs_update_t constexpr transitively_needs_update{false};
 
   constexpr target_status() = default;
-  constexpr target_status(needs_update_t) : status{needs_update} {}
+  constexpr target_status(needs_update_t const val) : status{val} {}
   constexpr explicit target_status(file_mod_time_t const mod_time)
       : status{mod_time} {}
 

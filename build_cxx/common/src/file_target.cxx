@@ -47,7 +47,7 @@ void file_target::resolve_own_traits() {
 void file_target::initialize_status() {
   status = fs->file_exists(resolved_path)
                ? target_status{fs->file_last_mod_time(resolved_path)}
-               : target_status::needs_update;
+               : target_status::explicitly_needs_update;
 }
 
 void file_target::update_status(target_status const newest_dep_status) {

@@ -24,9 +24,7 @@
 namespace build_cxx::common {
 
 void target_alias::initialize_status() {
-  // TODO some better value ... this forces it to be always overwritten by the
-  // status of other file targets, etc.
-  status = target_status{~0ll};
+  status = target_status::transitively_needs_update;
 }
 
 void target_alias::update_status(target_status const newest_dep_status) {

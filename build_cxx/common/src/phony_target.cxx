@@ -33,7 +33,9 @@ void phony_target::resolve_own_traits() {
   resolved_name = resolve_name(parent_project->name, name);
 }
 
-void phony_target::initialize_status() { status = target_status::needs_update; }
+void phony_target::initialize_status() {
+  status = target_status::explicitly_needs_update;
+}
 
 void phony_target::update_status(target_status const newest_dep_status) {
   // this kind of target is always out of date -> nothing to do ...

@@ -26,23 +26,33 @@ namespace build_cxx::common {
 namespace {
 
 struct merge_visitor {
-  explicit merge_visitor(target_status::status_t &aDest) : dest{aDest} {}
+  explicit merge_visitor(target_status::status_t &aDest) : dest{aDest} {
+    // force 2 lines
+  }
 
   void operator()(std::monostate const) {
     throw std::runtime_error{
         "Internal error: merging with uninitialized target status"};
   }
 
-  void operator()(target_status::needs_update_t const) {
-    dest = target_status::needs_update;
+  void operator()(target_status::needs_update_t const val) {
+    if (val.certain || std::holds_alternative<std::monostate>(dest)) {
+      dest = val;
+    }
   }
 
   void operator()(target_status::file_mod_time_t const value) {
+    // TODO untabgle those enormous spaghetti ...:
     if (auto *const dest_mod_time_ptr =
             std::get_if<target_status::file_mod_time_t>(&dest);
         dest_mod_time_ptr != nullptr) {
       *dest_mod_time_ptr = std::max(*dest_mod_time_ptr, value);
-    } else if (!std::holds_alternative<target_status::needs_update_t>(dest)) {
+    } else if (std::holds_alternative<std::monostate>(dest)) {
+      dest = value;
+    } else if (auto *const dest_needs_update_ptr =
+                   std::get_if<target_status::needs_update_t>(&dest);
+               (dest_needs_update_ptr != nullptr) &&
+               !dest_needs_update_ptr->certain) {
       dest = value;
     }
   }
@@ -55,12 +65,17 @@ private:
 
 void target_status::merge_with(target_status const rhs) {
   rhs.require_initialized();
+
   std::visit(merge_visitor{status}, rhs.status);
 }
 
 bool target_status::certainly_needs_update() const {
   require_initialized();
-  return std::holds_alternative<needs_update_t>(status);
+
+  auto *const dest_needs_update_ptr =
+      std::get_if<target_status::needs_update_t>(&status);
+
+  return (dest_needs_update_ptr != nullptr) && dest_needs_update_ptr->certain;
 }
 
 namespace {
@@ -68,7 +83,9 @@ namespace {
 struct needs_update_visitor {
   explicit needs_update_visitor(
       target_status::file_mod_time_t const aMy_mod_time)
-      : my_mod_time{aMy_mod_time} {}
+      : my_mod_time{aMy_mod_time} {
+    // force 2 lines
+  }
 
   // other is empty
   [[nodiscard]] bool operator()(std::monostate const) const {
@@ -77,7 +94,11 @@ struct needs_update_visitor {
   }
 
   // other needs update
-  [[nodiscard]] bool operator()(target_status::needs_update_t const) const {
+  [[nodiscard]] bool operator()(target_status::needs_update_t const val) const {
+    if (!val.certain) {
+      throw std::runtime_error{"Internal error: comparing with "
+                               "'needs_update_transitive_t' target status"};
+    }
     return true;
   }
 
@@ -95,6 +116,8 @@ private:
 bool target_status::needs_update_compared_to(target_status const other) const {
   require_initialized();
   other.require_initialized();
+
+  // TODO untabgle those spaghetti ...:
   if (std::holds_alternative<needs_update_t>(status)) {
     return true;
   } else {
