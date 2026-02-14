@@ -19,32 +19,43 @@
 
 #pragma once
 
-#include <variant>
-
 #include "build_cxx/common/macros.h"
 
 namespace build_cxx::common {
 
 struct BUILD_CXX_DLL_EXPORT target_status {
-  struct needs_update_t {
-    // if `false`, `file_mod_time_t` has higher precedence; same type with
-    // `true` has highest precedence
-    bool certain{true};
-  };
-
   using file_mod_time_t = long long;
 
-  using status_t =
-      std::variant<std::monostate, needs_update_t, file_mod_time_t>;
+  enum class kind_t : char {
+    uninitialized,
+    // lowest priority; serves only as a placeholder and must be overwritten by
+    // one of those below (or comparison, etc. will throw):
+    transitively_needs_update,
+    // when comparing with other, it may indicate to build/skip this:
+    file_mod_time,
+    // highest priority; indicates this should be built:
+    explicitly_needs_update,
+  };
 
-  // TODO better names ...:
-  static needs_update_t constexpr explicitly_needs_update{true};
-  static needs_update_t constexpr transitively_needs_update{false};
+  struct transitively_needs_update_t {};
+  static transitively_needs_update_t constexpr transitively_needs_update{};
+
+  struct explicitly_needs_update_t {};
+  static explicitly_needs_update_t constexpr explicitly_needs_update{};
 
   constexpr target_status() = default;
-  constexpr target_status(needs_update_t const val) : status{val} {}
-  constexpr explicit target_status(file_mod_time_t const mod_time)
-      : status{mod_time} {}
+  constexpr target_status(transitively_needs_update_t const) noexcept
+      : kind{kind_t::transitively_needs_update} {
+    // force 2 lines
+  }
+  constexpr explicit target_status(file_mod_time_t const mod_time) noexcept
+      : kind{kind_t::file_mod_time}, mod_time{mod_time} {
+    // force 2 lines
+  }
+  constexpr target_status(explicitly_needs_update_t const) noexcept
+      : kind{kind_t::explicitly_needs_update} {
+    // force 2 lines
+  }
 
   void merge_with(target_status const rhs);
 
@@ -55,7 +66,8 @@ struct BUILD_CXX_DLL_EXPORT target_status {
 private:
   void require_initialized() const;
 
-  status_t status;
+  kind_t kind{kind_t::uninitialized};
+  file_mod_time_t mod_time{};
 };
 
 } // namespace build_cxx::common
