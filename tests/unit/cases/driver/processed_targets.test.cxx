@@ -990,6 +990,42 @@ void test_impl(driver::scheduler &sched) {
       }
     }
 
+    SUBCASE("simple circle across projects") {
+      auto *const t1{test_project1.add_mock_phony_target(fake_root_file1, true,
+                                                         "t1", {"dpttp2::t2"})};
+
+      static std::string_view constexpr fake_root_file2{
+          "/fake/dir2/project.root.cxx"};
+
+      test_helpers::mock_project test_project2{
+          &mtx, &built_targets, nullptr, "dpttp2", "3.1.5", fake_root_file2};
+
+      auto *const t2{test_project2.add_mock_phony_target(fake_root_file2, true,
+                                                         "t2", {"dpttp1::t1"})};
+
+      REQUIRE_NOTHROW(driver_pt.process_project(&test_project1));
+      REQUIRE_NOTHROW(driver_pt.process_project(&test_project2));
+
+      bool resolved{false};
+      REQUIRE_NOTHROW(resolved = driver_pt.resolve_deps_for_all());
+      REQUIRE(resolved);
+
+      SUBCASE("build 1st") {
+        REQUIRE_THROWS(driver_pt.build_target(t1));
+        REQUIRE_EQ(built_targets.size(), 0);
+      }
+
+      SUBCASE("build 2nd") {
+        REQUIRE_THROWS(driver_pt.build_target(t2));
+        REQUIRE_EQ(built_targets.size(), 0);
+      }
+
+      SUBCASE("build all") {
+        REQUIRE_THROWS(driver_pt.build_all());
+        REQUIRE_EQ(built_targets.size(), 0);
+      }
+    }
+
     SUBCASE("hidden circle") {
       auto *const t1{
           test_project1.add_mock_phony_target(fake_root_file1, true, "t1", {})};
