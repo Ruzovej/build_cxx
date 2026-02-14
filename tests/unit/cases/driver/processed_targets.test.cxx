@@ -1075,14 +1075,9 @@ void test_impl(driver::scheduler &sched) {
   }
 
   // TODO test for proper termination (via exception, etc.):
-  // - builds containing cycles
-  //   - ...
   // - "target->build(...)" fails (in the worker, etc.)
 
-  // TODO after doing those above - verify: above cases for various nontrivial
-  // "graphs" of dependencies should be "enough"
-
-  // scheduler is "empty"
+  // scheduler is "empty" ~ all has been finished
   REQUIRE_EQ(sched.num_handled_targets(), 0);
 }
 
