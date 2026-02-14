@@ -21,11 +21,13 @@
 
 #include <memory>
 #include <mutex>
+#include <type_traits>
 #include <unordered_set>
 #include <vector>
 
 #include "build_cxx/common/location.hxx"
 #include "build_cxx/common/project.hxx"
+#include "build_cxx/common/target_alias.hxx"
 #include "build_cxx/test_helpers/built_targets_t.hxx"
 #include "build_cxx/test_helpers/mock_file_target.hxx"
 #include "build_cxx/test_helpers/mock_fs.hxx"
@@ -65,6 +67,14 @@ struct mock_project : common::project {
                                               tgt_name, std::move(deps));
   }
 
+  [[nodiscard]] common::target_alias *
+  add_target_alias(std::string_view const fake_loc_filename,
+                   bool const include_in_all, std::string_view const tgt_name,
+                   std::vector<std::string_view> &&deps) {
+    return add_mock_target<common::target_alias>(
+        fake_loc_filename, include_in_all, tgt_name, std::move(deps));
+  }
+
   std::mutex *mtx{nullptr};
   built_targets_t *built_targets{nullptr};
   mock_fs *fake_fs{nullptr};
@@ -99,8 +109,10 @@ private:
 
     add_target(uptr.get());
 
-    uptr->mtx = mtx;
-    uptr->built_targets = built_targets;
+    if constexpr (!std::is_same_v<target_t, common::target_alias>) {
+      uptr->mtx = mtx;
+      uptr->built_targets = built_targets;
+    }
 
     auto *const ret{uptr.get()};
 

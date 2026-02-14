@@ -17,28 +17,30 @@
   with build_cxx. If not, see <https://www.gnu.org/licenses/>.
 */
 
-#pragma once
+#include "build_cxx/common/target_alias.hxx"
 
-#include <string_view>
-
-#include "build_cxx/common/abstract_target.hxx"
-#include "build_cxx/common/macros.h"
-#include "build_cxx/common/target_status.hxx"
+#include <stdexcept>
 
 namespace build_cxx::common {
 
-struct BUILD_CXX_DLL_EXPORT phony_target : abstract_target {
-  using abstract_target::abstract_target;
+void target_alias::initialize_status() {
+  // TODO some better value ... this forces it to be always overwritten by the
+  // status of other file targets, etc.
+  status = target_status{~0ll};
+}
 
-  static std::string resolve_name(std::string_view const project_name,
-                                  std::string_view const target_name);
+void target_alias::update_status(target_status const newest_dep_status) {
+  status = newest_dep_status;
+}
 
-  static std::string_view constexpr kind{"phony"};
-
-  void resolve_own_traits() override final;
-
-  void initialize_status() override;
-  void update_status(target_status const newest_dep_status) override;
-};
+void target_alias::recipe(
+    std::vector<abstract_target const *> const &resolved_deps) const {
+  if (resolved_deps.empty()) {
+    throw std::runtime_error{
+        "target_alias should have at least one dependency"};
+  }
+  // this kind of target doesn't have a recipe -> due to proper order, all that
+  // is aliased is built before
+}
 
 } // namespace build_cxx::common

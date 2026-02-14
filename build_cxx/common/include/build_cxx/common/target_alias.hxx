@@ -19,26 +19,24 @@
 
 #pragma once
 
-#include <string_view>
+#include <vector>
 
 #include "build_cxx/common/abstract_target.hxx"
 #include "build_cxx/common/macros.h"
-#include "build_cxx/common/target_status.hxx"
+#include "build_cxx/common/phony_target.hxx"
 
 namespace build_cxx::common {
 
-struct BUILD_CXX_DLL_EXPORT phony_target : abstract_target {
-  using abstract_target::abstract_target;
-
-  static std::string resolve_name(std::string_view const project_name,
-                                  std::string_view const target_name);
-
-  static std::string_view constexpr kind{"phony"};
-
-  void resolve_own_traits() override final;
+// Recommendation: don't alias any phony target, because then it behaves exactly
+// the same as if this was phony target itself
+struct BUILD_CXX_DLL_EXPORT target_alias : phony_target {
+  using phony_target::phony_target;
 
   void initialize_status() override;
   void update_status(target_status const newest_dep_status) override;
+
+  void recipe(
+      std::vector<abstract_target const *> const &resolved_deps) const override;
 };
 
 } // namespace build_cxx::common

@@ -656,84 +656,176 @@ void test_impl(driver::scheduler &sched) {
         }
       }
 
-      SUBCASE("Multiple projects primarily with files") {
-        // first dep.
-        static std::string_view constexpr fake_root_file2{
-            "/fake/dir2/project.root.cxx"};
-
-        test_helpers::mock_project test_project2{
-            &mtx, &built_targets, &fake_fs, "dpttp2", "0.1.1", fake_root_file2};
-
-        auto *const src2{test_project2.add_mock_file_target(
-            fake_root_file2, false, "src.c", true, {})};
-
-        auto *const obj2{test_project2.add_mock_file_target(
-            fake_root_file2, false, "bin/src.c.o", false, {"src.c"})};
-
-        auto *const lib2{test_project2.add_mock_file_target(
-            fake_root_file2, true, "bin/lib2.a", false, {"bin/src.c.o"})};
-
-        auto *const export2{test_project2.add_mock_phony_target(
-            fake_root_file2, true, "lib2.a", {"bin/lib2.a"})};
-
-        // second dep.
-        static std::string_view constexpr fake_root_file3{
-            "/fake/dir3/project.root.cxx"};
-
-        test_helpers::mock_project test_project3{&mtx,     &built_targets,
-                                                 &fake_fs, "dpttp3",
-                                                 "1.12.1", fake_root_file3};
-
-        auto *const src3{test_project3.add_mock_file_target(
-            fake_root_file3, false, "src.c", true, {})};
-
-        auto *const obj3{test_project3.add_mock_file_target(
-            fake_root_file3, false, "bin/src.c.o", false, {"src.c"})};
-
-        auto *const lib3{test_project3.add_mock_file_target(
-            fake_root_file3, true, "bin/lib3.a", false, {"bin/src.c.o"})};
-
-        auto *const export3{test_project3.add_mock_phony_target(
-            fake_root_file3, true, "lib3.a", {"bin/lib3.a"})};
-
-        // consumer
-        auto *const lib{test_project1.add_mock_file_target(
-            fake_root_file1, true, "bin/lib1.a", false,
-            {"dpttp2::lib2.a", "dpttp3::lib3.a"})};
-
-        bool resolved{false};
-
-        REQUIRE_NOTHROW(driver_pt.process_project(&test_project1));
-        // REQUIRE_NOTHROW(resolved = driver_pt.resolve_deps_for(lib));
-        REQUIRE_NOTHROW(resolved = driver_pt.resolve_deps_for_all());
-        REQUIRE_FALSE(resolved);
-
-        REQUIRE_NOTHROW(driver_pt.process_project(&test_project2));
-        // REQUIRE_NOTHROW(resolved = driver_pt.resolve_deps_for(lib));
-        REQUIRE_NOTHROW(resolved = driver_pt.resolve_deps_for_all());
-        REQUIRE_FALSE(resolved);
-
-        REQUIRE_NOTHROW(driver_pt.process_project(&test_project3));
-        // REQUIRE_NOTHROW(resolved = driver_pt.resolve_deps_for(lib));
-        REQUIRE_NOTHROW(resolved = driver_pt.resolve_deps_for_all());
-        REQUIRE(resolved);
-
-        // nothing should remain, and if so, it will get at least resolved ...
-        REQUIRE_NOTHROW(resolved = driver_pt.resolve_deps_for_all());
-        REQUIRE(resolved);
-
-        REQUIRE(built_targets.empty());
-
-        // TODO make it not fail even for non-existing readonly-files
-        // (commenting line 734 makes it pass ...)
-      }
-
       // ...
       built_targets.clear();
 
       REQUIRE_NOTHROW(driver_pt.build_all());
       // all is already up to date:
       REQUIRE_EQ(built_targets.size(), 0);
+    }
+
+    SUBCASE("Multiple projects with files & aliases") {
+      // first dep.
+      static std::string_view constexpr fake_root_file2{
+          "/fake/dir2/project.root.cxx"};
+
+      test_helpers::mock_project test_project2{
+          &mtx, &built_targets, &fake_fs, "dpttp2", "0.1.1", fake_root_file2};
+
+      auto *const src2{test_project2.add_mock_file_target(
+          fake_root_file2, false, "src.c", true, {})};
+
+      auto *const obj2{test_project2.add_mock_file_target(
+          fake_root_file2, false, "bin/src.c.o", false, {"src.c"})};
+
+      auto *const lib2{test_project2.add_mock_file_target(
+          fake_root_file2, true, "bin/lib2.a", false, {"bin/src.c.o"})};
+
+      auto *const export2{test_project2.add_target_alias(
+          fake_root_file2, true, "lib2.a", {"bin/lib2.a"})};
+
+      // second dep.
+      static std::string_view constexpr fake_root_file3{
+          "/fake/dir3/project.root.cxx"};
+
+      test_helpers::mock_project test_project3{
+          &mtx, &built_targets, &fake_fs, "dpttp3", "1.12.1", fake_root_file3};
+
+      auto *const src3{test_project3.add_mock_file_target(
+          fake_root_file3, false, "src.c", true, {})};
+
+      auto *const obj3{test_project3.add_mock_file_target(
+          fake_root_file3, false, "bin/src.c.o", false, {"src.c"})};
+
+      auto *const lib3{test_project3.add_mock_file_target(
+          fake_root_file3, true, "bin/lib3.a", false, {"bin/src.c.o"})};
+
+      auto *const export3{test_project3.add_target_alias(
+          fake_root_file3, true, "lib3.a", {"bin/lib3.a"})};
+
+      // consumer
+      auto *const lib{test_project1.add_mock_file_target(
+          fake_root_file1, true, "bin/lib1.a", false,
+          {"dpttp2::lib2.a", "dpttp3::lib3.a"})};
+
+      bool resolved{false};
+
+      REQUIRE_NOTHROW(driver_pt.process_project(&test_project1));
+      REQUIRE_NOTHROW(resolved = driver_pt.resolve_deps_for(lib));
+      REQUIRE_FALSE(resolved);
+
+      REQUIRE_NOTHROW(driver_pt.process_project(&test_project2));
+      REQUIRE_NOTHROW(resolved = driver_pt.resolve_deps_for(lib));
+      REQUIRE_FALSE(resolved);
+
+      REQUIRE_NOTHROW(driver_pt.process_project(&test_project3));
+      REQUIRE_NOTHROW(resolved = driver_pt.resolve_deps_for(lib));
+      REQUIRE(resolved);
+      REQUIRE_NOTHROW(resolved = driver_pt.resolve_deps_for_all());
+      REQUIRE(resolved);
+
+      // nothing should remain, and if so, it will get at least resolved ...
+      REQUIRE_NOTHROW(resolved = driver_pt.resolve_deps_for_all());
+      REQUIRE(resolved);
+
+      REQUIRE(built_targets.empty());
+
+      SUBCASE("all up to date") {
+        // arrange
+        fake_fs.touch(src2->get_resolved_path());
+        fake_fs.touch(obj2->get_resolved_path());
+        fake_fs.touch(lib2->get_resolved_path());
+
+        fake_fs.touch(src3->get_resolved_path());
+        fake_fs.touch(obj3->get_resolved_path());
+        fake_fs.touch(lib3->get_resolved_path());
+
+        fake_fs.touch(lib->get_resolved_path());
+
+        // act
+        REQUIRE_NOTHROW(driver_pt.build_all());
+
+        // assert
+        REQUIRE_EQ(built_targets.size(), 0);
+      }
+
+      SUBCASE("all deps up to date") {
+        // arrange
+        fake_fs.touch(src2->get_resolved_path());
+        fake_fs.touch(obj2->get_resolved_path());
+        fake_fs.touch(lib2->get_resolved_path());
+
+        fake_fs.touch(lib->get_resolved_path());
+
+        fake_fs.touch(src3->get_resolved_path());
+        fake_fs.touch(obj3->get_resolved_path());
+        fake_fs.touch(lib3->get_resolved_path());
+
+        // act
+        REQUIRE_NOTHROW(driver_pt.build_all());
+
+        // assert
+        REQUIRE_EQ(built_targets.count(lib), 1);
+        REQUIRE_EQ(built_targets.size(), 1);
+      }
+
+      SUBCASE("all deps up to date, lib doesn't exist") {
+        // arrange
+        fake_fs.touch(src2->get_resolved_path());
+        fake_fs.touch(obj2->get_resolved_path());
+        fake_fs.touch(lib2->get_resolved_path());
+
+        fake_fs.touch(src3->get_resolved_path());
+        fake_fs.touch(obj3->get_resolved_path());
+        fake_fs.touch(lib3->get_resolved_path());
+
+        // act
+        REQUIRE_NOTHROW(driver_pt.build_all());
+
+        // assert
+        REQUIRE_EQ(built_targets.count(lib), 1);
+        REQUIRE_EQ(built_targets.size(), 1);
+      }
+
+      SUBCASE("one dep doesn't exist") {
+        // arrange
+        fake_fs.touch(src2->get_resolved_path());
+        fake_fs.touch(obj2->get_resolved_path());
+        fake_fs.touch(lib2->get_resolved_path());
+
+        fake_fs.touch(src3->get_resolved_path());
+
+        fake_fs.touch(lib->get_resolved_path());
+
+        // act
+        REQUIRE_NOTHROW(driver_pt.build_all());
+
+        // assert
+        REQUIRE_EQ(built_targets.count(obj3), 1);
+        REQUIRE_EQ(built_targets.count(lib3), 1);
+        REQUIRE_EQ(built_targets.count(lib), 1);
+        REQUIRE_EQ(built_targets.size(), 3);
+      }
+
+      SUBCASE("one dep doesn't exist, second out of date") {
+        // arrange
+        fake_fs.touch(obj2->get_resolved_path());
+        fake_fs.touch(lib2->get_resolved_path());
+        fake_fs.touch(src2->get_resolved_path());
+
+        fake_fs.touch(src3->get_resolved_path());
+
+        // act
+        REQUIRE_NOTHROW(driver_pt.build_all());
+
+        // assert
+        REQUIRE_EQ(built_targets.count(obj2), 1);
+        REQUIRE_EQ(built_targets.count(lib2), 1);
+        REQUIRE_EQ(built_targets.count(obj3), 1);
+        REQUIRE_EQ(built_targets.count(lib3), 1);
+        REQUIRE_EQ(built_targets.count(lib), 1);
+        REQUIRE_EQ(built_targets.size(), 5);
+      }
     }
 
     SUBCASE("relation between phony and file targets") {
