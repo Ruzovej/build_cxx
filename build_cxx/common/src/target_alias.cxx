@@ -34,8 +34,8 @@ void target_alias::update_status(target_status const newest_dep_status) {
 void target_alias::recipe(
     std::vector<abstract_target const *> const &resolved_deps) const {
   if (resolved_deps.empty()) {
-    throw std::runtime_error{
-        "target_alias should have at least one dependency"};
+    throw std::runtime_error{"target_alias (" + resolved_name +
+                             ") must have at least one dependency"};
   }
   // this kind of target doesn't have a recipe -> due to proper order, all that
   // is aliased is built before

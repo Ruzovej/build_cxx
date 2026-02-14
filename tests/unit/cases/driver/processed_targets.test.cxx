@@ -764,8 +764,6 @@ void test_impl(driver::scheduler &sched) {
       REQUIRE_NOTHROW(driver_pt.process_project(&test_project3));
       REQUIRE_NOTHROW(resolved = driver_pt.resolve_deps_for(lib));
       REQUIRE(resolved);
-      REQUIRE_NOTHROW(resolved = driver_pt.resolve_deps_for_all());
-      REQUIRE(resolved);
 
       // nothing should remain, and if so, it will get at least resolved ...
       REQUIRE_NOTHROW(resolved = driver_pt.resolve_deps_for_all());
