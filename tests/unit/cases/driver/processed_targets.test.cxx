@@ -664,6 +664,49 @@ void test_impl(driver::scheduler &sched) {
       REQUIRE_EQ(built_targets.size(), 0);
     }
 
+    SUBCASE("cross project file dependency needs alias") {
+      // first dep.
+      static std::string_view constexpr fake_root_file2{
+          "/fake/dir2/project.root.cxx"};
+
+      test_helpers::mock_project test_project2{
+          &mtx, &built_targets, &fake_fs, "dpttp2", "0.1.2", fake_root_file2};
+
+      auto *const src2{test_project2.add_mock_file_target(
+          fake_root_file2, true, "some_file.txt", true, {})};
+
+      auto *const a2{test_project2.add_target_alias(
+          fake_root_file2, true, "alias", {"some_file.txt"})};
+
+      // "invalid" consumers:
+      auto *const c1{test_project1.add_mock_file_target(
+          fake_root_file1, true, "consumer_script1.bash", false,
+          {"some_file.txt"})};
+
+      auto *const c2{test_project1.add_mock_file_target(
+          fake_root_file1, true, "consumer_script2.bash", false,
+          {"dpttp2::some_file.txt"})};
+
+      // valid consumer:
+      auto *const c3{test_project1.add_mock_file_target(
+          fake_root_file1, true, "consumer_script3.bash", false,
+          {"dpttp2::alias"})};
+
+      REQUIRE_NOTHROW(driver_pt.process_project(&test_project2));
+      REQUIRE_NOTHROW(driver_pt.process_project(&test_project1));
+
+      bool resolved{false};
+
+      REQUIRE_NOTHROW(resolved = driver_pt.resolve_deps_for(c1));
+      REQUIRE_FALSE(resolved);
+
+      REQUIRE_NOTHROW(resolved = driver_pt.resolve_deps_for(c2));
+      REQUIRE_FALSE(resolved);
+
+      REQUIRE_NOTHROW(resolved = driver_pt.resolve_deps_for(c3));
+      REQUIRE(resolved);
+    }
+
     SUBCASE("Multiple projects with files & aliases") {
       // first dep.
       static std::string_view constexpr fake_root_file2{
