@@ -21,6 +21,7 @@
 #include <exception>
 #include <iostream>
 #include <optional>
+#include <string_view>
 #include <thread>
 #include <vector>
 
@@ -46,7 +47,8 @@ int main(int argc, char *argv[]) {
   };
 
   try {
-    std::vector<char const *> targets;
+    std::vector<std::string_view> targets;
+    std::vector<std::string_view> priority_comparators;
     std::optional<int> n_jobs;
     std::vector<char const *> input_files;
 
@@ -60,6 +62,9 @@ int main(int argc, char *argv[]) {
       if (next_arg == "--target" || next_arg == "-t") {
         targets.emplace_back(
             consume_arg(true, "missing target name after --target/-t"));
+      } else if (next_arg == "--comparator" || next_arg == "-c") {
+        priority_comparators.emplace_back(
+            consume_arg(true, "missing comparator name after --comparator/-c"));
       } else if (next_arg == "--jobs" || next_arg == "-j") {
         n_jobs.emplace(std::stoi(
             std::string{consume_arg(true, "missing number after --jobs/-j")}));
@@ -71,7 +76,7 @@ int main(int argc, char *argv[]) {
     build_cxx::driver::process_input(
         n_jobs.value_or(
             std::max(1, static_cast<int>(std::thread::hardware_concurrency()))),
-        targets, input_files);
+        targets, priority_comparators, input_files);
 
     return EXIT_SUCCESS;
   } catch (std::exception const &e) {

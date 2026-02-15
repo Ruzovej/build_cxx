@@ -28,20 +28,18 @@
 #include <build_cxx/common/abstract_target.hxx>
 #include <build_cxx/common/macros.h>
 
+#include "build_cxx/driver/build_request.hxx"
+
 namespace build_cxx::driver {
 
 // This class is expected to be held & used from one particular thread. Or to be
 // more precise: its public methods aren't thread-safe.
 struct BUILD_CXX_DLL_EXPORT scheduler { // TODO should be BUILD_CXX_DLL_HIDE,
                                         // but then unit tests won't compile ...
-  explicit scheduler(int const n_workers, bool const aVerbose = true) noexcept;
+  explicit scheduler(build_request::comparator_inst const &cmp,
+                     int const n_workers, bool const aVerbose = true) noexcept;
 
   ~scheduler() noexcept;
-
-  struct build_request {
-    common::abstract_target *tgt{nullptr};
-    std::vector<common::abstract_target const *> const *deps{nullptr};
-  };
 
   void schedule_builds(std::vector<build_request> const &rqs);
 
@@ -62,8 +60,7 @@ private:
 
   std::mutex mtx_todo;
   std::condition_variable cv_todo;
-  // TODO later change this to priority_queue (with customizable ordering, etc.)
-  std::queue<build_request> todo;
+  build_request_priority_queue todo;
 
   struct build_result {
     common::abstract_target const *tgt{nullptr};

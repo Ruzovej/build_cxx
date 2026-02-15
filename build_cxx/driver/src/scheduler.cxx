@@ -24,8 +24,9 @@
 
 namespace build_cxx::driver {
 
-scheduler::scheduler(int const n_workers, bool const aVerbose) noexcept
-    : verbose{aVerbose} {
+scheduler::scheduler(build_request::comparator_inst const &cmp,
+                     int const n_workers, bool const aVerbose) noexcept
+    : verbose{aVerbose}, todo{cmp} {
   workers.reserve(std::max(n_workers, 1));
 
   for (int idx{0}; idx < workers.capacity(); ++idx) {
@@ -47,7 +48,7 @@ scheduler::scheduler(int const n_workers, bool const aVerbose) noexcept
               break;
             }
 
-            task = todo.front();
+            task = todo.top();
             todo.pop();
           }
 

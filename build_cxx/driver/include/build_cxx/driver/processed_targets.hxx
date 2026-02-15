@@ -112,7 +112,7 @@ private:
   [[nodiscard]] categorized_targets
   get_all_dependencies_of(std::vector<common::abstract_target const *> &&tgts);
 
-  [[nodiscard]] scheduler::build_request
+  [[nodiscard]] build_request
   get_scheduler_build_request(common::abstract_target const *const tgt);
 
   void schedule_target_build(common::abstract_target const *const tgt);
@@ -149,7 +149,7 @@ private:
 
   long long unresolved{0};
 
-  std::vector<scheduler::build_request> pending_build_requests;
+  std::vector<build_request> pending_build_requests;
   scheduler &sched;
 
 private:

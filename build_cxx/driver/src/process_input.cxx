@@ -31,13 +31,17 @@
 #include <build_cxx/common/phony_target.hxx>
 #include <build_cxx/common/project.hxx>
 
+#include "build_cxx/common/fs_proxy.hxx"
+#include "build_cxx/driver/build_request.hxx"
 #include "build_cxx/driver/dlopen_scoped.hxx"
 #include "build_cxx/driver/processed_targets.hxx"
 #include "build_cxx/driver/scheduler.hxx"
 
 namespace build_cxx::driver {
 
-void process_input(int const n_jobs, std::vector<char const *> const &targets,
+void process_input(int const n_jobs,
+                   std::vector<std::string_view> const &targets,
+                   std::vector<std::string_view> const &priority_comparators,
                    std::vector<char const *> const &input_files) {
   std::vector<build_cxx::driver::dlopen_scoped> dl_handles;
   dl_handles.reserve(input_files.size());
@@ -49,7 +53,10 @@ void process_input(int const n_jobs, std::vector<char const *> const &targets,
   // TODO "hide" this & related checks in relevant "processed_targets"s method
   std::unordered_map<std::string_view, std::string_view> processed_projects;
 
-  scheduler sched{n_jobs};
+  auto comp_chain{make_comparator_chain(priority_comparators,
+                                        common::fs_proxy::default_impl())};
+
+  scheduler sched{build_request::comparator_inst{comp_chain.get()}, n_jobs};
   processed_targets pt{sched};
 
   bool all_resolved{false};
@@ -109,14 +116,7 @@ void process_input(int const n_jobs, std::vector<char const *> const &targets,
       std::cout << '\n';
     }
   } else {
-    std::vector<std::string_view> tgts;
-    tgts.reserve(targets.size());
-
-    for (auto *const tgt : targets) {
-      tgts.emplace_back(tgt);
-    }
-
-    pt.build_targets(tgts, true);
+    pt.build_targets(targets, true);
   }
 }
 

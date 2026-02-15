@@ -37,6 +37,11 @@ struct fake_clock {
     time_frozen = freeze;
   }
 
+  void reset() {
+    time_ns = 0;
+    time_frozen = false;
+  }
+
 private:
   common::target_status::file_mod_time_t time_ns{};
   bool time_frozen{false};

@@ -211,7 +211,7 @@ processed_targets::get_all_dependencies_of(
   return res;
 }
 
-scheduler::build_request processed_targets::get_scheduler_build_request(
+build_request processed_targets::get_scheduler_build_request(
     common::abstract_target const *const tgt) {
   auto const &tgt_resolved_deps{target_resolved_deps.at(tgt)};
 

@@ -35,9 +35,16 @@ namespace {
 // IMHO better than using fixtures, etc.:
 // https://github.com/doctest/doctest/blob/master/doc/markdown/testcases.md#test-fixtures
 
+std::mutex mtx;
+test_helpers::mock_fs fake_fs{&mtx};
+
+auto comp_chain{driver::make_comparator_chain({}, &fake_fs)}; // default ones
+
 template <int n_workers> struct sched {
   // avoid cost of starting up all the threads for each test case:
-  static inline driver::scheduler inst{n_workers, false};
+  static inline driver::scheduler inst{
+      driver::build_request::comparator_inst{comp_chain.get()}, n_workers,
+      false};
 };
 
 void test_impl(driver::scheduler &sched);
@@ -81,14 +88,14 @@ void test_impl(driver::scheduler &sched) {
   // no pending task from prev. test case:
   REQUIRE_EQ(sched.num_handled_targets(), 0);
 
+  fake_fs.reset();
+
   driver::processed_targets driver_pt{sched};
 
   static std::string_view constexpr fake_root_file1{
       "/fake/dir_1/project.root.cxx"};
 
-  std::mutex mtx;
   test_helpers::built_targets_t built_targets;
-  test_helpers::mock_fs fake_fs{&mtx};
   test_helpers::mock_project test_project1{
       &mtx, &built_targets, &fake_fs, "dpttp1", "0.1.0", fake_root_file1};
 
