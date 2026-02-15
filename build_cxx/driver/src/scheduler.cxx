@@ -114,7 +114,18 @@ void scheduler::schedule_builds(std::vector<build_request> const &tgts) {
     }
   }
 
-  cv_todo.notify_one();
+  if (workers.size() <= tgts.size()) {
+    // more jobs than workers
+    cv_todo.notify_all();
+  } else if (tgts.size() == 1) {
+    // special (and probably frequent) case
+    cv_todo.notify_one();
+  } else {
+    // or is `cv_todo.notify_all();` "cheaper"?!
+    for (auto const &_ : tgts) {
+      cv_todo.notify_one();
+    }
+  }
 }
 
 common::abstract_target const *scheduler::get_built_target() {
