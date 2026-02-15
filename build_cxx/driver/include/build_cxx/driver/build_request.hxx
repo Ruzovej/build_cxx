@@ -19,13 +19,9 @@
 
 #pragma once
 
-#include <memory>
-#include <queue>
-#include <string_view>
 #include <vector>
 
 #include <build_cxx/common/abstract_target.hxx>
-#include <build_cxx/common/fs_proxy.hxx>
 #include <build_cxx/common/macros.h>
 
 namespace build_cxx::driver {

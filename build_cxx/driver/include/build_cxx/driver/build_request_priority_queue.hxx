@@ -21,9 +21,6 @@
 
 #include <queue>
 
-#include <build_cxx/common/fs_proxy.hxx>
-#include <build_cxx/common/macros.h>
-
 #include "build_cxx/driver/build_request.hxx"
 #include "build_cxx/driver/build_request_comparator.hxx"
 
@@ -31,6 +28,6 @@ namespace build_cxx::driver {
 
 using build_request_priority_queue =
     std::priority_queue<build_request, std::vector<build_request>,
-                        comparator_inst>;
+                        build_request_comparator>;
 
 } // namespace build_cxx::driver

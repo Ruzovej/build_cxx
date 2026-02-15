@@ -23,7 +23,8 @@
 
 #include "build_cxx/client/core.hxx"
 #include "build_cxx/common/location.hxx"
-#include "build_cxx/driver/make_comparator_chain.hxx"
+#include "build_cxx/driver/build_request.hxx"
+#include "build_cxx/driver/build_request_comparator.hxx"
 #include "build_cxx/driver/scheduler.hxx"
 #include "build_cxx/test_helpers/mock_file_target.hxx"
 #include "build_cxx/test_helpers/mock_fs.hxx"
@@ -39,12 +40,22 @@ namespace {
 std::mutex mtx;
 test_helpers::mock_fs fake_fs{&mtx};
 
-auto comp_chain{driver::make_comparator_chain({}, &fake_fs)}; // default ones
+namespace hidden_impl {
+
+struct dummy_registrator {
+  dummy_registrator() {
+    // force 2 lines
+    driver::build_request_comparator::used_fs = &fake_fs;
+  }
+};
+
+dummy_registrator dummy_reg;
+
+} // namespace hidden_impl
 
 template <int n_workers> struct sched {
   // avoid cost of starting up all the threads for each test case:
-  static inline driver::scheduler inst{
-      driver::comparator_inst{comp_chain.get()}, n_workers, false};
+  static inline driver::scheduler inst{n_workers, false};
 };
 
 void test_impl(driver::scheduler &sched);

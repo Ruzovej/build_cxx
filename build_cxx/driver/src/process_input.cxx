@@ -35,7 +35,6 @@
 #include "build_cxx/driver/build_request.hxx"
 #include "build_cxx/driver/build_request_comparator.hxx"
 #include "build_cxx/driver/dlopen_scoped.hxx"
-#include "build_cxx/driver/make_comparator_chain.hxx"
 #include "build_cxx/driver/processed_targets.hxx"
 #include "build_cxx/driver/scheduler.hxx"
 
@@ -55,10 +54,9 @@ void process_input(int const n_jobs,
   // TODO "hide" this & related checks in relevant "processed_targets"s method
   std::unordered_map<std::string_view, std::string_view> processed_projects;
 
-  auto comp_chain{make_comparator_chain(priority_comparators,
-                                        common::fs_proxy::default_impl())};
+  make_comparator_chain(priority_comparators, common::fs_proxy::default_impl());
 
-  scheduler sched{comparator_inst{comp_chain.get()}, n_jobs};
+  scheduler sched{n_jobs};
   processed_targets pt{sched};
 
   bool all_resolved{false};

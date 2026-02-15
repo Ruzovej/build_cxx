@@ -28,7 +28,6 @@
 #include <build_cxx/common/abstract_target.hxx>
 #include <build_cxx/common/macros.h>
 
-#include "build_cxx/driver/build_request_comparator.hxx"
 #include "build_cxx/driver/build_request_priority_queue.hxx"
 
 namespace build_cxx::driver {
@@ -37,8 +36,7 @@ namespace build_cxx::driver {
 // more precise: its public methods aren't thread-safe.
 struct BUILD_CXX_DLL_EXPORT scheduler { // TODO should be BUILD_CXX_DLL_HIDE,
                                         // but then unit tests won't compile ...
-  explicit scheduler(comparator_inst const &cmp, int const n_workers,
-                     bool const aVerbose = true) noexcept;
+  explicit scheduler(int const n_workers, bool const aVerbose = true) noexcept;
 
   ~scheduler() noexcept;
 
