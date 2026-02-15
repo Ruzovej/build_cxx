@@ -100,17 +100,32 @@ scheduler::~scheduler() noexcept {
   }
 }
 
-void scheduler::schedule_build(
-    common::abstract_target *const tgt,
-    std::vector<common::abstract_target const *> const *const deps) {
-  ++n_handled_targets;
+void scheduler::schedule_builds(std::vector<build_request> const &tgts) {
+  if (tgts.empty()) {
+    return;
+  }
+
+  n_handled_targets += tgts.size();
 
   {
     std::lock_guard lck{mtx_todo};
-    todo.push({tgt, deps});
+    for (auto const &rq : tgts) {
+      todo.push(rq);
+    }
   }
 
-  cv_todo.notify_one();
+  if (workers.size() <= tgts.size()) {
+    // more jobs than workers
+    cv_todo.notify_all();
+  } else if (tgts.size() == 1) {
+    // special (and probably frequent) case
+    cv_todo.notify_one();
+  } else {
+    // or is `cv_todo.notify_all();` "cheaper"?!
+    for (auto const &_ : tgts) {
+      cv_todo.notify_one();
+    }
+  }
 }
 
 common::abstract_target const *scheduler::get_built_target() {

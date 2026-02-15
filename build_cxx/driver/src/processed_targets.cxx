@@ -211,23 +211,47 @@ processed_targets::get_all_dependencies_of(
   return res;
 }
 
-void processed_targets::schedule_target_build(
+scheduler::build_request processed_targets::get_scheduler_build_request(
     common::abstract_target const *const tgt) {
   auto const &tgt_resolved_deps{target_resolved_deps.at(tgt)};
 
   if constexpr (false) {
     // TODO get rid of this `const_cast` ...:
-    sched.schedule_build(const_cast<common::abstract_target *>(tgt),
-                         &tgt_resolved_deps.deps);
+    return {const_cast<common::abstract_target *>(tgt),
+            &tgt_resolved_deps.deps};
   } else {
     // but this way?!
     auto *const mtgt{targets_by_resolved_name.at(tgt->resolved_name)};
+
     if (tgt != mtgt) {
       throw std::runtime_error{
           "Serious internal error - failure in 'const_cast' substitution"};
     }
-    sched.schedule_build(mtgt, &tgt_resolved_deps.deps);
+
+    return {mtgt, &tgt_resolved_deps.deps};
   }
+}
+
+void processed_targets::schedule_target_build(
+    common::abstract_target const *const tgt) {
+  pending_build_requests.emplace_back(get_scheduler_build_request(tgt));
+}
+
+void processed_targets::schedule_target_builds(
+    std::unordered_set<common::abstract_target const *> &tgts) {
+  for (auto *const tgt : tgts) {
+    schedule_target_build(tgt);
+  }
+  tgts.clear();
+}
+
+void processed_targets::scheduler_commit_build_requests() {
+  sched.schedule_builds(pending_build_requests);
+  pending_build_requests.clear();
+}
+
+bool processed_targets::scheduler_has_pending_jobs() const {
+  return sched.num_handled_targets() != 0;
 }
 
 void processed_targets::build_targets_impl(
@@ -249,11 +273,8 @@ void processed_targets::build_targets_impl(
     return;
   }
 
-  for (auto *const tgt : to_build.buildable_targets) {
-    schedule_target_build(tgt);
-  }
-  // not necessary, but saves (probably little) memory, etc.:
-  to_build.buildable_targets.clear();
+  schedule_target_builds(to_build.buildable_targets);
+  scheduler_commit_build_requests();
 
   do {
     auto *const built_tgt{sched.get_built_target()};
@@ -280,7 +301,8 @@ void processed_targets::build_targets_impl(
         schedule_target_build(consumer);
       }
     }
-  } while (sched.num_handled_targets() != 0);
+    scheduler_commit_build_requests();
+  } while (scheduler_has_pending_jobs());
 
   if (!to_build.blocked_targets.empty()) {
     throw std::runtime_error{"Build order of targets contains a cycle - no "
