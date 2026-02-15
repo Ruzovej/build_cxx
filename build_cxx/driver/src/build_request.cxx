@@ -18,6 +18,8 @@
 */
 
 #include "build_cxx/driver/build_request.hxx"
+#include "build_cxx/driver/build_request_comparator.hxx"
+#include "build_cxx/driver/make_comparator_chain.hxx"
 
 #include <build_cxx/common/file_target.hxx>
 
@@ -35,7 +37,7 @@ template <typename T> int signum(T val) {
   }
 }
 
-template <bool asc> struct name_cmp final : build_request::comparator {
+template <bool asc> struct name_cmp final : comparator {
   // ret = -1 -> lhs < rhs; ret = 0 -> equal; ret = 1 -> rhs < lhs
   [[nodiscard]] int compare(build_request const &lhs,
                             build_request const &rhs) const override {
@@ -46,7 +48,7 @@ template <bool asc> struct name_cmp final : build_request::comparator {
   }
 };
 
-template <bool asc> struct mod_time_cmp final : build_request::comparator {
+template <bool asc> struct mod_time_cmp final : comparator {
   explicit mod_time_cmp(common::fs_proxy *const aFs) : fs{aFs} {
     // force 2 lines
   }
@@ -91,18 +93,18 @@ template <bool asc> struct mod_time_cmp final : build_request::comparator {
 
 } // namespace
 
-std::unique_ptr<build_request::comparator>
+std::unique_ptr<comparator>
 make_comparator_chain(std::vector<std::string_view> const &comparator_names,
                       common::fs_proxy *const fs) {
   if (comparator_names.empty()) {
     return std::make_unique<name_cmp<true>>();
   }
 
-  std::unique_ptr<build_request::comparator> head{nullptr};
-  build_request::comparator *tail{nullptr};
+  std::unique_ptr<comparator> head{nullptr};
+  comparator *tail{nullptr};
 
   for (auto const name : comparator_names) {
-    std::unique_ptr<build_request::comparator> cmp;
+    std::unique_ptr<comparator> cmp;
 
     if (name == sort_by::name_asc) {
       cmp = std::make_unique<name_cmp<true>>();

@@ -19,21 +19,18 @@
 
 #pragma once
 
-#include <memory>
 #include <queue>
-#include <string_view>
-#include <vector>
 
-#include <build_cxx/common/abstract_target.hxx>
 #include <build_cxx/common/fs_proxy.hxx>
 #include <build_cxx/common/macros.h>
 
+#include "build_cxx/driver/build_request.hxx"
+#include "build_cxx/driver/build_request_comparator.hxx"
+
 namespace build_cxx::driver {
 
-// TODO ... EXPORT or HIDE?!
-struct BUILD_CXX_DLL_EXPORT build_request {
-  common::abstract_target *tgt{nullptr};
-  std::vector<common::abstract_target const *> const *deps{nullptr};
-};
+using build_request_priority_queue =
+    std::priority_queue<build_request, std::vector<build_request>,
+                        comparator_inst>;
 
 } // namespace build_cxx::driver

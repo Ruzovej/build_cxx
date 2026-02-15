@@ -23,6 +23,7 @@
 
 #include "build_cxx/client/core.hxx"
 #include "build_cxx/common/location.hxx"
+#include "build_cxx/driver/make_comparator_chain.hxx"
 #include "build_cxx/driver/scheduler.hxx"
 #include "build_cxx/test_helpers/mock_file_target.hxx"
 #include "build_cxx/test_helpers/mock_fs.hxx"
@@ -43,8 +44,7 @@ auto comp_chain{driver::make_comparator_chain({}, &fake_fs)}; // default ones
 template <int n_workers> struct sched {
   // avoid cost of starting up all the threads for each test case:
   static inline driver::scheduler inst{
-      driver::build_request::comparator_inst{comp_chain.get()}, n_workers,
-      false};
+      driver::comparator_inst{comp_chain.get()}, n_workers, false};
 };
 
 void test_impl(driver::scheduler &sched);

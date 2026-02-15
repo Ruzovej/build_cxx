@@ -28,12 +28,14 @@
 
 #include <build_cxx/common/abstract_target.hxx>
 #include <build_cxx/common/file_target.hxx>
+#include <build_cxx/common/fs_proxy.hxx>
 #include <build_cxx/common/phony_target.hxx>
 #include <build_cxx/common/project.hxx>
 
-#include "build_cxx/common/fs_proxy.hxx"
 #include "build_cxx/driver/build_request.hxx"
+#include "build_cxx/driver/build_request_comparator.hxx"
 #include "build_cxx/driver/dlopen_scoped.hxx"
+#include "build_cxx/driver/make_comparator_chain.hxx"
 #include "build_cxx/driver/processed_targets.hxx"
 #include "build_cxx/driver/scheduler.hxx"
 
@@ -56,7 +58,7 @@ void process_input(int const n_jobs,
   auto comp_chain{make_comparator_chain(priority_comparators,
                                         common::fs_proxy::default_impl())};
 
-  scheduler sched{build_request::comparator_inst{comp_chain.get()}, n_jobs};
+  scheduler sched{comparator_inst{comp_chain.get()}, n_jobs};
   processed_targets pt{sched};
 
   bool all_resolved{false};
