@@ -41,6 +41,7 @@ struct comparator {
     }
   }
 
+  mutable bool blocked{false};
   mutable comparator const *next{nullptr};
 
 protected:
@@ -130,7 +131,6 @@ comparator const *get_mod_time_cmp(bool const asc, common::fs_proxy *const fs) {
 }
 
 comparator const *first_comparator{nullptr};
-comparator const *last_comparator{nullptr};
 
 } // namespace
 
@@ -148,27 +148,36 @@ bool build_request_comparator::operator()(build_request const &lhs,
 void make_comparator_chain(
     std::vector<std::string_view> const &comparator_names,
     common::fs_proxy *const fs) {
+  comparator const *last_comparator{nullptr};
+
   for (auto const cmp_name : comparator_names) {
     comparator const *candidate{nullptr};
+    comparator const *blocked{nullptr};
 
     if (cmp_name == sort_by::name_asc) {
       candidate = get_name_cmp(true);
+      blocked = get_name_cmp(false);
     } else if (cmp_name == sort_by::name_desc) {
       candidate = get_name_cmp(false);
+      blocked = get_name_cmp(true);
     } else if (cmp_name == sort_by::mod_time_asc) {
       candidate = get_mod_time_cmp(true, fs);
+      blocked = get_mod_time_cmp(false, fs);
     } else if (cmp_name == sort_by::mod_time_desc) {
       candidate = get_mod_time_cmp(false, fs);
+      blocked = get_mod_time_cmp(true, fs);
     }
 
     if (candidate == nullptr) {
-      throw std::runtime_error{"Unknown (or unimplemented) comparator name '" +
-                               std::string{cmp_name} + "'"};
-    }
-
-    if (candidate->next != nullptr) {
+      throw std::runtime_error{"Unknown (or unimplemented) comparator '" +
+                               std::string{cmp_name} + '\''};
+    } else if (candidate->next != nullptr) {
       throw std::runtime_error{"Comparator '" + std::string{cmp_name} +
                                "' is already in the chain"};
+    } else if ((blocked != nullptr) && (blocked->blocked == true)) {
+      throw std::runtime_error{"Comparator '" + std::string{cmp_name} +
+                               "' is blocked by another comparator in the "
+                               "chain"};
     }
 
     if (first_comparator == nullptr) {
@@ -177,6 +186,10 @@ void make_comparator_chain(
     } else {
       last_comparator->next = candidate;
       last_comparator = candidate;
+    }
+
+    if (blocked) {
+      blocked->blocked = true;
     }
   }
 }

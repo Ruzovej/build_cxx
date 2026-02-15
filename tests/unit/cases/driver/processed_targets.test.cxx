@@ -40,18 +40,20 @@ namespace {
 std::mutex mtx;
 test_helpers::mock_fs fake_fs{&mtx};
 
+/*
 namespace hidden_impl {
 
 struct dummy_registrator {
   dummy_registrator() {
-    // force 2 lines
     driver::build_request_comparator::used_fs = &fake_fs;
+    driver::make_comparator_chain({}, &fake_fs);
   }
 };
 
 dummy_registrator dummy_reg;
 
 } // namespace hidden_impl
+*/
 
 template <int n_workers> struct sched {
   // avoid cost of starting up all the threads for each test case:
