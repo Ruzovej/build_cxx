@@ -100,14 +100,18 @@ scheduler::~scheduler() noexcept {
   }
 }
 
-void scheduler::schedule_build(
-    common::abstract_target *const tgt,
-    std::vector<common::abstract_target const *> const *const deps) {
-  ++n_handled_targets;
+void scheduler::schedule_builds(std::vector<build_request> const &tgts) {
+  if (tgts.empty()) {
+    return;
+  }
+
+  n_handled_targets += tgts.size();
 
   {
     std::lock_guard lck{mtx_todo};
-    todo.push({tgt, deps});
+    for (auto const &rq : tgts) {
+      todo.push(rq);
+    }
   }
 
   cv_todo.notify_one();

@@ -38,9 +38,12 @@ struct BUILD_CXX_DLL_EXPORT scheduler { // TODO should be BUILD_CXX_DLL_HIDE,
 
   ~scheduler() noexcept;
 
-  void schedule_build(
-      common::abstract_target *const tgt,
-      std::vector<common::abstract_target const *> const *const deps);
+  struct build_request {
+    common::abstract_target *tgt{nullptr};
+    std::vector<common::abstract_target const *> const *deps{nullptr};
+  };
+
+  void schedule_builds(std::vector<build_request> const &rqs);
 
   [[nodiscard]] auto num_handled_targets() const {
     // force 2 lines
@@ -56,11 +59,6 @@ private:
   bool verbose;
   bool should_run{true}; // used only for destruction
   std::vector<std::thread> workers;
-
-  struct build_request {
-    common::abstract_target *tgt{nullptr};
-    std::vector<common::abstract_target const *> const *deps{nullptr};
-  };
 
   std::mutex mtx_todo;
   std::condition_variable cv_todo;
