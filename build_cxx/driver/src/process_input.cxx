@@ -55,9 +55,10 @@ void process_input(int const n_jobs,
   std::unordered_map<std::string_view, std::string_view> processed_projects;
 
   auto cmps_chain{build_request_comparators_chain::make_comparators_chain(
-      priority_comparators, common::fs_proxy::default_impl())};
+      priority_comparators)};
 
-  scheduler sched{std::move(cmps_chain), n_jobs};
+  scheduler sched{common::fs_proxy::default_impl(), std::move(cmps_chain),
+                  n_jobs};
 
   processed_targets pt{sched};
 

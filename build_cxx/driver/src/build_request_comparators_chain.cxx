@@ -30,8 +30,9 @@ namespace {
 template <bool asc>
 struct name_cmp final : build_request_comparators_chain::comparator {
   // ret = -1 -> lhs < rhs; ret = 0 -> equal; ret = 1 -> rhs < lhs
-  [[nodiscard]] int compare(build_request const &lhs,
-                            build_request const &rhs) const override {
+  [[nodiscard]] int
+  compare(build_request const &lhs, build_request const &rhs,
+          [[maybe_unused]] common::fs_proxy *const fs) const override {
     std::string_view const lhs_name{lhs.tgt->resolved_name};
     std::string_view const rhs_name{rhs.tgt->resolved_name};
 
@@ -41,8 +42,9 @@ struct name_cmp final : build_request_comparators_chain::comparator {
 
 template <bool asc = true>
 [[nodiscard]] int fallback_compare(build_request const &lhs,
-                                   build_request const &rhs) {
-  return name_cmp<asc>{}.compare(lhs, rhs);
+                                   build_request const &rhs,
+                                   common::fs_proxy *const fs) {
+  return name_cmp<asc>{}.compare(lhs, rhs, fs);
 }
 
 [[nodiscard]] build_request_comparators_chain::comparator const *
@@ -58,13 +60,9 @@ get_name_cmp(bool const asc) {
 
 template <bool asc>
 struct file_exists final : build_request_comparators_chain::comparator {
-  explicit file_exists(common::fs_proxy *const aFs) : fs{aFs} {
-    // force 2 lines
-  }
-
   // ret = -1 -> lhs < rhs; ret = 0 -> equal; ret = 1 -> rhs < lhs
-  [[nodiscard]] int compare(build_request const &lhs,
-                            build_request const &rhs) const override {
+  [[nodiscard]] int compare(build_request const &lhs, build_request const &rhs,
+                            common::fs_proxy *const fs) const override {
     auto *const lhs_ft{dynamic_cast<common::file_target *>(lhs.tgt)};
     auto *const rhs_ft{dynamic_cast<common::file_target *>(rhs.tgt)};
 
@@ -100,15 +98,12 @@ private:
       return 0;
     }
   }
-
-  // must be set; not owned
-  common::fs_proxy *const fs;
 };
 
 build_request_comparators_chain::comparator const *
-get_file_exists_cmp(bool const asc, common::fs_proxy *const fs) {
-  static file_exists<true> const file_exists_cmp_asc{fs};
-  static file_exists<false> const file_exists_cmp_desc{fs};
+get_file_exists_cmp(bool const asc) {
+  static file_exists<true> const file_exists_cmp_asc;
+  static file_exists<false> const file_exists_cmp_desc;
 
   return asc ? static_cast<build_request_comparators_chain::comparator const *>(
                    &file_exists_cmp_asc)
@@ -118,18 +113,14 @@ get_file_exists_cmp(bool const asc, common::fs_proxy *const fs) {
 
 template <bool asc>
 struct mod_time_cmp final : build_request_comparators_chain::comparator {
-  explicit mod_time_cmp(common::fs_proxy *const aFs) : fs{aFs} {
-    // force 2 lines
-  }
-
   // ret = -1 -> lhs < rhs; ret = 0 -> equal; ret = 1 -> rhs < lhs
-  [[nodiscard]] int compare(build_request const &lhs,
-                            build_request const &rhs) const override {
+  [[nodiscard]] int compare(build_request const &lhs, build_request const &rhs,
+                            common::fs_proxy *const fs) const override {
     auto *const lhs_ft{dynamic_cast<common::file_target *>(lhs.tgt)};
     auto *const rhs_ft{dynamic_cast<common::file_target *>(rhs.tgt)};
 
     if (lhs_ft == nullptr || rhs_ft == nullptr) {
-      return fallback_compare<asc>(lhs, rhs);
+      return fallback_compare<asc>(lhs, rhs, fs);
     }
 
     auto const &lhs_path{lhs_ft->get_resolved_path()};
@@ -154,7 +145,7 @@ struct mod_time_cmp final : build_request_comparators_chain::comparator {
       return asc ? -1 : 1;
     } else {
       // none exists ... fallback to name comparison:
-      return fallback_compare<asc>(lhs, rhs);
+      return fallback_compare<asc>(lhs, rhs, fs);
     }
   }
 
@@ -168,15 +159,12 @@ private:
       return 0;
     }
   }
-
-  // must be set; not owned
-  common::fs_proxy *const fs;
 };
 
 build_request_comparators_chain::comparator const *
-get_mod_time_cmp(bool const asc, common::fs_proxy *const fs) {
-  static mod_time_cmp<true> const mod_time_cmp_asc{fs};
-  static mod_time_cmp<false> const mod_time_cmp_desc{fs};
+get_mod_time_cmp(bool const asc) {
+  static mod_time_cmp<true> const mod_time_cmp_asc;
+  static mod_time_cmp<false> const mod_time_cmp_desc;
 
   return asc ? static_cast<build_request_comparators_chain::comparator const *>(
                    &mod_time_cmp_asc)
@@ -187,15 +175,15 @@ get_mod_time_cmp(bool const asc, common::fs_proxy *const fs) {
 } // namespace
 
 build_request_comparators_chain::build_request_comparators_chain(
-    comparators_chain const &aComps) noexcept
-    : comps{aComps.data()}, n_comps{static_cast<int>(aComps.size())} {
+    common::fs_proxy *const aFs, comparators_chain const &aComps) noexcept
+    : fs{aFs}, comps{aComps.data()}, n_comps{static_cast<int>(aComps.size())} {
   // force 2 lines
 }
 
 bool build_request_comparators_chain::operator()(
     build_request const &lhs, build_request const &rhs) const {
   if (n_comps == 0) {
-    return fallback_compare(lhs, rhs);
+    return fallback_compare(lhs, rhs, fs);
   }
 
   for (int i{0}; i < n_comps; ++i) {
@@ -204,7 +192,7 @@ bool build_request_comparators_chain::operator()(
     // https://en.cppreference.com/w/cpp/container/priority_queue.html ... to
     // prevent confusion: the lowest value means being processed last by the
     // priority queue, so we need to invert the order of comparison(s) here:
-    auto const cmp_res{cmp->compare(rhs, lhs)};
+    auto const cmp_res{cmp->compare(rhs, lhs, fs)};
 
     if (cmp_res < 0) {
       return true;
@@ -221,8 +209,7 @@ bool build_request_comparators_chain::operator()(
 
 build_request_comparators_chain::comparators_chain
 build_request_comparators_chain::make_comparators_chain(
-    std::vector<std::string_view> const &comparator_names,
-    common::fs_proxy *const fs) {
+    std::vector<std::string_view> const &comparator_names) {
   comparators_chain res;
 
   std::unordered_set<std::string_view> used_or_blocked;
@@ -241,16 +228,16 @@ build_request_comparators_chain::make_comparators_chain(
       res.push_back(get_name_cmp(false));
       used_or_blocked.insert({sort_by::name_asc, sort_by::name_desc});
     } else if (cmp_name == sort_by::exists) {
-      res.push_back(get_file_exists_cmp(true, fs));
+      res.push_back(get_file_exists_cmp(true));
       used_or_blocked.insert({sort_by::exists, sort_by::doesnt_exist});
     } else if (cmp_name == sort_by::doesnt_exist) {
-      res.push_back(get_file_exists_cmp(false, fs));
+      res.push_back(get_file_exists_cmp(false));
       used_or_blocked.insert({sort_by::exists, sort_by::doesnt_exist});
     } else if (cmp_name == sort_by::mod_time_asc) {
-      res.push_back(get_mod_time_cmp(true, fs));
+      res.push_back(get_mod_time_cmp(true));
       used_or_blocked.insert({sort_by::mod_time_asc, sort_by::mod_time_desc});
     } else if (cmp_name == sort_by::mod_time_desc) {
-      res.push_back(get_mod_time_cmp(false, fs));
+      res.push_back(get_mod_time_cmp(false));
       used_or_blocked.insert({sort_by::mod_time_asc, sort_by::mod_time_desc});
     } else {
       throw std::runtime_error{"Unknown (or unimplemented) comparator '" +

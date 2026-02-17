@@ -25,10 +25,11 @@
 namespace build_cxx::driver {
 
 scheduler::scheduler(
+    common::fs_proxy *const fs,
     build_request_comparators_chain::comparators_chain &&aComps,
     int const n_workers, bool const aVerbose) noexcept
     : verbose{aVerbose}, comps{std::move(aComps)},
-      todo{build_request_comparators_chain{comps}} {
+      todo{build_request_comparators_chain{fs, comps}} {
   workers.reserve(std::max(n_workers, 1));
 
   for (int idx{0}; idx < workers.capacity(); ++idx) {

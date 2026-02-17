@@ -51,24 +51,25 @@ struct BUILD_CXX_DLL_EXPORT build_request_comparators_chain {
 
     // ret = -1 -> lhs < rhs; ret = 0 -> equal; ret = 1 -> rhs < lhs
     [[nodiscard]] virtual int compare(build_request const &lhs,
-                                      build_request const &rhs) const = 0;
+                                      build_request const &rhs,
+                                      common::fs_proxy *const fs) const = 0;
   };
 
   // not owning any pointer:
   using comparators_chain = std::vector<comparator const *>;
 
   explicit build_request_comparators_chain(
-      comparators_chain const &aComps) noexcept;
+      common::fs_proxy *const aFs, comparators_chain const &aComps) noexcept;
 
   // true if `lhs` has higher priority (should be processed sooner) than `rhs`
   [[nodiscard]] bool operator()(build_request const &lhs,
                                 build_request const &rhs) const;
 
   [[nodiscard]] static comparators_chain
-  make_comparators_chain(std::vector<std::string_view> const &comparator_names,
-                         common::fs_proxy *const fs);
+  make_comparators_chain(std::vector<std::string_view> const &comparator_names);
 
 private:
+  common::fs_proxy *fs;
   comparator const *const *comps;
   int n_comps;
 };

@@ -48,7 +48,8 @@ template <int n_workers> struct context {
 
   // better because this avoids cost of starting up all the threads for each
   // test case:
-  driver::scheduler sched{{}, // let it use default comparator ...
+  driver::scheduler sched{&fake_fs,
+                          {}, // let it use default comparator ...
                           n_workers,
                           false};
 

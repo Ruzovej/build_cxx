@@ -37,6 +37,7 @@ namespace build_cxx::driver {
 struct BUILD_CXX_DLL_EXPORT scheduler { // TODO should be BUILD_CXX_DLL_HIDE,
                                         // but then unit tests won't compile ...
   explicit scheduler(
+      common::fs_proxy *const fs,
       build_request_comparators_chain::comparators_chain &&aComps,
       int const n_workers, bool const aVerbose = true) noexcept;
 
