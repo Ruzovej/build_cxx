@@ -39,7 +39,8 @@ static std::string_view constexpr mod_time_asc{"mod_time_asc"};
 static std::string_view constexpr mod_time_desc{"mod_time_desc"};
 static std::string_view constexpr exists{"exists"};
 static std::string_view constexpr doesnt_exist{"doesnt_exist"};
-static std::string_view constexpr prev_fail{"prev_fail"};
+// TODO ...:
+// static std::string_view constexpr prev_fail{"prev_fail"};
 
 } // namespace sort_by
 

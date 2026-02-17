@@ -39,6 +39,12 @@ struct name_cmp final : build_request_comparators_chain::comparator {
   }
 };
 
+template <bool asc = true>
+[[nodiscard]] int fallback_compare(build_request const &lhs,
+                                   build_request const &rhs) {
+  return name_cmp<asc>{}.compare(lhs, rhs);
+}
+
 [[nodiscard]] build_request_comparators_chain::comparator const *
 get_name_cmp(bool const asc) {
   static name_cmp<true> const name_cmp_asc;
@@ -50,23 +56,148 @@ get_name_cmp(bool const asc) {
                    &name_cmp_desc);
 }
 
+template <bool asc>
+struct file_exists final : build_request_comparators_chain::comparator {
+  explicit file_exists(common::fs_proxy *const aFs) : fs{aFs} {
+    // force 2 lines
+  }
+
+  // ret = -1 -> lhs < rhs; ret = 0 -> equal; ret = 1 -> rhs < lhs
+  [[nodiscard]] int compare(build_request const &lhs,
+                            build_request const &rhs) const override {
+    auto *const lhs_ft{dynamic_cast<common::file_target *>(lhs.tgt)};
+    auto *const rhs_ft{dynamic_cast<common::file_target *>(rhs.tgt)};
+
+    if (lhs_ft == nullptr || rhs_ft == nullptr) {
+      // IMHO if one of them really is a file target, there's no need to further
+      // check for its existence compared to some other type:
+      return comparison_res(lhs_ft != nullptr, rhs_ft != nullptr);
+    }
+
+    auto const &lhs_path{lhs_ft->get_resolved_path()};
+    auto const lhs_ex{fs->file_exists(lhs_path)};
+
+    auto const &rhs_path{rhs_ft->get_resolved_path()};
+    auto const rhs_ex{fs->file_exists(rhs_path)};
+
+    return comparison_res(lhs_ex, rhs_ex);
+  }
+
+private:
+  [[nodiscard]] int comparison_res(bool const lhs_ex, bool const rhs_ex) const {
+    if (lhs_ex && rhs_ex) {
+      return 0; // equivalent
+    }
+    // fallbacks ...:
+    else if (lhs_ex) {
+      // rhs doesn't exist ... it has precedence
+      return asc ? 1 : -1;
+    } else if (rhs_ex) {
+      // lhs doesn't exist ... it has precedence
+      return asc ? -1 : 1;
+    } else {
+      // none exists ... equivalent:
+      return 0;
+    }
+  }
+
+  // must be set; not owned
+  common::fs_proxy *const fs;
+};
+
+build_request_comparators_chain::comparator const *
+get_file_exists_cmp(bool const asc, common::fs_proxy *const fs) {
+  static file_exists<true> const file_exists_cmp_asc{fs};
+  static file_exists<false> const file_exists_cmp_desc{fs};
+
+  return asc ? static_cast<build_request_comparators_chain::comparator const *>(
+                   &file_exists_cmp_asc)
+             : static_cast<build_request_comparators_chain::comparator const *>(
+                   &file_exists_cmp_desc);
+}
+
+template <bool asc>
+struct mod_time_cmp final : build_request_comparators_chain::comparator {
+  explicit mod_time_cmp(common::fs_proxy *const aFs) : fs{aFs} {
+    // force 2 lines
+  }
+
+  // ret = -1 -> lhs < rhs; ret = 0 -> equal; ret = 1 -> rhs < lhs
+  [[nodiscard]] int compare(build_request const &lhs,
+                            build_request const &rhs) const override {
+    auto *const lhs_ft{dynamic_cast<common::file_target *>(lhs.tgt)};
+    auto *const rhs_ft{dynamic_cast<common::file_target *>(rhs.tgt)};
+
+    if (lhs_ft == nullptr || rhs_ft == nullptr) {
+      return fallback_compare<asc>(lhs, rhs);
+    }
+
+    auto const &lhs_path{lhs_ft->get_resolved_path()};
+    auto const lhs_ex{fs->file_exists(lhs_path)};
+
+    auto const &rhs_path{rhs_ft->get_resolved_path()};
+    auto const rhs_ex{fs->file_exists(rhs_path)};
+
+    if (lhs_ex && rhs_ex) {
+      auto const lhs_mod_time{fs->file_last_mod_time(lhs_path)};
+      auto const rhs_mod_time{fs->file_last_mod_time(rhs_path)};
+
+      return signum(asc ? lhs_mod_time - rhs_mod_time
+                        : rhs_mod_time - lhs_mod_time);
+    }
+    // fallbacks ...:
+    else if (lhs_ex) {
+      // rhs doesn't exist ... it has precedence
+      return asc ? 1 : -1;
+    } else if (rhs_ex) {
+      // lhs doesn't exist ... it has precedence
+      return asc ? -1 : 1;
+    } else {
+      // none exists ... fallback to name comparison:
+      return fallback_compare<asc>(lhs, rhs);
+    }
+  }
+
+private:
+  template <typename T> [[nodiscard]] static int signum(T val) {
+    if (val < 0) {
+      return -1;
+    } else if (val > 0) {
+      return 1;
+    } else {
+      return 0;
+    }
+  }
+
+  // must be set; not owned
+  common::fs_proxy *const fs;
+};
+
+build_request_comparators_chain::comparator const *
+get_mod_time_cmp(bool const asc, common::fs_proxy *const fs) {
+  static mod_time_cmp<true> const mod_time_cmp_asc{fs};
+  static mod_time_cmp<false> const mod_time_cmp_desc{fs};
+
+  return asc ? static_cast<build_request_comparators_chain::comparator const *>(
+                   &mod_time_cmp_asc)
+             : static_cast<build_request_comparators_chain::comparator const *>(
+                   &mod_time_cmp_desc);
+}
+
 } // namespace
 
 build_request_comparators_chain::build_request_comparators_chain(
     comparators_chain const &aComps) noexcept
     : comps{aComps.data()}, n_comps{static_cast<int>(aComps.size())} {
-  if (aComps.empty()) {
-    // set default comparator; ugly gymnastics & shenanigans to avoid taking
-    // address of an r-value ...:
-    static auto default_cmp{get_name_cmp(true)};
-    comps = &default_cmp;
-
-    n_comps = 1;
-  }
+  // force 2 lines
 }
 
 bool build_request_comparators_chain::operator()(
     build_request const &lhs, build_request const &rhs) const {
+  if (n_comps == 0) {
+    return fallback_compare(lhs, rhs);
+  }
+
   for (int i{0}; i < n_comps; ++i) {
     auto *const cmp{comps[i]};
 
@@ -79,11 +210,12 @@ bool build_request_comparators_chain::operator()(
       return true;
     } else if (0 < cmp_res) {
       return false;
+    } else { // cmp_res == 0 -> try the next comparator in the chain
+      continue;
     }
-    // else cmp_res == 0 -> try the next comparator in the chain
   }
 
-  // equivalent (or equal?!)
+  // they are equivalent (or equal?!)
   return false;
 }
 
@@ -108,14 +240,18 @@ build_request_comparators_chain::make_comparators_chain(
     } else if (cmp_name == sort_by::name_desc) {
       res.push_back(get_name_cmp(false));
       used_or_blocked.insert({sort_by::name_asc, sort_by::name_desc});
-      //} else if (cmp_name == sort_by::mod_time_asc) {
-      //  res.push_back(get_mod_time_cmp(true, fs));
-      //  used_or_blocked.insert({sort_by::mod_time_asc,
-      //  sort_by::mod_time_desc});
-      //} else if (cmp_name == sort_by::mod_time_desc) {
-      //  res.push_back(get_mod_time_cmp(false, fs));
-      //  used_or_blocked.insert({sort_by::mod_time_asc,
-      //  sort_by::mod_time_desc});
+    } else if (cmp_name == sort_by::exists) {
+      res.push_back(get_file_exists_cmp(true, fs));
+      used_or_blocked.insert({sort_by::exists, sort_by::doesnt_exist});
+    } else if (cmp_name == sort_by::doesnt_exist) {
+      res.push_back(get_file_exists_cmp(false, fs));
+      used_or_blocked.insert({sort_by::exists, sort_by::doesnt_exist});
+    } else if (cmp_name == sort_by::mod_time_asc) {
+      res.push_back(get_mod_time_cmp(true, fs));
+      used_or_blocked.insert({sort_by::mod_time_asc, sort_by::mod_time_desc});
+    } else if (cmp_name == sort_by::mod_time_desc) {
+      res.push_back(get_mod_time_cmp(false, fs));
+      used_or_blocked.insert({sort_by::mod_time_asc, sort_by::mod_time_desc});
     } else {
       throw std::runtime_error{"Unknown (or unimplemented) comparator '" +
                                std::string{cmp_name} + '\''};
@@ -124,70 +260,5 @@ build_request_comparators_chain::make_comparators_chain(
 
   return res;
 }
-/*
-namespace {
 
-template <typename T> int signum(T val) {
-  if (val < 0) {
-    return -1;
-  } else if (val > 0) {
-    return 1;
-  } else {
-    return 0;
-  }
-}
-
-template <bool asc> struct mod_time_cmp final : comparator {
-  explicit mod_time_cmp(common::fs_proxy *const aFs) : fs{aFs} {
-    // force 2 lines
-  }
-
-  // ret = -1 -> lhs < rhs; ret = 0 -> equal; ret = 1 -> rhs < lhs
-  [[nodiscard]] int compare(build_request const &lhs,
-                            build_request const &rhs) const override {
-    auto *const lhs_ft{dynamic_cast<common::file_target *>(lhs.tgt)};
-    auto *const rhs_ft{dynamic_cast<common::file_target *>(rhs.tgt)};
-
-    if (lhs_ft == nullptr || rhs_ft == nullptr) {
-      // fallback ...:
-      return name_cmp<asc>{}.compare(lhs, rhs);
-    }
-
-    auto const &lhs_path{lhs_ft->get_resolved_path()};
-    auto const &rhs_path{rhs_ft->get_resolved_path()};
-
-    auto const lhs_ex{fs->file_exists(lhs_path)};
-    auto const rhs_ex{fs->file_exists(rhs_path)};
-
-    if (lhs_ex && rhs_ex) {
-      auto const lhs_mod_time{fs->file_last_mod_time(lhs_path)};
-      auto const rhs_mod_time{fs->file_last_mod_time(rhs_path)};
-
-      return signum(asc ? lhs_mod_time - rhs_mod_time
-                        : rhs_mod_time - lhs_mod_time);
-    }
-    // fallbacks ...:
-    else if (lhs_ex) {
-      return asc ? -1 : 1;
-    } else if (rhs_ex) {
-      return asc ? 1 : -1;
-    } else {
-      return name_cmp<asc>{}.compare(lhs, rhs);
-    }
-  }
-
-  // must be set; not owned
-  common::fs_proxy *const fs;
-};
-
-comparator const *get_mod_time_cmp(bool const asc, common::fs_proxy *const fs) {
-  static mod_time_cmp<true> const mod_time_cmp_asc{fs};
-  static mod_time_cmp<false> const mod_time_cmp_desc{fs};
-
-  return asc ? static_cast<comparator const *>(&mod_time_cmp_asc)
-             : static_cast<comparator const *>(&mod_time_cmp_desc);
-}
-
-} // namespace
-*/
 } // namespace build_cxx::driver
