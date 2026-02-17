@@ -34,62 +34,73 @@
 namespace build_cxx {
 namespace {
 
-// IMHO better than using "real" fixtures, etc.:
-// https://github.com/doctest/doctest/blob/master/doc/markdown/testcases.md#test-fixtures
-
-template <int n_workers> struct context {
-  static inline std::mutex mtx;
-  static inline test_helpers::mock_fs fake_fs{&mtx};
-
-  // better because this avoids cost of starting up all the threads for each
-  // test case:
-  static inline driver::scheduler inst{n_workers, false};
-};
-
 void test_impl(std::mutex &mtx, test_helpers::mock_fs &fake_fs,
                driver::scheduler &sched);
 
+// IMHO better than using "real" fixtures, etc.:
+// https://github.com/doctest/doctest/blob/master/doc/markdown/testcases.md#test-fixtures
+// by having it as a local static variable, cost of starting up all the threads
+// for each test case is avoided:
+
+template <int n_workers> struct context {
+  std::mutex mtx;
+  test_helpers::mock_fs fake_fs{&mtx};
+
+  // better because this avoids cost of starting up all the threads for each
+  // test case:
+  driver::scheduler sched{n_workers, false};
+
+  void run_test_impl() {
+    REQUIRE(fake_fs.empty());
+    // no pending task from prev. test case:
+    REQUIRE_EQ(sched.num_handled_targets(), 0);
+
+    test_impl(mtx, fake_fs, sched);
+
+    // scheduler is "empty" ~ all has been finished
+    REQUIRE_EQ(sched.num_handled_targets(), 0);
+    // reset it ...
+    REQUIRE_NOTHROW(fake_fs.reset());
+  }
+};
+
 TEST_CASE("driver::processed_targets, 1 worker") {
-  using ctx = context<1>;
-  test_impl(ctx::mtx, ctx::fake_fs, ctx::inst);
+  static context<1> ctx;
+  ctx.run_test_impl();
 }
 
 TEST_CASE("driver::processed_targets, 2 workers") {
-  using ctx = context<2>;
-  test_impl(ctx::mtx, ctx::fake_fs, ctx::inst);
+  static context<2> ctx;
+  ctx.run_test_impl();
 }
 
 TEST_CASE("driver::processed_targets, 3 workers") {
-  using ctx = context<3>;
-  test_impl(ctx::mtx, ctx::fake_fs, ctx::inst);
+  static context<3> ctx;
+  ctx.run_test_impl();
 }
 
 TEST_CASE("driver::processed_targets, 4 workers") {
-  using ctx = context<4>;
-  test_impl(ctx::mtx, ctx::fake_fs, ctx::inst);
+  static context<4> ctx;
+  ctx.run_test_impl();
 }
 
 TEST_CASE("driver::processed_targets, 5 workers") {
-  using ctx = context<5>;
-  test_impl(ctx::mtx, ctx::fake_fs, ctx::inst);
+  static context<5> ctx;
+  ctx.run_test_impl();
 }
 
 TEST_CASE("driver::processed_targets, 6 workers") {
-  using ctx = context<6>;
-  test_impl(ctx::mtx, ctx::fake_fs, ctx::inst);
+  static context<6> ctx;
+  ctx.run_test_impl();
 }
 
 TEST_CASE("driver::processed_targets, 12 workers") {
-  using ctx = context<12>;
-  test_impl(ctx::mtx, ctx::fake_fs, ctx::inst);
+  static context<12> ctx;
+  ctx.run_test_impl();
 }
 
 void test_impl(std::mutex &mtx, test_helpers::mock_fs &fake_fs,
                driver::scheduler &sched) {
-  // no pending task from prev. test case:
-  REQUIRE_EQ(sched.num_handled_targets(), 0);
-  REQUIRE(fake_fs.empty());
-
   driver::processed_targets driver_pt{sched};
 
   static std::string_view constexpr fake_root_file1{
@@ -1170,11 +1181,6 @@ void test_impl(std::mutex &mtx, test_helpers::mock_fs &fake_fs,
     // just to be sure - clean it up:
     REQUIRE_NOTHROW(sched.discard_all_running_tasks());
   }
-
-  // scheduler is "empty" ~ all has been finished
-  REQUIRE_EQ(sched.num_handled_targets(), 0);
-  // reset it ...
-  REQUIRE_NOTHROW(fake_fs.reset());
 }
 
 } // namespace
