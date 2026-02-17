@@ -31,18 +31,6 @@
 
 namespace build_cxx::driver {
 
-// TODO ... EXPORT or HIDE?!
-struct BUILD_CXX_DLL_EXPORT build_request_comparator {
-  // relies on (hidden) global state which is altered/initialized in
-  // `make_comparator_chain`;
-  // true if `lhs` has higher priority (should be processed sooner) than `rhs`
-  [[nodiscard]] bool operator()(build_request const &lhs,
-                                build_request const &rhs) const;
-
-  // for unit tests - so they can ovewrite it ...:
-  inline static common::fs_proxy *used_fs{common::fs_proxy::default_impl()};
-};
-
 namespace sort_by {
 
 static std::string_view constexpr name_asc{"name_asc"};
@@ -56,8 +44,32 @@ static std::string_view constexpr prev_fail{"prev_fail"};
 } // namespace sort_by
 
 // TODO ... EXPORT or HIDE?!
-BUILD_CXX_DLL_EXPORT void
-make_comparator_chain(std::vector<std::string_view> const &comparator_names,
-                      common::fs_proxy *const fs);
+struct BUILD_CXX_DLL_EXPORT build_request_comparators_chain {
+  struct comparator {
+    virtual ~comparator() = default;
+
+    // ret = -1 -> lhs < rhs; ret = 0 -> equal; ret = 1 -> rhs < lhs
+    [[nodiscard]] virtual int compare(build_request const &lhs,
+                                      build_request const &rhs) const = 0;
+  };
+
+  // not owning any pointer:
+  using comparators_chain = std::vector<comparator const *>;
+
+  explicit build_request_comparators_chain(
+      comparators_chain const &aComps) noexcept;
+
+  // true if `lhs` has higher priority (should be processed sooner) than `rhs`
+  [[nodiscard]] bool operator()(build_request const &lhs,
+                                build_request const &rhs) const;
+
+  [[nodiscard]] static comparators_chain
+  make_comparators_chain(std::vector<std::string_view> const &comparator_names,
+                         common::fs_proxy *const fs);
+
+private:
+  comparator const *const *comps;
+  int n_comps;
+};
 
 } // namespace build_cxx::driver

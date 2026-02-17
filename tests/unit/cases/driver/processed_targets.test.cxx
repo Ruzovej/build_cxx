@@ -24,7 +24,7 @@
 #include "build_cxx/client/core.hxx"
 #include "build_cxx/common/location.hxx"
 #include "build_cxx/driver/build_request.hxx"
-#include "build_cxx/driver/build_request_comparator.hxx"
+#include "build_cxx/driver/build_request_comparators_chain.hxx"
 #include "build_cxx/driver/scheduler.hxx"
 #include "build_cxx/test_helpers/mock_file_target.hxx"
 #include "build_cxx/test_helpers/mock_fs.hxx"
@@ -48,7 +48,9 @@ template <int n_workers> struct context {
 
   // better because this avoids cost of starting up all the threads for each
   // test case:
-  driver::scheduler sched{n_workers, false};
+  driver::scheduler sched{{}, // let it use default comparator ...
+                          n_workers,
+                          false};
 
   void run_test_impl() {
     REQUIRE(fake_fs.empty());

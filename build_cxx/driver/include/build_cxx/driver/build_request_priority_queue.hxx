@@ -22,12 +22,12 @@
 #include <queue>
 
 #include "build_cxx/driver/build_request.hxx"
-#include "build_cxx/driver/build_request_comparator.hxx"
+#include "build_cxx/driver/build_request_comparators_chain.hxx"
 
 namespace build_cxx::driver {
 
 using build_request_priority_queue =
     std::priority_queue<build_request, std::vector<build_request>,
-                        build_request_comparator>;
+                        build_request_comparators_chain>;
 
 } // namespace build_cxx::driver

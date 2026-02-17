@@ -36,7 +36,9 @@ namespace build_cxx::driver {
 // more precise: its public methods aren't thread-safe.
 struct BUILD_CXX_DLL_EXPORT scheduler { // TODO should be BUILD_CXX_DLL_HIDE,
                                         // but then unit tests won't compile ...
-  explicit scheduler(int const n_workers, bool const aVerbose = true) noexcept;
+  explicit scheduler(
+      build_request_comparators_chain::comparators_chain &&aComps,
+      int const n_workers, bool const aVerbose = true) noexcept;
 
   ~scheduler() noexcept;
 
@@ -59,6 +61,7 @@ private:
 
   std::mutex mtx_todo;
   std::condition_variable cv_todo;
+  build_request_comparators_chain::comparators_chain comps;
   build_request_priority_queue todo;
 
   struct build_result {
