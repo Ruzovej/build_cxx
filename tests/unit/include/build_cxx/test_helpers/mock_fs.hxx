@@ -72,6 +72,12 @@ struct mock_fs final : common::fs_proxy {
     }
   }
 
+  [[nodiscard]] bool empty() const {
+    auto const lck{lock()};
+
+    return files.empty();
+  }
+
   void reset() {
     auto const lck{lock()};
 

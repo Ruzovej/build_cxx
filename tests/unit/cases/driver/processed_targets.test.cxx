@@ -34,74 +34,61 @@
 namespace build_cxx {
 namespace {
 
-// IMHO better than using fixtures, etc.:
+// IMHO better than using "real" fixtures, etc.:
 // https://github.com/doctest/doctest/blob/master/doc/markdown/testcases.md#test-fixtures
 
-std::mutex mtx;
-test_helpers::mock_fs fake_fs{&mtx};
+template <int n_workers> struct context {
+  static inline std::mutex mtx;
+  static inline test_helpers::mock_fs fake_fs{&mtx};
 
-/*
-namespace hidden_impl {
-
-struct dummy_registrator {
-  dummy_registrator() {
-    driver::build_request_comparator::used_fs = &fake_fs;
-    driver::make_comparator_chain({}, &fake_fs);
-  }
-};
-
-dummy_registrator dummy_reg;
-
-} // namespace hidden_impl
-*/
-
-template <int n_workers> struct sched {
-  // avoid cost of starting up all the threads for each test case:
+  // better because this avoids cost of starting up all the threads for each
+  // test case:
   static inline driver::scheduler inst{n_workers, false};
 };
 
-void test_impl(driver::scheduler &sched);
+void test_impl(std::mutex &mtx, test_helpers::mock_fs &fake_fs,
+               driver::scheduler &sched);
 
 TEST_CASE("driver::processed_targets, 1 worker") {
-  // force 2 lines
-  test_impl(sched<1>::inst);
+  using ctx = context<1>;
+  test_impl(ctx::mtx, ctx::fake_fs, ctx::inst);
 }
 
 TEST_CASE("driver::processed_targets, 2 workers") {
-  // force 2 lines
-  test_impl(sched<2>::inst);
+  using ctx = context<2>;
+  test_impl(ctx::mtx, ctx::fake_fs, ctx::inst);
 }
 
 TEST_CASE("driver::processed_targets, 3 workers") {
-  // force 2 lines
-  test_impl(sched<3>::inst);
+  using ctx = context<3>;
+  test_impl(ctx::mtx, ctx::fake_fs, ctx::inst);
 }
 
 TEST_CASE("driver::processed_targets, 4 workers") {
-  // force 2 lines
-  test_impl(sched<4>::inst);
+  using ctx = context<4>;
+  test_impl(ctx::mtx, ctx::fake_fs, ctx::inst);
 }
 
 TEST_CASE("driver::processed_targets, 5 workers") {
-  // force 2 lines
-  test_impl(sched<5>::inst);
+  using ctx = context<5>;
+  test_impl(ctx::mtx, ctx::fake_fs, ctx::inst);
 }
 
 TEST_CASE("driver::processed_targets, 6 workers") {
-  // force 2 lines
-  test_impl(sched<6>::inst);
+  using ctx = context<6>;
+  test_impl(ctx::mtx, ctx::fake_fs, ctx::inst);
 }
 
 TEST_CASE("driver::processed_targets, 12 workers") {
-  // force 2 lines
-  test_impl(sched<12>::inst);
+  using ctx = context<12>;
+  test_impl(ctx::mtx, ctx::fake_fs, ctx::inst);
 }
 
-void test_impl(driver::scheduler &sched) {
+void test_impl(std::mutex &mtx, test_helpers::mock_fs &fake_fs,
+               driver::scheduler &sched) {
   // no pending task from prev. test case:
   REQUIRE_EQ(sched.num_handled_targets(), 0);
-
-  fake_fs.reset();
+  REQUIRE(fake_fs.empty());
 
   driver::processed_targets driver_pt{sched};
 
@@ -1186,6 +1173,8 @@ void test_impl(driver::scheduler &sched) {
 
   // scheduler is "empty" ~ all has been finished
   REQUIRE_EQ(sched.num_handled_targets(), 0);
+  // reset it ...
+  REQUIRE_NOTHROW(fake_fs.reset());
 }
 
 } // namespace
