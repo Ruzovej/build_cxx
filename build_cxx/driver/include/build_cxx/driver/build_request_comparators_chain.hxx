@@ -46,17 +46,12 @@ static std::string_view constexpr doesnt_exist{"doesnt_exist"};
 
 // TODO ... EXPORT or HIDE?!
 struct BUILD_CXX_DLL_EXPORT build_request_comparators_chain {
-  struct comparator {
-    virtual ~comparator() = default;
-
-    // ret = -1 -> lhs < rhs; ret = 0 -> equal; ret = 1 -> rhs < lhs
-    [[nodiscard]] virtual int compare(build_request const &lhs,
-                                      build_request const &rhs,
-                                      common::fs_proxy *const fs) const = 0;
-  };
+  // ret = -1 -> lhs < rhs; ret = 0 -> equal; ret = 1 -> rhs < lhs
+  using comparator = int(build_request const &lhs, build_request const &rhs,
+                         common::fs_proxy *const fs);
 
   // not owning any pointer:
-  using comparators_chain = std::vector<comparator const *>;
+  using comparators_chain = std::vector<comparator *>;
 
   explicit build_request_comparators_chain(
       common::fs_proxy *const aFs, comparators_chain const &aComps) noexcept;
