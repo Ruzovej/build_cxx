@@ -218,13 +218,22 @@ TEST_CASE("driver::build_request_comparators_chain") {
           driver::build_request_comparators_chain{fake_fs_ptr, comps}};
     };
 
-    SUBCASE("default chain (asc. by resolved name)") {
+    SUBCASE("by resolved name, ascending") {
       // arrange
-      auto const comps{make_comparators_chain({})};
+      driver::build_request_comparators_chain::comparators_chain comps;
+
+      SUBCASE("default") {
+        // force 2 lines
+        comps = make_comparators_chain({});
+      }
+
+      SUBCASE("explicit") {
+        comps = make_comparators_chain({driver::sort_by::name_asc});
+      }
 
       auto pq{make_prio_queue(comps)};
 
-      // act
+      // act (push them in "random" order)
       REQUIRE_NOTHROW(pq.emplace(driver::build_request{zzz_f_2, nullptr}));
       REQUIRE_NOTHROW(pq.emplace(driver::build_request{zzz_f_3, nullptr}));
       REQUIRE_NOTHROW(pq.emplace(driver::build_request{aaa_f_3, nullptr}));
