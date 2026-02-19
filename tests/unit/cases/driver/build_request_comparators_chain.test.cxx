@@ -18,6 +18,7 @@
 */
 
 #include "build_cxx/driver/build_request_comparators_chain.hxx"
+#include "build_cxx/driver/build_request_priority_queue.hxx"
 
 #include <doctest/doctest.h>
 
@@ -29,6 +30,11 @@
 namespace build_cxx {
 namespace {
 
+driver::build_request_comparators_chain::comparators_chain
+make_comparators_chain(std::vector<std::string_view> const &input) {
+  return driver::build_request_comparators_chain::make_comparators_chain(input);
+};
+
 [[nodiscard]] driver::scheduler create_sched(
     test_helpers::mock_fs *const fake_fs,
     driver::build_request_comparators_chain::comparators_chain &&comps) {
@@ -38,12 +44,6 @@ namespace {
 TEST_CASE("driver::build_request_comparators_chain") {
   SUBCASE("...::make_comparators_chain") {
     driver::build_request_comparators_chain::comparators_chain comps;
-
-    auto const make_comparators_chain = [](std::vector<std::string_view> const
-                                               &input) {
-      return driver::build_request_comparators_chain::make_comparators_chain(
-          input);
-    };
 
     SUBCASE("valid inputs") {
       SUBCASE("empty input") {
@@ -96,6 +96,9 @@ TEST_CASE("driver::build_request_comparators_chain") {
   }
 
   SUBCASE("determined order") {
+    // TODO this should utilize only one thread: mutex, thread spawning, etc.
+    // should be avoided
+
     std::mutex mtx;
     test_helpers::built_targets_t built_targets;
     test_helpers::mock_fs fake_fs;
@@ -190,23 +193,81 @@ TEST_CASE("driver::build_request_comparators_chain") {
     // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
     // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
-    auto const pt_process = [&](driver::processed_targets &driver_pt) {
-      REQUIRE_NOTHROW(driver_pt.process_project(&test_project_aaa));
-      REQUIRE_NOTHROW(driver_pt.process_project(&test_project_zzz));
+    auto sched{create_sched(&fake_fs, {})};
 
-      bool all_resolved{false};
-      REQUIRE_NOTHROW(all_resolved = driver_pt.resolve_deps_for_all());
-      REQUIRE(all_resolved);
+    driver::processed_targets driver_pt{sched};
+
+    REQUIRE_NOTHROW(driver_pt.process_project(&test_project_aaa));
+    REQUIRE_NOTHROW(driver_pt.process_project(&test_project_zzz));
+
+    bool all_resolved{false};
+    REQUIRE_NOTHROW(all_resolved = driver_pt.resolve_deps_for_all());
+    REQUIRE(all_resolved);
+
+    fake_fs.touch(zzz_f_3->get_resolved_path());
+    fake_fs.touch(zzz_f_1->get_resolved_path());
+    // so it "doesn't exist":
+    // fake_fs.touch(zzz_f_2->get_resolved_path());
+    fake_fs.touch(aaa_f_3->get_resolved_path());
+    fake_fs.touch(aaa_f_1->get_resolved_path());
+    // so it "doesn't exist":
+    // fake_fs.touch(aaa_f_2->get_resolved_path());
+
+    auto const make_prio_queue = [fake_fs_ptr = &fake_fs](auto const &comps) {
+      return driver::build_request_priority_queue{
+          driver::build_request_comparators_chain{fake_fs_ptr, comps}};
     };
 
-    SUBCASE("default chain") {
-      auto sched{create_sched(&fake_fs, {})};
+    SUBCASE("default chain (asc. by resolved name)") {
+      // arrange
+      auto const comps{make_comparators_chain({})};
 
-      driver::processed_targets driver_pt{sched};
+      auto pq{make_prio_queue(comps)};
 
-      pt_process(driver_pt);
+      // act
+      REQUIRE_NOTHROW(pq.emplace(driver::build_request{zzz_f_2, nullptr}));
+      REQUIRE_NOTHROW(pq.emplace(driver::build_request{zzz_f_3, nullptr}));
+      REQUIRE_NOTHROW(pq.emplace(driver::build_request{aaa_f_3, nullptr}));
+      REQUIRE_NOTHROW(pq.emplace(driver::build_request{aaa_pt_1, nullptr}));
+      REQUIRE_NOTHROW(pq.emplace(driver::build_request{zzz_pt_2, nullptr}));
+      REQUIRE_NOTHROW(pq.emplace(driver::build_request{aaa_f_2, nullptr}));
+      REQUIRE_NOTHROW(pq.emplace(driver::build_request{aaa_f_1, nullptr}));
+      REQUIRE_NOTHROW(pq.emplace(driver::build_request{aaa_pt_2, nullptr}));
+      REQUIRE_NOTHROW(pq.emplace(driver::build_request{zzz_f_1, nullptr}));
+      REQUIRE_NOTHROW(pq.emplace(driver::build_request{zzz_pt_1, nullptr}));
 
-      // ... TODO ...
+      // assert
+      REQUIRE_EQ(pq.size(), 10);
+
+      REQUIRE_EQ(pq.top().tgt->resolved_name, aaa_f_1->resolved_name);
+      REQUIRE_NOTHROW(pq.pop());
+
+      REQUIRE_EQ(pq.top().tgt->resolved_name, aaa_f_2->resolved_name);
+      REQUIRE_NOTHROW(pq.pop());
+
+      REQUIRE_EQ(pq.top().tgt->resolved_name, aaa_f_3->resolved_name);
+      REQUIRE_NOTHROW(pq.pop());
+
+      REQUIRE_EQ(pq.top().tgt->resolved_name, zzz_f_1->resolved_name);
+      REQUIRE_NOTHROW(pq.pop());
+
+      REQUIRE_EQ(pq.top().tgt->resolved_name, zzz_f_2->resolved_name);
+      REQUIRE_NOTHROW(pq.pop());
+
+      REQUIRE_EQ(pq.top().tgt->resolved_name, zzz_f_3->resolved_name);
+      REQUIRE_NOTHROW(pq.pop());
+
+      REQUIRE_EQ(pq.top().tgt->resolved_name, aaa_pt_1->resolved_name);
+      REQUIRE_NOTHROW(pq.pop());
+
+      REQUIRE_EQ(pq.top().tgt->resolved_name, aaa_pt_2->resolved_name);
+      REQUIRE_NOTHROW(pq.pop());
+
+      REQUIRE_EQ(pq.top().tgt->resolved_name, zzz_pt_1->resolved_name);
+      REQUIRE_NOTHROW(pq.pop());
+
+      REQUIRE_EQ(pq.top().tgt->resolved_name, zzz_pt_2->resolved_name);
+      REQUIRE_NOTHROW(pq.pop());
     }
   }
 }

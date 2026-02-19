@@ -173,7 +173,7 @@ build_request_comparators_chain::build_request_comparators_chain(
 bool build_request_comparators_chain::operator()(
     build_request const &lhs, build_request const &rhs) const {
   if (n_comps == 0) {
-    return fallback_compare(lhs, rhs, fs);
+    return fallback_compare(rhs, lhs, fs) <= -1;
   }
 
   for (int i{0}; i < n_comps; ++i) {
