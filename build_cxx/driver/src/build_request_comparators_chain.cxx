@@ -47,11 +47,11 @@ template <bool asc = true>
   return name_compare<asc>(lhs, rhs, fs);
 }
 
-[[nodiscard]] build_request_comparators_chain::comparator *
+[[nodiscard]] build_request_comparators_chain::comparator_fn *
 get_name_cmp(bool const asc) {
-  return asc ? static_cast<build_request_comparators_chain::comparator *>(
+  return asc ? static_cast<build_request_comparators_chain::comparator_fn *>(
                    &name_compare<true>)
-             : static_cast<build_request_comparators_chain::comparator *>(
+             : static_cast<build_request_comparators_chain::comparator_fn *>(
                    &name_compare<false>);
 }
 
@@ -98,11 +98,11 @@ template <bool asc>
   return simple_file_exists_comparison_res<asc>(lhs_ex, rhs_ex);
 }
 
-[[nodiscard]] build_request_comparators_chain::comparator *
+[[nodiscard]] build_request_comparators_chain::comparator_fn *
 get_file_exists_cmp(bool const asc) {
-  return asc ? static_cast<build_request_comparators_chain::comparator *>(
+  return asc ? static_cast<build_request_comparators_chain::comparator_fn *>(
                    &file_exists_compare<true>)
-             : static_cast<build_request_comparators_chain::comparator *>(
+             : static_cast<build_request_comparators_chain::comparator_fn *>(
                    &file_exists_compare<false>);
 }
 
@@ -154,11 +154,11 @@ template <bool asc>
   }
 }
 
-[[nodiscard]] build_request_comparators_chain::comparator *
+[[nodiscard]] build_request_comparators_chain::comparator_fn *
 get_mod_time_cmp(bool const asc) {
-  return asc ? static_cast<build_request_comparators_chain::comparator *>(
+  return asc ? static_cast<build_request_comparators_chain::comparator_fn *>(
                    &mod_time_compare<true>)
-             : static_cast<build_request_comparators_chain::comparator *>(
+             : static_cast<build_request_comparators_chain::comparator_fn *>(
                    &mod_time_compare<false>);
 }
 

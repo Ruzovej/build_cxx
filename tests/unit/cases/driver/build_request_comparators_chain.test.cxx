@@ -36,117 +36,178 @@ namespace {
 };
 
 TEST_CASE("driver::build_request_comparators_chain") {
-  std::mutex mtx;
-  test_helpers::built_targets_t built_targets;
-  test_helpers::mock_fs fake_fs;
+  SUBCASE("...::make_comparators_chain") {
+    driver::build_request_comparators_chain::comparators_chain comps;
 
-  // generally, we don't care about nontrivial dependency graph, etc. - just
-  // having everything independent is enough to test this feature, all targets
-  // just need to get their names, etc. resolved
+    auto const make_comparators_chain = [](std::vector<std::string_view> const
+                                               &input) {
+      return driver::build_request_comparators_chain::make_comparators_chain(
+          input);
+    };
 
-  // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-  // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-  // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+    SUBCASE("valid inputs") {
+      SUBCASE("empty input") {
+        REQUIRE_NOTHROW(comps = make_comparators_chain({}));
+        REQUIRE(comps.empty());
+      }
 
-  // first project, aaa:
+      SUBCASE("single input") {
+        REQUIRE_NOTHROW(
+            comps = make_comparators_chain({driver::sort_by::name_asc}));
+        REQUIRE_EQ(comps.size(), 1);
+      }
 
-  static std::string_view constexpr fake_filename_aaa{
-      "/fake/dir/aaa/build.cxx"};
+      SUBCASE("all valid ones") {
+        // "random" combination of them ...
+        REQUIRE_NOTHROW(
+            comps = make_comparators_chain({driver::sort_by::name_asc,
+                                            driver::sort_by::doesnt_exist,
+                                            driver::sort_by::mod_time_desc}));
+        REQUIRE_EQ(comps.size(), 3);
+      }
+    }
 
-  test_helpers::mock_project test_project_aaa{
-      &mtx, &built_targets, &fake_fs, "aaa", "0.13.57", fake_filename_aaa};
+    SUBCASE("invalid inputs") {
+      SUBCASE("only invalid") {
+        REQUIRE_THROWS(comps = make_comparators_chain({"some_invalid_name"}));
+        REQUIRE_THROWS(comps = make_comparators_chain(
+                           {"some_invalid_name", "another_one"}));
+      }
 
-  // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+      SUBCASE("some valid, at least one invalid") {
+        REQUIRE_THROWS(comps = make_comparators_chain(
+                           {driver::sort_by::name_asc, "some_invalid_name"}));
+        REQUIRE_THROWS(comps = make_comparators_chain(
+                           {"some_invalid_name", driver::sort_by::name_desc}));
+      }
 
-  // alias targets:
+      SUBCASE("duplicated valid ones") {
+        REQUIRE_THROWS(comps =
+                           make_comparators_chain({driver::sort_by::name_asc,
+                                                   driver::sort_by::name_asc}));
+      }
 
-  // TODO
+      SUBCASE("mutualy exclusive valid ones") {
+        REQUIRE_THROWS(
+            comps = make_comparators_chain(
+                {driver::sort_by::name_asc, driver::sort_by::name_desc}));
+      }
+    }
+  }
 
-  // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+  SUBCASE("determined order") {
+    std::mutex mtx;
+    test_helpers::built_targets_t built_targets;
+    test_helpers::mock_fs fake_fs;
 
-  // file targets:
+    // generally, we don't care about nontrivial dependency graph, etc. - just
+    // having everything independent is enough to test this feature, all targets
+    // just need to get their names, etc. resolved
 
-  auto *const aaa_f_1{test_project_aaa.add_mock_file_target(
-      fake_filename_aaa, false, "src/aaa_1.c", true, {})};
+    // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+    // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+    // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
-  auto *const aaa_f_2{test_project_aaa.add_mock_file_target(
-      fake_filename_aaa, false, "src/aaa_2.c", true, {})};
+    // first project, aaa:
 
-  auto *const aaa_f_3{test_project_aaa.add_mock_file_target(
-      fake_filename_aaa, false, "src/aaa_3.c", true, {})};
+    static std::string_view constexpr fake_filename_aaa{
+        "/fake/dir/aaa/build.cxx"};
 
-  // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+    test_helpers::mock_project test_project_aaa{
+        &mtx, &built_targets, &fake_fs, "aaa", "0.13.57", fake_filename_aaa};
 
-  // phony targets:
+    // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
-  auto *const aaa_pt_1{test_project_aaa.add_mock_phony_target(
-      fake_filename_aaa, true, "pt_1", {})};
+    // alias targets:
 
-  auto *const aaa_pt_2{test_project_aaa.add_mock_phony_target(
-      fake_filename_aaa, true, "pt_2", {})};
+    // TODO
 
-  // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-  // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-  // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+    // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
-  // second project, zzz:
+    // file targets:
 
-  static std::string_view constexpr fake_filename_zzz{
-      "/fake/dir/zzz/build.cxx"};
+    auto *const aaa_f_1{test_project_aaa.add_mock_file_target(
+        fake_filename_aaa, false, "src/aaa_1.c", true, {})};
 
-  test_helpers::mock_project test_project_zzz{
-      &mtx, &built_targets, &fake_fs, "zzz", "1.3.107", fake_filename_zzz};
+    auto *const aaa_f_2{test_project_aaa.add_mock_file_target(
+        fake_filename_aaa, false, "src/aaa_2.c", true, {})};
 
-  // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+    auto *const aaa_f_3{test_project_aaa.add_mock_file_target(
+        fake_filename_aaa, false, "src/aaa_3.c", true, {})};
 
-  // alias targets:
+    // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
-  // TODO
+    // phony targets:
 
-  // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+    auto *const aaa_pt_1{test_project_aaa.add_mock_phony_target(
+        fake_filename_aaa, true, "pt_1", {})};
 
-  // file targets:
+    auto *const aaa_pt_2{test_project_aaa.add_mock_phony_target(
+        fake_filename_aaa, true, "pt_2", {})};
 
-  auto *const zzz_f_1{test_project_zzz.add_mock_file_target(
-      fake_filename_zzz, false, "src/zzz_1.c", true, {})};
+    // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+    // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+    // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
-  auto *const zzz_f_2{test_project_zzz.add_mock_file_target(
-      fake_filename_zzz, false, "src/zzz_2.c", true, {})};
+    // second project, zzz:
 
-  auto *const zzz_f_3{test_project_zzz.add_mock_file_target(
-      fake_filename_zzz, false, "src/zzz_3.c", true, {})};
+    static std::string_view constexpr fake_filename_zzz{
+        "/fake/dir/zzz/build.cxx"};
 
-  // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+    test_helpers::mock_project test_project_zzz{
+        &mtx, &built_targets, &fake_fs, "zzz", "1.3.107", fake_filename_zzz};
 
-  // phony targets:
+    // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
-  auto *const zzz_pt_1{test_project_zzz.add_mock_phony_target(
-      fake_filename_zzz, true, "pt_1", {})};
+    // alias targets:
 
-  auto *const zzz_pt_2{test_project_zzz.add_mock_phony_target(
-      fake_filename_zzz, true, "pt_2", {})};
+    // TODO
 
-  // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-  // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-  // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+    // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
-  auto const pt_process = [&](driver::processed_targets &driver_pt) {
-    REQUIRE_NOTHROW(driver_pt.process_project(&test_project_aaa));
-    REQUIRE_NOTHROW(driver_pt.process_project(&test_project_zzz));
+    // file targets:
 
-    bool all_resolved{false};
-    REQUIRE_NOTHROW(all_resolved = driver_pt.resolve_deps_for_all());
-    REQUIRE(all_resolved);
-  };
+    auto *const zzz_f_1{test_project_zzz.add_mock_file_target(
+        fake_filename_zzz, false, "src/zzz_1.c", true, {})};
 
-  SUBCASE("default chain") {
-    auto sched{create_sched(&fake_fs, {})};
+    auto *const zzz_f_2{test_project_zzz.add_mock_file_target(
+        fake_filename_zzz, false, "src/zzz_2.c", true, {})};
 
-    driver::processed_targets driver_pt{sched};
+    auto *const zzz_f_3{test_project_zzz.add_mock_file_target(
+        fake_filename_zzz, false, "src/zzz_3.c", true, {})};
 
-    pt_process(driver_pt);
+    // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
-    // ... TODO ...
+    // phony targets:
+
+    auto *const zzz_pt_1{test_project_zzz.add_mock_phony_target(
+        fake_filename_zzz, true, "pt_1", {})};
+
+    auto *const zzz_pt_2{test_project_zzz.add_mock_phony_target(
+        fake_filename_zzz, true, "pt_2", {})};
+
+    // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+    // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+    // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+    auto const pt_process = [&](driver::processed_targets &driver_pt) {
+      REQUIRE_NOTHROW(driver_pt.process_project(&test_project_aaa));
+      REQUIRE_NOTHROW(driver_pt.process_project(&test_project_zzz));
+
+      bool all_resolved{false};
+      REQUIRE_NOTHROW(all_resolved = driver_pt.resolve_deps_for_all());
+      REQUIRE(all_resolved);
+    };
+
+    SUBCASE("default chain") {
+      auto sched{create_sched(&fake_fs, {})};
+
+      driver::processed_targets driver_pt{sched};
+
+      pt_process(driver_pt);
+
+      // ... TODO ...
+    }
   }
 }
 
