@@ -22,6 +22,7 @@
 
 #include <doctest/doctest.h>
 
+#include "build_cxx/common/abstract_target.hxx"
 #include "build_cxx/driver/processed_targets.hxx"
 #include "build_cxx/driver/scheduler.hxx"
 #include "build_cxx/test_helpers/mock_fs.hxx"
@@ -40,6 +41,19 @@ make_comparators_chain(std::vector<std::string_view> const &input) {
     driver::build_request_comparators_chain::comparators_chain &&comps) {
   return driver::scheduler{fake_fs, std::move(comps), 1, false};
 };
+
+[[nodiscard]] driver::build_request_priority_queue make_prio_queue(
+    test_helpers::mock_fs *const fake_fs,
+    driver::build_request_comparators_chain::comparators_chain const &comps) {
+  return driver::build_request_priority_queue{
+      driver::build_request_comparators_chain{fake_fs, comps}};
+}
+
+void require_top_and_pop(driver::build_request_priority_queue &pq,
+                         common::abstract_target const *const expected) {
+  REQUIRE_EQ(pq.top().tgt, expected);
+  REQUIRE_NOTHROW(pq.pop());
+}
 
 TEST_CASE("driver::build_request_comparators_chain") {
   SUBCASE("...::make_comparators_chain") {
@@ -213,11 +227,6 @@ TEST_CASE("driver::build_request_comparators_chain") {
     // so it "doesn't exist":
     // fake_fs.touch(aaa_f_2->get_resolved_path());
 
-    auto const make_prio_queue = [fake_fs_ptr = &fake_fs](auto const &comps) {
-      return driver::build_request_priority_queue{
-          driver::build_request_comparators_chain{fake_fs_ptr, comps}};
-    };
-
     SUBCASE("by resolved name, ascending") {
       // arrange
       driver::build_request_comparators_chain::comparators_chain comps;
@@ -231,7 +240,7 @@ TEST_CASE("driver::build_request_comparators_chain") {
         comps = make_comparators_chain({driver::sort_by::name_asc});
       }
 
-      auto pq{make_prio_queue(comps)};
+      auto pq{make_prio_queue(&fake_fs, comps)};
 
       // act (push them in "random" order)
       REQUIRE_NOTHROW(pq.emplace(driver::build_request{zzz_f_2, nullptr}));
@@ -248,36 +257,70 @@ TEST_CASE("driver::build_request_comparators_chain") {
       // assert
       REQUIRE_EQ(pq.size(), 10);
 
-      REQUIRE_EQ(pq.top().tgt->resolved_name, aaa_f_1->resolved_name);
-      REQUIRE_NOTHROW(pq.pop());
+      require_top_and_pop(pq, aaa_f_1);
 
-      REQUIRE_EQ(pq.top().tgt->resolved_name, aaa_f_2->resolved_name);
-      REQUIRE_NOTHROW(pq.pop());
+      require_top_and_pop(pq, aaa_f_2);
 
-      REQUIRE_EQ(pq.top().tgt->resolved_name, aaa_f_3->resolved_name);
-      REQUIRE_NOTHROW(pq.pop());
+      require_top_and_pop(pq, aaa_f_3);
 
-      REQUIRE_EQ(pq.top().tgt->resolved_name, zzz_f_1->resolved_name);
-      REQUIRE_NOTHROW(pq.pop());
+      require_top_and_pop(pq, zzz_f_1);
 
-      REQUIRE_EQ(pq.top().tgt->resolved_name, zzz_f_2->resolved_name);
-      REQUIRE_NOTHROW(pq.pop());
+      require_top_and_pop(pq, zzz_f_2);
 
-      REQUIRE_EQ(pq.top().tgt->resolved_name, zzz_f_3->resolved_name);
-      REQUIRE_NOTHROW(pq.pop());
+      require_top_and_pop(pq, zzz_f_3);
 
-      REQUIRE_EQ(pq.top().tgt->resolved_name, aaa_pt_1->resolved_name);
-      REQUIRE_NOTHROW(pq.pop());
+      require_top_and_pop(pq, aaa_pt_1);
 
-      REQUIRE_EQ(pq.top().tgt->resolved_name, aaa_pt_2->resolved_name);
-      REQUIRE_NOTHROW(pq.pop());
+      require_top_and_pop(pq, aaa_pt_2);
 
-      REQUIRE_EQ(pq.top().tgt->resolved_name, zzz_pt_1->resolved_name);
-      REQUIRE_NOTHROW(pq.pop());
+      require_top_and_pop(pq, zzz_pt_1);
 
-      REQUIRE_EQ(pq.top().tgt->resolved_name, zzz_pt_2->resolved_name);
-      REQUIRE_NOTHROW(pq.pop());
+      require_top_and_pop(pq, zzz_pt_2);
     }
+
+    SUBCASE("by resolved name, descending") {
+      // arrange
+      auto comps{make_comparators_chain({driver::sort_by::name_desc})};
+
+      auto pq{make_prio_queue(&fake_fs, comps)};
+
+      // act (push them in "random" order)
+      REQUIRE_NOTHROW(pq.emplace(driver::build_request{zzz_f_2, nullptr}));
+      REQUIRE_NOTHROW(pq.emplace(driver::build_request{zzz_f_3, nullptr}));
+      REQUIRE_NOTHROW(pq.emplace(driver::build_request{aaa_f_3, nullptr}));
+      REQUIRE_NOTHROW(pq.emplace(driver::build_request{aaa_pt_1, nullptr}));
+      REQUIRE_NOTHROW(pq.emplace(driver::build_request{zzz_pt_2, nullptr}));
+      REQUIRE_NOTHROW(pq.emplace(driver::build_request{aaa_f_2, nullptr}));
+      REQUIRE_NOTHROW(pq.emplace(driver::build_request{aaa_f_1, nullptr}));
+      REQUIRE_NOTHROW(pq.emplace(driver::build_request{aaa_pt_2, nullptr}));
+      REQUIRE_NOTHROW(pq.emplace(driver::build_request{zzz_f_1, nullptr}));
+      REQUIRE_NOTHROW(pq.emplace(driver::build_request{zzz_pt_1, nullptr}));
+
+      // assert
+      REQUIRE_EQ(pq.size(), 10);
+
+      require_top_and_pop(pq, zzz_pt_2);
+      
+      require_top_and_pop(pq, zzz_pt_1);
+      
+      require_top_and_pop(pq, aaa_pt_2);
+      
+      require_top_and_pop(pq, aaa_pt_1);
+      
+      require_top_and_pop(pq, zzz_f_3);
+
+      require_top_and_pop(pq, zzz_f_2);
+      
+      require_top_and_pop(pq, zzz_f_1);
+      
+      require_top_and_pop(pq, aaa_f_3);
+      
+      require_top_and_pop(pq, aaa_f_2);
+      
+      require_top_and_pop(pq, aaa_f_1);
+    }
+
+    // TODO ...
   }
 }
 
