@@ -410,6 +410,10 @@ TEST_CASE("driver::build_request_comparators_chain") {
       // assert
       REQUIRE_EQ(pq.size(), 10);
 
+      require_top_and_pop(pq, aaa_f_2);
+
+      require_top_and_pop(pq, zzz_f_2);
+
       require_top_and_pop(pq, aaa_pt_1);
 
       require_top_and_pop(pq, aaa_pt_2);
@@ -417,10 +421,6 @@ TEST_CASE("driver::build_request_comparators_chain") {
       require_top_and_pop(pq, zzz_pt_1);
 
       require_top_and_pop(pq, zzz_pt_2);
-
-      require_top_and_pop(pq, aaa_f_2);
-
-      require_top_and_pop(pq, zzz_f_2);
 
       require_top_and_pop(pq, aaa_f_1);
 

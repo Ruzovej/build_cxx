@@ -19,9 +19,12 @@
 
 #include "build_cxx/driver/build_request_comparators_chain.hxx"
 
+#include <optional>
 #include <unordered_set>
 
 #include <build_cxx/common/file_target.hxx>
+
+#include "build_cxx/utility/unreachable.hxx"
 
 namespace build_cxx::driver {
 
@@ -58,20 +61,31 @@ get_name_cmp(bool const asc) {
 template <bool asc>
 [[nodiscard]] int simple_file_exists_comparison_res(bool const lhs_ex,
                                                     bool const rhs_ex) {
-  if (lhs_ex && rhs_ex) {
-    return 0; // equivalent
-  }
-  // fallbacks ...:
-  else if (lhs_ex) {
-    // rhs doesn't exist ... lhs has precedence
+  if (lhs_ex == rhs_ex) {
+    // both or none exist ... equivalent:
+    return 0;
+  } else if (lhs_ex) {
+    // rhs doesn't exist ... lhs has precedence (when ascending)
     return asc ? -1 : 1;
   } else if (rhs_ex) {
-    // lhs doesn't exist ... rhs has precedence
+    // lhs doesn't exist ... rhs has precedence (when ascending)
     return asc ? 1 : -1;
   } else {
-    // none exists ... equivalent:
-    return 0;
+    utility::unreachable(); // without that, there was compiler warning, etc.
   }
+}
+
+[[nodiscard]] std::optional<bool>
+get_target_exists(build_request const &brq, common::fs_proxy *const fs) {
+  auto *const ft{dynamic_cast<common::file_target *>(brq.tgt)};
+  if (ft != nullptr) {
+    auto const &ft_path{ft->get_resolved_path()};
+    return fs->file_exists(ft_path);
+  }
+
+  // TODO special treatment for alias targets, etc.
+
+  return std::nullopt;
 }
 
 template <bool asc>
@@ -79,23 +93,9 @@ template <bool asc>
 [[nodiscard]] int file_exists_compare(build_request const &lhs,
                                       build_request const &rhs,
                                       common::fs_proxy *const fs) {
-  auto *const lhs_ft{dynamic_cast<common::file_target *>(lhs.tgt)};
-  auto *const rhs_ft{dynamic_cast<common::file_target *>(rhs.tgt)};
-
-  if (lhs_ft == nullptr || rhs_ft == nullptr) {
-    // IMHO if one of them really is a file target, there's no need to further
-    // check for its existence compared to some other type:
-    return simple_file_exists_comparison_res<asc>(lhs_ft != nullptr,
-                                                  rhs_ft != nullptr);
-  }
-
-  auto const &lhs_path{lhs_ft->get_resolved_path()};
-  auto const lhs_ex{fs->file_exists(lhs_path)};
-
-  auto const &rhs_path{rhs_ft->get_resolved_path()};
-  auto const rhs_ex{fs->file_exists(rhs_path)};
-
-  return simple_file_exists_comparison_res<asc>(lhs_ex, rhs_ex);
+  return simple_file_exists_comparison_res<asc>(
+      get_target_exists(lhs, fs).value_or(false),
+      get_target_exists(rhs, fs).value_or(false));
 }
 
 [[nodiscard]] build_request_comparators_chain::comparator_fn *
@@ -143,14 +143,14 @@ template <bool asc>
   }
   // fallbacks ...:
   else if (lhs_ex) {
-    // rhs doesn't exist ... it has precedence
-    return asc ? 1 : -1;
-  } else if (rhs_ex) {
-    // lhs doesn't exist ... it has precedence
+    // rhs doesn't exist ... lhs has precedence (when ascending)
     return asc ? -1 : 1;
+  } else if (rhs_ex) {
+    // lhs doesn't exist ... rhs has precedence (when ascending)
+    return asc ? 1 : -1;
   } else {
-    // none exists ... fallback to name comparison:
-    return fallback_compare<asc>(lhs, rhs, fs);
+    // none exists ... equivalent:
+    return 0;
   }
 }
 
