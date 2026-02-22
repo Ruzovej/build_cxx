@@ -66,7 +66,7 @@ struct BUILD_CXX_DLL_EXPORT build_request_comparators_chain {
 private:
   common::fs_proxy *fs;
   comparator_fn *const *comps;
-  int n_comps;
+  std::size_t n_comps;
 };
 
 } // namespace build_cxx::driver
