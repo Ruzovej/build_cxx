@@ -142,9 +142,22 @@ TEST_CASE("driver::build_request_comparators_chain") {
 
     // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
-    // alias targets:
+    // alias targets (TODO use/test them):
 
-    // TODO
+    auto *const aaa_af_1{test_project_aaa.add_target_alias(
+        fake_filename_aaa, false, "aaa_1.c", {"src/aaa_1.c"})};
+
+    auto *const aaa_af_2{test_project_aaa.add_target_alias(
+        fake_filename_aaa, false, "aaa_2.c", {"src/aaa_2.c"})};
+
+    auto *const aaa_af_3{test_project_aaa.add_target_alias(
+        fake_filename_aaa, false, "aaa_3.c", {"src/aaa_3.c"})};
+
+    auto *const aaa_ap_1{test_project_aaa.add_target_alias(
+        fake_filename_aaa, false, "aaa_p_1", {"pt_1"})};
+
+    auto *const aaa_ap_2{test_project_aaa.add_target_alias(
+        fake_filename_aaa, false, "aaa_p_2", {"pt_1"})};
 
     // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
@@ -183,9 +196,22 @@ TEST_CASE("driver::build_request_comparators_chain") {
 
     // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
-    // alias targets:
+    // alias targets (TODO use/test them):
 
-    // TODO
+    auto *const zzz_af_1{test_project_zzz.add_target_alias(
+        fake_filename_zzz, false, "zzz_1.c", {"src/zzz_1.c"})};
+
+    auto *const zzz_af_2{test_project_zzz.add_target_alias(
+        fake_filename_zzz, false, "zzz_2.c", {"src/zzz_2.c"})};
+
+    auto *const zzz_af_3{test_project_zzz.add_target_alias(
+        fake_filename_zzz, false, "zzz_3.c", {"src/zzz_3.c"})};
+
+    auto *const zzz_ap_1{test_project_zzz.add_target_alias(
+        fake_filename_zzz, false, "zzz_p_1", {"pt_1"})};
+
+    auto *const zzz_ap_2{test_project_zzz.add_target_alias(
+        fake_filename_zzz, false, "zzz_p_2", {"pt_1"})};
 
     // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
