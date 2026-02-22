@@ -63,11 +63,11 @@ template <bool asc>
   }
   // fallbacks ...:
   else if (lhs_ex) {
-    // rhs doesn't exist ... it has precedence
-    return asc ? 1 : -1;
-  } else if (rhs_ex) {
-    // lhs doesn't exist ... it has precedence
+    // rhs doesn't exist ... lhs has precedence
     return asc ? -1 : 1;
+  } else if (rhs_ex) {
+    // lhs doesn't exist ... rhs has precedence
+    return asc ? 1 : -1;
   } else {
     // none exists ... equivalent:
     return 0;
@@ -172,10 +172,6 @@ build_request_comparators_chain::build_request_comparators_chain(
 
 bool build_request_comparators_chain::operator()(
     build_request const &lhs, build_request const &rhs) const {
-  if (n_comps == 0) {
-    return fallback_compare(rhs, lhs, fs) <= -1;
-  }
-
   for (int i{0}; i < n_comps; ++i) {
     auto *const cmp{comps[i]};
 
@@ -193,8 +189,10 @@ bool build_request_comparators_chain::operator()(
     }
   }
 
-  // they are equivalent (or equal?!)
-  return false;
+  // they are equivalent (or equal?!); internally, this is "sort by name,
+  // ascending", so it be slightly inefficient if the last `comps` member is
+  // exactly this
+  return fallback_compare(rhs, lhs, fs) <= -1;
 }
 
 build_request_comparators_chain::comparators_chain

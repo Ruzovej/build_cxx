@@ -51,7 +51,14 @@ make_comparators_chain(std::vector<std::string_view> const &input) {
 
 void require_top_and_pop(driver::build_request_priority_queue &pq,
                          common::abstract_target const *const expected) {
-  REQUIRE_EQ(pq.top().tgt, expected);
+  // set this to `true` while debugging failure in this function, to `false` for
+  // performance:
+  static bool constexpr more_readable_doctest_output_on_failure{true};
+  if constexpr (more_readable_doctest_output_on_failure) {
+    REQUIRE_EQ(pq.top().tgt->resolved_name, expected->resolved_name);
+  } else {
+    REQUIRE_EQ(pq.top().tgt, expected);
+  }
   REQUIRE_NOTHROW(pq.pop());
 }
 
@@ -227,7 +234,7 @@ TEST_CASE("driver::build_request_comparators_chain") {
     // so it "doesn't exist":
     // fake_fs.touch(aaa_f_2->get_resolved_path());
 
-    SUBCASE("by resolved name, ascending") {
+    SUBCASE("ascending by resolved name") {
       // arrange
       driver::build_request_comparators_chain::comparators_chain comps;
 
@@ -278,7 +285,7 @@ TEST_CASE("driver::build_request_comparators_chain") {
       require_top_and_pop(pq, zzz_pt_2);
     }
 
-    SUBCASE("by resolved name, descending") {
+    SUBCASE("descending by resolved name") {
       // arrange
       auto comps{make_comparators_chain({driver::sort_by::name_desc})};
 
@@ -300,24 +307,128 @@ TEST_CASE("driver::build_request_comparators_chain") {
       REQUIRE_EQ(pq.size(), 10);
 
       require_top_and_pop(pq, zzz_pt_2);
-      
+
       require_top_and_pop(pq, zzz_pt_1);
-      
+
       require_top_and_pop(pq, aaa_pt_2);
-      
+
       require_top_and_pop(pq, aaa_pt_1);
-      
+
       require_top_and_pop(pq, zzz_f_3);
 
       require_top_and_pop(pq, zzz_f_2);
-      
+
       require_top_and_pop(pq, zzz_f_1);
-      
+
       require_top_and_pop(pq, aaa_f_3);
-      
+
       require_top_and_pop(pq, aaa_f_2);
-      
+
       require_top_and_pop(pq, aaa_f_1);
+    }
+
+    SUBCASE("prefer existing files, then ascending by resolved name") {
+      // arrange
+      driver::build_request_comparators_chain::comparators_chain comps;
+
+      SUBCASE("default") {
+        // force 2 lines
+        comps = make_comparators_chain({driver::sort_by::exists});
+      }
+
+      SUBCASE("explicit") {
+        comps = make_comparators_chain(
+            {driver::sort_by::exists, driver::sort_by::name_asc});
+      }
+
+      auto pq{make_prio_queue(&fake_fs, comps)};
+
+      // act (push them in "random" order)
+      REQUIRE_NOTHROW(pq.emplace(driver::build_request{zzz_f_2, nullptr}));
+      REQUIRE_NOTHROW(pq.emplace(driver::build_request{zzz_f_3, nullptr}));
+      REQUIRE_NOTHROW(pq.emplace(driver::build_request{aaa_f_3, nullptr}));
+      REQUIRE_NOTHROW(pq.emplace(driver::build_request{aaa_pt_1, nullptr}));
+      REQUIRE_NOTHROW(pq.emplace(driver::build_request{zzz_pt_2, nullptr}));
+      REQUIRE_NOTHROW(pq.emplace(driver::build_request{aaa_f_2, nullptr}));
+      REQUIRE_NOTHROW(pq.emplace(driver::build_request{aaa_f_1, nullptr}));
+      REQUIRE_NOTHROW(pq.emplace(driver::build_request{aaa_pt_2, nullptr}));
+      REQUIRE_NOTHROW(pq.emplace(driver::build_request{zzz_f_1, nullptr}));
+      REQUIRE_NOTHROW(pq.emplace(driver::build_request{zzz_pt_1, nullptr}));
+
+      // assert
+      REQUIRE_EQ(pq.size(), 10);
+
+      require_top_and_pop(pq, aaa_f_1);
+
+      require_top_and_pop(pq, aaa_f_3);
+
+      require_top_and_pop(pq, zzz_f_1);
+
+      require_top_and_pop(pq, zzz_f_3);
+
+      require_top_and_pop(pq, aaa_f_2);
+
+      require_top_and_pop(pq, zzz_f_2);
+
+      require_top_and_pop(pq, aaa_pt_1);
+
+      require_top_and_pop(pq, aaa_pt_2);
+
+      require_top_and_pop(pq, zzz_pt_1);
+
+      require_top_and_pop(pq, zzz_pt_2);
+    }
+
+    SUBCASE("prefer non-existing files, then ascending by resolved name") {
+      // arrange
+      driver::build_request_comparators_chain::comparators_chain comps;
+
+      SUBCASE("default") {
+        // force 2 lines
+        comps = make_comparators_chain({driver::sort_by::doesnt_exist});
+      }
+
+      SUBCASE("explicit") {
+        comps = make_comparators_chain(
+            {driver::sort_by::doesnt_exist, driver::sort_by::name_asc});
+      }
+
+      auto pq{make_prio_queue(&fake_fs, comps)};
+
+      // act (push them in "random" order)
+      REQUIRE_NOTHROW(pq.emplace(driver::build_request{zzz_f_2, nullptr}));
+      REQUIRE_NOTHROW(pq.emplace(driver::build_request{zzz_f_3, nullptr}));
+      REQUIRE_NOTHROW(pq.emplace(driver::build_request{aaa_f_3, nullptr}));
+      REQUIRE_NOTHROW(pq.emplace(driver::build_request{aaa_pt_1, nullptr}));
+      REQUIRE_NOTHROW(pq.emplace(driver::build_request{zzz_pt_2, nullptr}));
+      REQUIRE_NOTHROW(pq.emplace(driver::build_request{aaa_f_2, nullptr}));
+      REQUIRE_NOTHROW(pq.emplace(driver::build_request{aaa_f_1, nullptr}));
+      REQUIRE_NOTHROW(pq.emplace(driver::build_request{aaa_pt_2, nullptr}));
+      REQUIRE_NOTHROW(pq.emplace(driver::build_request{zzz_f_1, nullptr}));
+      REQUIRE_NOTHROW(pq.emplace(driver::build_request{zzz_pt_1, nullptr}));
+
+      // assert
+      REQUIRE_EQ(pq.size(), 10);
+
+      require_top_and_pop(pq, aaa_pt_1);
+
+      require_top_and_pop(pq, aaa_pt_2);
+
+      require_top_and_pop(pq, zzz_pt_1);
+
+      require_top_and_pop(pq, zzz_pt_2);
+
+      require_top_and_pop(pq, aaa_f_2);
+
+      require_top_and_pop(pq, zzz_f_2);
+
+      require_top_and_pop(pq, aaa_f_1);
+
+      require_top_and_pop(pq, aaa_f_3);
+
+      require_top_and_pop(pq, zzz_f_1);
+
+      require_top_and_pop(pq, zzz_f_3);
     }
 
     // TODO ...
