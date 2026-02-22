@@ -255,7 +255,10 @@ TEST_CASE("driver::build_request_comparators_chain") {
     fake_fs.touch(zzz_f_1->get_resolved_path());
     // so it "doesn't exist":
     // fake_fs.touch(zzz_f_2->get_resolved_path());
+
+    fake_fs.clock.freeze_time(true); // so it's of same age as `zzz_f_1`:
     fake_fs.touch(aaa_f_3->get_resolved_path());
+    fake_fs.clock.freeze_time(false);
     fake_fs.touch(aaa_f_1->get_resolved_path());
     // so it "doesn't exist":
     // fake_fs.touch(aaa_f_2->get_resolved_path());

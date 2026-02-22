@@ -57,16 +57,16 @@ struct BUILD_CXX_DLL_EXPORT abstract_target {
     return status;
   }
 
-  // don't call this in client code, only provide implementation
+  // don't call this in client code, only provide implementation; it can be
+  // assumed:
+  // - all `resolved_deps` are ... well, "resolved" :-)
+  // - `recipe()` was already called for all `resolved_deps` (if needed)
+  // - all `resolved_deps` have properly determined/updated `status`
+  // it must be:
+  // - called at most once for each target
+  // - thread safe
   virtual void
   recipe(std::vector<abstract_target const *> const &resolved_deps) const = 0;
-
-  // assumes:
-  // 1. `build()` was already called for all dependencies
-  // 2. it won't be called more than once
-  // philosophically, this should do last preparations & ceremonies and
-  // ultimately call `recipe(...)`
-  void build(std::vector<abstract_target const *> const &resolved_deps);
 
   // TODO getters, (setters?!), etc.:
   abstract_target *next{nullptr}; // non owned

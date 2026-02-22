@@ -19,8 +19,6 @@
 
 #pragma once
 
-#include <vector>
-
 #include <build_cxx/common/abstract_target.hxx>
 #include <build_cxx/common/macros.h>
 #include <build_cxx/common/target_status.hxx>
@@ -28,10 +26,10 @@
 namespace build_cxx::driver {
 
 // TODO ... EXPORT or HIDE?!
-struct BUILD_CXX_DLL_EXPORT build_request {
+struct BUILD_CXX_DLL_EXPORT build_result {
   common::abstract_target *tgt{nullptr};
-  std::vector<common::abstract_target const *> const *deps{nullptr};
   common::target_status newest_dep_status{};
+  bool success{false};
 };
 
 } // namespace build_cxx::driver

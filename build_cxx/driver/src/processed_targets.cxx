@@ -138,7 +138,7 @@ common::abstract_target const *processed_targets::try_to_determine_target(
     std::string_view const relative_to_file) const {
   if (auto *const dep{find_target_by_resolved_name(dep_raw_name)};
       dep != nullptr) {
-    // unchanged name -> probably phony target (from other project?), or
+    // unchanged name -> probably phony/alias target (from other project?), or
     // absolute path:
     return dep;
   }
@@ -147,7 +147,7 @@ common::abstract_target const *processed_targets::try_to_determine_target(
           find_target_by_resolved_name(common::phony_target::resolve_name(
               relative_to_project, dep_raw_name))};
       dep != nullptr) {
-    // phony target from this project:
+    // phony/alias target from this project:
     return dep;
   }
 
@@ -211,7 +211,7 @@ processed_targets::get_all_dependencies_of(
   return res;
 }
 
-build_request processed_targets::get_scheduler_build_request(
+build_request processed_targets::make_build_request(
     common::abstract_target const *const tgt) {
   auto const &tgt_resolved_deps{target_resolved_deps.at(tgt)};
 
@@ -232,15 +232,36 @@ build_request processed_targets::get_scheduler_build_request(
   }
 }
 
-void processed_targets::schedule_target_build(
+void processed_targets::process_target_build(
     common::abstract_target const *const tgt) {
-  pending_build_requests.emplace_back(get_scheduler_build_request(tgt));
+  auto brq{make_build_request(tgt)};
+
+  brq.tgt->initialize_status();
+
+  auto worst_status{brq.tgt->get_status()};
+
+  if (!worst_status.certainly_needs_update()) {
+    for (auto const dep : *brq.deps) {
+      worst_status.merge_with(dep->get_status());
+
+      if (worst_status.certainly_needs_update()) {
+        break;
+      }
+    }
+  }
+
+  if (brq.tgt->get_status().needs_update_compared_to(worst_status)) {
+    brq.newest_dep_status = worst_status;
+    pending_build_requests.emplace_back(std::move(brq));
+  } else {
+    up_to_date_targets.emplace_back(build_result{brq.tgt, worst_status, true});
+  }
 }
 
-void processed_targets::schedule_target_builds(
+void processed_targets::process_target_builds(
     std::unordered_set<common::abstract_target const *> &tgts) {
   for (auto *const tgt : tgts) {
-    schedule_target_build(tgt);
+    process_target_build(tgt);
   }
   tgts.clear();
 }
@@ -250,8 +271,28 @@ void processed_targets::scheduler_commit_build_requests() {
   pending_build_requests.clear();
 }
 
-bool processed_targets::scheduler_has_pending_jobs() const {
-  return sched.num_handled_targets() != 0;
+bool processed_targets::any_pending_results() const {
+  return !up_to_date_targets.empty() || (sched.num_handled_targets() != 0);
+}
+
+common::abstract_target const *processed_targets::get_built_target() {
+  auto const any_trivial{!up_to_date_targets.empty()};
+
+  auto const build_result{
+      any_trivial ? up_to_date_targets.back()
+                  : sched.get_build_result() // if not valid, exception has been
+                                             // already thrown
+  };
+
+  if (any_trivial) {
+    up_to_date_targets.pop_back();
+  }
+
+  build_result.tgt->update_status(build_result.newest_dep_status);
+
+  built_targets.emplace(build_result.tgt);
+
+  return build_result.tgt;
 }
 
 void processed_targets::build_targets_impl(
@@ -273,13 +314,11 @@ void processed_targets::build_targets_impl(
     return;
   }
 
-  schedule_target_builds(to_build.buildable_targets);
+  process_target_builds(to_build.buildable_targets);
   scheduler_commit_build_requests();
 
   do {
-    auto *const built_tgt{sched.get_built_target()};
-
-    built_targets.emplace(built_tgt);
+    auto *const built_tgt{get_built_target()};
 
     auto const &built_tgt_resolved_deps{target_resolved_deps.at(built_tgt)};
 
@@ -298,11 +337,11 @@ void processed_targets::build_targets_impl(
       if (consumer_resolved_deps.already_built ==
           consumer_resolved_deps.deps.size()) {
         to_build.blocked_targets.erase(iter);
-        schedule_target_build(consumer);
+        process_target_build(consumer);
       }
     }
     scheduler_commit_build_requests();
-  } while (scheduler_has_pending_jobs());
+  } while (any_pending_results());
 
   if (!to_build.blocked_targets.empty()) {
     throw std::runtime_error{"Build order of targets contains a cycle - no "
