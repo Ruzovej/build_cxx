@@ -172,7 +172,7 @@ build_request_comparators_chain::build_request_comparators_chain(
 
 bool build_request_comparators_chain::operator()(
     build_request const &lhs, build_request const &rhs) const {
-  for (std::size_t i{0}; (comps[i] != nullptr) && (i < n_comps); ++i) {
+  for (std::size_t i{0}; (i < n_comps) && (comps[i] != nullptr); ++i) {
     auto *const cmp{comps[i]};
 
     // https://en.cppreference.com/w/cpp/container/priority_queue.html ... to
