@@ -51,6 +51,8 @@ struct BUILD_CXX_DLL_EXPORT abstract_target {
 
   virtual void initialize_status() = 0;
   virtual void update_status(target_status const newest_dep_status) = 0;
+  [[nodiscard]] target_status get_worst_dep_status(
+      std::vector<abstract_target const *> const &built_deps) const;
 
   [[nodiscard]] target_status get_status() const {
     // force 2 lines

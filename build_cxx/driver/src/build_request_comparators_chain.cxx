@@ -106,52 +106,21 @@ get_file_exists_cmp(bool const asc) {
                    &file_exists_compare<false>);
 }
 
-template <typename T> [[nodiscard]] static T signum(T val) {
-  if (val < 0) {
-    return -1;
-  } else if (val > 0) {
-    return 1;
-  } else {
-    return 0;
-  }
-}
-
 template <bool asc>
 // ret = -1 -> lhs < rhs; ret = 0 -> equal; ret = 1 -> rhs < lhs
 [[nodiscard]] int mod_time_compare(build_request const &lhs,
                                    build_request const &rhs,
                                    common::fs_proxy *const fs) {
-  auto *const lhs_ft{dynamic_cast<common::file_target *>(lhs.tgt)};
-  auto *const rhs_ft{dynamic_cast<common::file_target *>(rhs.tgt)};
+  static_cast<void>(fs); // unused
 
-  if (lhs_ft == nullptr || rhs_ft == nullptr) {
-    return fallback_compare<asc>(lhs, rhs, fs);
-  }
-
-  auto const &lhs_path{lhs_ft->get_resolved_path()};
-  auto const lhs_ex{fs->file_exists(lhs_path)};
-
-  auto const &rhs_path{rhs_ft->get_resolved_path()};
-  auto const rhs_ex{fs->file_exists(rhs_path)};
-
-  if (lhs_ex && rhs_ex) {
-    auto const lhs_mod_time{fs->file_last_mod_time(lhs_path)};
-    auto const rhs_mod_time{fs->file_last_mod_time(rhs_path)};
-
-    return signum(asc ? lhs_mod_time - rhs_mod_time
-                      : rhs_mod_time - lhs_mod_time);
-  }
-  // fallbacks ...:
-  else if (lhs_ex) {
-    // rhs doesn't exist ... lhs has precedence (when ascending)
+  if (lhs.newest_dep_status.needs_update_compared_to(rhs.newest_dep_status)) {
     return asc ? -1 : 1;
-  } else if (rhs_ex) {
-    // lhs doesn't exist ... rhs has precedence (when ascending)
+  } else if (rhs.newest_dep_status.needs_update_compared_to(
+                 lhs.newest_dep_status)) {
     return asc ? 1 : -1;
-  } else {
-    // none exists ... equivalent:
-    return 0;
   }
+
+  return 0;
 }
 
 [[nodiscard]] build_request_comparators_chain::comparator_fn *

@@ -31,4 +31,18 @@ abstract_target::abstract_target(location const *const aLoc,
   // force 2 lines
 }
 
+target_status abstract_target::get_worst_dep_status(
+    std::vector<abstract_target const *> const &built_deps) const {
+  auto worst_status{status};
+
+  long long i{0};
+  auto const n_deps{static_cast<long long>(built_deps.size())};
+
+  while (!worst_status.certainly_needs_update() && i < n_deps) {
+    worst_status.merge_with(built_deps[i++]->get_status());
+  }
+
+  return worst_status;
+}
+
 } // namespace build_cxx::common

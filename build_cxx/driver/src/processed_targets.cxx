@@ -238,17 +238,7 @@ void processed_targets::process_target_build(
 
   brq.tgt->initialize_status();
 
-  auto worst_status{brq.tgt->get_status()};
-
-  if (!worst_status.certainly_needs_update()) {
-    for (auto const dep : *brq.deps) {
-      worst_status.merge_with(dep->get_status());
-
-      if (worst_status.certainly_needs_update()) {
-        break;
-      }
-    }
-  }
+  auto worst_status{brq.tgt->get_worst_dep_status(*brq.deps)};
 
   if (brq.tgt->get_status().needs_update_compared_to(worst_status)) {
     brq.newest_dep_status = worst_status;
