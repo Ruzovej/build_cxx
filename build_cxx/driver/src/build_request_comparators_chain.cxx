@@ -161,7 +161,7 @@ bool build_request_comparators_chain::operator()(
   // they are equivalent (or equal?!); internally, this is "sort by name,
   // ascending", so it be slightly inefficient if the last `comps` member is
   // exactly this
-  return fallback_compare(rhs, lhs, fs) <= -1;
+  return fallback_compare(rhs, lhs, fs) < 0;
 }
 
 build_request_comparators_chain::comparators_chain

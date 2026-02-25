@@ -268,7 +268,7 @@ bool processed_targets::any_pending_results() const {
 common::abstract_target const *processed_targets::get_built_target() {
   auto const any_trivial{!up_to_date_targets.empty()};
 
-  auto const build_result{
+  auto const build_res{
       any_trivial ? up_to_date_targets.back()
                   : sched.get_build_result() // if not valid, exception has been
                                              // already thrown
@@ -278,11 +278,11 @@ common::abstract_target const *processed_targets::get_built_target() {
     up_to_date_targets.pop_back();
   }
 
-  build_result.tgt->update_status(build_result.newest_dep_status);
+  build_res.tgt->update_status(build_res.newest_dep_status);
 
-  built_targets.emplace(build_result.tgt);
+  built_targets.emplace(build_res.tgt);
 
-  return build_result.tgt;
+  return build_res.tgt;
 }
 
 void processed_targets::build_targets_impl(
