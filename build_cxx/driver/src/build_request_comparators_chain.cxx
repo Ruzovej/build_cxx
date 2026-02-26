@@ -42,11 +42,10 @@ template <bool asc>
   return asc ? lhs_name.compare(rhs_name) : rhs_name.compare(lhs_name);
 }
 
-template <bool asc = true>
 [[nodiscard]] int fallback_compare(build_request const &lhs,
                                    build_request const &rhs,
                                    common::fs_proxy *const fs) {
-  return name_compare<asc>(lhs, rhs, fs);
+  return name_compare<true>(lhs, rhs, fs);
 }
 
 [[nodiscard]] build_request_comparators_chain::comparator_fn *
@@ -82,7 +81,7 @@ get_target_exists(build_request const &brq, common::fs_proxy *const fs) {
     return fs->file_exists(ft_path);
   }
 
-  // TODO special treatment for alias targets, etc.
+  // TODO special treatment for alias targets, etc.?
 
   return std::nullopt;
 }
