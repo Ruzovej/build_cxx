@@ -548,7 +548,39 @@ TEST_CASE("driver::build_request_comparators_chain") {
       require_top_and_pop(pq, aaa_f_1);
     }
 
-    // TODO ...
+    SUBCASE("prefer newer files, then ascending by resolved name") {
+      // arrange
+      driver::build_request_comparators_chain::comparators_chain comps{
+          make_comparators_chain(
+              {driver::sort_by::mod_time_desc, driver::sort_by::name_asc})};
+
+      auto pq{make_prio_queue(&fake_fs, comps)};
+
+      // act (push them in "random" order)
+
+      // TODO ...
+
+      // assert
+
+      // TODO ...
+    }
+
+    SUBCASE("prefer older files, then ascending by resolved name") {
+      // arrange
+      driver::build_request_comparators_chain::comparators_chain comps{
+          make_comparators_chain(
+              {driver::sort_by::mod_time_asc, driver::sort_by::name_asc})};
+
+      auto pq{make_prio_queue(&fake_fs, comps)};
+
+      // act (push them in "random" order)
+
+      // TODO ...
+
+      // assert
+
+      // TODO ...
+    }
   }
 }
 
