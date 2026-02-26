@@ -110,6 +110,7 @@ template <bool asc>
                                    common::fs_proxy *const fs) {
   static_cast<void>(fs); // unused
 
+  // handle non-existent files and phony targets first:
   const bool lhs_certainly_needs_update{
       lhs.newest_dep_status.certainly_needs_update()};
   const bool rhs_certainly_needs_update{
@@ -128,7 +129,7 @@ template <bool asc>
     return asc ? -1 : 1;
   }
 
-  // both are file mod times:
+  // both are files, and have "valid" mod. times:
   const bool lhs_needs_update{
       lhs.newest_dep_status.needs_update_compared_to(rhs.newest_dep_status)};
   const bool rhs_needs_update{
