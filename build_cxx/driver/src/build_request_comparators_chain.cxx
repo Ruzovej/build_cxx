@@ -110,14 +110,42 @@ template <bool asc>
                                    common::fs_proxy *const fs) {
   static_cast<void>(fs); // unused
 
-  if (lhs.newest_dep_status.needs_update_compared_to(rhs.newest_dep_status)) {
+  const bool lhs_certainly_needs_update{
+      lhs.newest_dep_status.certainly_needs_update()};
+  const bool rhs_certainly_needs_update{
+      rhs.newest_dep_status.certainly_needs_update()};
+
+  if (lhs_certainly_needs_update && rhs_certainly_needs_update) {
+    // both certainly need update ... equivalent:
+    return 0;
+  } else if (lhs_certainly_needs_update) {
+    // `rhs` doesn't certainly need update ... it's perceived as "older" than
+    // `lhs`
+    return asc ? 1 : -1;
+  } else if (rhs_certainly_needs_update) {
+    // `lhs` doesn't certainly need update ... it's perceived as "older" than
+    // `rhs`
     return asc ? -1 : 1;
-  } else if (rhs.newest_dep_status.needs_update_compared_to(
-                 lhs.newest_dep_status)) {
+  }
+
+  // both are file mod times:
+  const bool lhs_needs_update{
+      lhs.newest_dep_status.needs_update_compared_to(rhs.newest_dep_status)};
+  const bool rhs_needs_update{
+      rhs.newest_dep_status.needs_update_compared_to(lhs.newest_dep_status)};
+
+  if (lhs_needs_update == rhs_needs_update) {
+    // equivalent ...
+    return 0;
+  } else if (lhs_needs_update) {
+    // `lhs` is newer than `rhs`
+    return asc ? -1 : 1;
+  } else if (rhs_needs_update) {
+    // `rhs` is newer than `lhs`
     return asc ? 1 : -1;
   }
 
-  return 0;
+  utility::unreachable(); // prevents compiler warning, etc.
 }
 
 [[nodiscard]] build_request_comparators_chain::comparator_fn *

@@ -49,18 +49,20 @@ make_comparators_chain(std::vector<std::string_view> const &input) {
       driver::build_request_comparators_chain{fake_fs, comps}};
 }
 
-void require_top_and_pop(driver::build_request_priority_queue &pq,
-                         common::abstract_target const *const expected) {
-  // set this to `true` while debugging failure in this function, to `false` for
-  // performance:
-  static bool constexpr more_readable_doctest_output_on_failure{true};
-  if constexpr (more_readable_doctest_output_on_failure) {
-    REQUIRE_EQ(pq.top().tgt->resolved_name, expected->resolved_name);
-  } else {
-    REQUIRE_EQ(pq.top().tgt, expected);
-  }
-  REQUIRE_NOTHROW(pq.pop());
-}
+// set it to `true` while debugging failure in this function, to `false` for
+// performance:
+bool constexpr more_readable_doctest_output_on_failure{false};
+
+#define BUILD_CXX_TEST_REQUIRE_TOP_AND_POP(priority_queue, expected_at)        \
+  do {                                                                         \
+    if constexpr (more_readable_doctest_output_on_failure) {                   \
+      REQUIRE_EQ(priority_queue.top().tgt->resolved_name,                      \
+                 expected_at->resolved_name);                                  \
+    } else {                                                                   \
+      REQUIRE_EQ(priority_queue.top().tgt, expected_at);                       \
+    }                                                                          \
+    REQUIRE_NOTHROW(priority_queue.pop());                                     \
+  } while (false)
 
 TEST_CASE("driver::build_request_comparators_chain") {
   SUBCASE("...::make_comparators_chain") {
@@ -293,25 +295,25 @@ TEST_CASE("driver::build_request_comparators_chain") {
       // assert
       REQUIRE_EQ(pq.size(), 10);
 
-      require_top_and_pop(pq, aaa_f_1);
+      BUILD_CXX_TEST_REQUIRE_TOP_AND_POP(pq, aaa_f_1);
 
-      require_top_and_pop(pq, aaa_f_2);
+      BUILD_CXX_TEST_REQUIRE_TOP_AND_POP(pq, aaa_f_2);
 
-      require_top_and_pop(pq, aaa_f_3);
+      BUILD_CXX_TEST_REQUIRE_TOP_AND_POP(pq, aaa_f_3);
 
-      require_top_and_pop(pq, zzz_f_1);
+      BUILD_CXX_TEST_REQUIRE_TOP_AND_POP(pq, zzz_f_1);
 
-      require_top_and_pop(pq, zzz_f_2);
+      BUILD_CXX_TEST_REQUIRE_TOP_AND_POP(pq, zzz_f_2);
 
-      require_top_and_pop(pq, zzz_f_3);
+      BUILD_CXX_TEST_REQUIRE_TOP_AND_POP(pq, zzz_f_3);
 
-      require_top_and_pop(pq, aaa_pt_1);
+      BUILD_CXX_TEST_REQUIRE_TOP_AND_POP(pq, aaa_pt_1);
 
-      require_top_and_pop(pq, aaa_pt_2);
+      BUILD_CXX_TEST_REQUIRE_TOP_AND_POP(pq, aaa_pt_2);
 
-      require_top_and_pop(pq, zzz_pt_1);
+      BUILD_CXX_TEST_REQUIRE_TOP_AND_POP(pq, zzz_pt_1);
 
-      require_top_and_pop(pq, zzz_pt_2);
+      BUILD_CXX_TEST_REQUIRE_TOP_AND_POP(pq, zzz_pt_2);
     }
 
     SUBCASE("descending by resolved name") {
@@ -335,25 +337,25 @@ TEST_CASE("driver::build_request_comparators_chain") {
       // assert
       REQUIRE_EQ(pq.size(), 10);
 
-      require_top_and_pop(pq, zzz_pt_2);
+      BUILD_CXX_TEST_REQUIRE_TOP_AND_POP(pq, zzz_pt_2);
 
-      require_top_and_pop(pq, zzz_pt_1);
+      BUILD_CXX_TEST_REQUIRE_TOP_AND_POP(pq, zzz_pt_1);
 
-      require_top_and_pop(pq, aaa_pt_2);
+      BUILD_CXX_TEST_REQUIRE_TOP_AND_POP(pq, aaa_pt_2);
 
-      require_top_and_pop(pq, aaa_pt_1);
+      BUILD_CXX_TEST_REQUIRE_TOP_AND_POP(pq, aaa_pt_1);
 
-      require_top_and_pop(pq, zzz_f_3);
+      BUILD_CXX_TEST_REQUIRE_TOP_AND_POP(pq, zzz_f_3);
 
-      require_top_and_pop(pq, zzz_f_2);
+      BUILD_CXX_TEST_REQUIRE_TOP_AND_POP(pq, zzz_f_2);
 
-      require_top_and_pop(pq, zzz_f_1);
+      BUILD_CXX_TEST_REQUIRE_TOP_AND_POP(pq, zzz_f_1);
 
-      require_top_and_pop(pq, aaa_f_3);
+      BUILD_CXX_TEST_REQUIRE_TOP_AND_POP(pq, aaa_f_3);
 
-      require_top_and_pop(pq, aaa_f_2);
+      BUILD_CXX_TEST_REQUIRE_TOP_AND_POP(pq, aaa_f_2);
 
-      require_top_and_pop(pq, aaa_f_1);
+      BUILD_CXX_TEST_REQUIRE_TOP_AND_POP(pq, aaa_f_1);
     }
 
     SUBCASE("prefer existing files, then ascending by resolved name") {
@@ -387,25 +389,25 @@ TEST_CASE("driver::build_request_comparators_chain") {
       // assert
       REQUIRE_EQ(pq.size(), 10);
 
-      require_top_and_pop(pq, aaa_f_1);
+      BUILD_CXX_TEST_REQUIRE_TOP_AND_POP(pq, aaa_f_1);
 
-      require_top_and_pop(pq, aaa_f_3);
+      BUILD_CXX_TEST_REQUIRE_TOP_AND_POP(pq, aaa_f_3);
 
-      require_top_and_pop(pq, zzz_f_1);
+      BUILD_CXX_TEST_REQUIRE_TOP_AND_POP(pq, zzz_f_1);
 
-      require_top_and_pop(pq, zzz_f_3);
+      BUILD_CXX_TEST_REQUIRE_TOP_AND_POP(pq, zzz_f_3);
 
-      require_top_and_pop(pq, aaa_f_2);
+      BUILD_CXX_TEST_REQUIRE_TOP_AND_POP(pq, aaa_f_2);
 
-      require_top_and_pop(pq, zzz_f_2);
+      BUILD_CXX_TEST_REQUIRE_TOP_AND_POP(pq, zzz_f_2);
 
-      require_top_and_pop(pq, aaa_pt_1);
+      BUILD_CXX_TEST_REQUIRE_TOP_AND_POP(pq, aaa_pt_1);
 
-      require_top_and_pop(pq, aaa_pt_2);
+      BUILD_CXX_TEST_REQUIRE_TOP_AND_POP(pq, aaa_pt_2);
 
-      require_top_and_pop(pq, zzz_pt_1);
+      BUILD_CXX_TEST_REQUIRE_TOP_AND_POP(pq, zzz_pt_1);
 
-      require_top_and_pop(pq, zzz_pt_2);
+      BUILD_CXX_TEST_REQUIRE_TOP_AND_POP(pq, zzz_pt_2);
     }
 
     SUBCASE("prefer non-existing files, then ascending by resolved name") {
@@ -439,25 +441,25 @@ TEST_CASE("driver::build_request_comparators_chain") {
       // assert
       REQUIRE_EQ(pq.size(), 10);
 
-      require_top_and_pop(pq, aaa_f_2);
+      BUILD_CXX_TEST_REQUIRE_TOP_AND_POP(pq, aaa_f_2);
 
-      require_top_and_pop(pq, zzz_f_2);
+      BUILD_CXX_TEST_REQUIRE_TOP_AND_POP(pq, zzz_f_2);
 
-      require_top_and_pop(pq, aaa_pt_1);
+      BUILD_CXX_TEST_REQUIRE_TOP_AND_POP(pq, aaa_pt_1);
 
-      require_top_and_pop(pq, aaa_pt_2);
+      BUILD_CXX_TEST_REQUIRE_TOP_AND_POP(pq, aaa_pt_2);
 
-      require_top_and_pop(pq, zzz_pt_1);
+      BUILD_CXX_TEST_REQUIRE_TOP_AND_POP(pq, zzz_pt_1);
 
-      require_top_and_pop(pq, zzz_pt_2);
+      BUILD_CXX_TEST_REQUIRE_TOP_AND_POP(pq, zzz_pt_2);
 
-      require_top_and_pop(pq, aaa_f_1);
+      BUILD_CXX_TEST_REQUIRE_TOP_AND_POP(pq, aaa_f_1);
 
-      require_top_and_pop(pq, aaa_f_3);
+      BUILD_CXX_TEST_REQUIRE_TOP_AND_POP(pq, aaa_f_3);
 
-      require_top_and_pop(pq, zzz_f_1);
+      BUILD_CXX_TEST_REQUIRE_TOP_AND_POP(pq, zzz_f_1);
 
-      require_top_and_pop(pq, zzz_f_3);
+      BUILD_CXX_TEST_REQUIRE_TOP_AND_POP(pq, zzz_f_3);
     }
 
     SUBCASE("prefer existing files, then descending by resolved name") {
@@ -483,25 +485,25 @@ TEST_CASE("driver::build_request_comparators_chain") {
       // assert
       REQUIRE_EQ(pq.size(), 10);
 
-      require_top_and_pop(pq, zzz_f_3);
+      BUILD_CXX_TEST_REQUIRE_TOP_AND_POP(pq, zzz_f_3);
 
-      require_top_and_pop(pq, zzz_f_1);
+      BUILD_CXX_TEST_REQUIRE_TOP_AND_POP(pq, zzz_f_1);
 
-      require_top_and_pop(pq, aaa_f_3);
+      BUILD_CXX_TEST_REQUIRE_TOP_AND_POP(pq, aaa_f_3);
 
-      require_top_and_pop(pq, aaa_f_1);
+      BUILD_CXX_TEST_REQUIRE_TOP_AND_POP(pq, aaa_f_1);
 
-      require_top_and_pop(pq, zzz_pt_2);
+      BUILD_CXX_TEST_REQUIRE_TOP_AND_POP(pq, zzz_pt_2);
 
-      require_top_and_pop(pq, zzz_pt_1);
+      BUILD_CXX_TEST_REQUIRE_TOP_AND_POP(pq, zzz_pt_1);
 
-      require_top_and_pop(pq, aaa_pt_2);
+      BUILD_CXX_TEST_REQUIRE_TOP_AND_POP(pq, aaa_pt_2);
 
-      require_top_and_pop(pq, aaa_pt_1);
+      BUILD_CXX_TEST_REQUIRE_TOP_AND_POP(pq, aaa_pt_1);
 
-      require_top_and_pop(pq, zzz_f_2);
+      BUILD_CXX_TEST_REQUIRE_TOP_AND_POP(pq, zzz_f_2);
 
-      require_top_and_pop(pq, aaa_f_2);
+      BUILD_CXX_TEST_REQUIRE_TOP_AND_POP(pq, aaa_f_2);
     }
 
     SUBCASE("prefer non-existing files, then descending by resolved name") {
@@ -527,26 +529,38 @@ TEST_CASE("driver::build_request_comparators_chain") {
       // assert
       REQUIRE_EQ(pq.size(), 10);
 
-      require_top_and_pop(pq, zzz_pt_2);
+      BUILD_CXX_TEST_REQUIRE_TOP_AND_POP(pq, zzz_pt_2);
 
-      require_top_and_pop(pq, zzz_pt_1);
+      BUILD_CXX_TEST_REQUIRE_TOP_AND_POP(pq, zzz_pt_1);
 
-      require_top_and_pop(pq, aaa_pt_2);
+      BUILD_CXX_TEST_REQUIRE_TOP_AND_POP(pq, aaa_pt_2);
 
-      require_top_and_pop(pq, aaa_pt_1);
+      BUILD_CXX_TEST_REQUIRE_TOP_AND_POP(pq, aaa_pt_1);
 
-      require_top_and_pop(pq, zzz_f_2);
+      BUILD_CXX_TEST_REQUIRE_TOP_AND_POP(pq, zzz_f_2);
 
-      require_top_and_pop(pq, aaa_f_2);
+      BUILD_CXX_TEST_REQUIRE_TOP_AND_POP(pq, aaa_f_2);
 
-      require_top_and_pop(pq, zzz_f_3);
+      BUILD_CXX_TEST_REQUIRE_TOP_AND_POP(pq, zzz_f_3);
 
-      require_top_and_pop(pq, zzz_f_1);
+      BUILD_CXX_TEST_REQUIRE_TOP_AND_POP(pq, zzz_f_1);
 
-      require_top_and_pop(pq, aaa_f_3);
+      BUILD_CXX_TEST_REQUIRE_TOP_AND_POP(pq, aaa_f_3);
 
-      require_top_and_pop(pq, aaa_f_1);
+      BUILD_CXX_TEST_REQUIRE_TOP_AND_POP(pq, aaa_f_1);
     }
+
+    static common::target_status constexpr mt_10{
+        common::target_status::file_mod_time_t{-1}};
+    static common::target_status constexpr mt_20{
+        common::target_status::file_mod_time_t{0}};
+    static common::target_status constexpr mt_30{
+        common::target_status::file_mod_time_t{1}};
+
+    // for file based target simulates non-existent deps, etc.; all phony
+    // targets have this status:
+    static common::target_status constexpr explicitly_needs_update{
+        common::target_status::explicitly_needs_update};
 
     SUBCASE("prefer newer files, then ascending by resolved name") {
       // arrange
@@ -557,12 +571,53 @@ TEST_CASE("driver::build_request_comparators_chain") {
       auto pq{make_prio_queue(&fake_fs, comps)};
 
       // act (push them in "random" order)
-
-      // TODO ...
+      REQUIRE_NOTHROW(pq.emplace(
+          driver::build_request{zzz_f_2, nullptr, explicitly_needs_update}));
+      REQUIRE_NOTHROW(pq.emplace(
+          driver::build_request{aaa_pt_1, nullptr, explicitly_needs_update}));
+      REQUIRE_NOTHROW(pq.emplace(
+          driver::build_request{zzz_pt_2, nullptr, explicitly_needs_update}));
+      REQUIRE_NOTHROW(pq.emplace(
+          driver::build_request{aaa_pt_2, nullptr, explicitly_needs_update}));
+      REQUIRE_NOTHROW(pq.emplace(
+          driver::build_request{aaa_f_2, nullptr, explicitly_needs_update}));
+      REQUIRE_NOTHROW(pq.emplace(
+          driver::build_request{zzz_pt_1, nullptr, explicitly_needs_update}));
+      REQUIRE_NOTHROW(
+          pq.emplace(driver::build_request{zzz_f_3, nullptr, mt_20}));
+      REQUIRE_NOTHROW(
+          pq.emplace(driver::build_request{aaa_f_1, nullptr, mt_10}));
+      REQUIRE_NOTHROW(
+          pq.emplace(driver::build_request{aaa_f_3, nullptr, mt_20}));
+      REQUIRE_NOTHROW(
+          pq.emplace(driver::build_request{zzz_f_1, nullptr, mt_30}));
 
       // assert
+      REQUIRE_EQ(pq.size(), 10);
 
-      // TODO ...
+      // newest (to be precise, non-existing), then name_asc:
+      BUILD_CXX_TEST_REQUIRE_TOP_AND_POP(pq, aaa_f_2);
+
+      BUILD_CXX_TEST_REQUIRE_TOP_AND_POP(pq, zzz_f_2);
+
+      BUILD_CXX_TEST_REQUIRE_TOP_AND_POP(pq, aaa_pt_1);
+
+      BUILD_CXX_TEST_REQUIRE_TOP_AND_POP(pq, aaa_pt_2);
+
+      BUILD_CXX_TEST_REQUIRE_TOP_AND_POP(pq, zzz_pt_1);
+
+      BUILD_CXX_TEST_REQUIRE_TOP_AND_POP(pq, zzz_pt_2);
+
+      // newest (mt_30), then name_asc:
+      BUILD_CXX_TEST_REQUIRE_TOP_AND_POP(pq, zzz_f_1);
+
+      // "mid-aged" (mt_20), then name_asc:
+      BUILD_CXX_TEST_REQUIRE_TOP_AND_POP(pq, aaa_f_3);
+
+      BUILD_CXX_TEST_REQUIRE_TOP_AND_POP(pq, zzz_f_3);
+
+      // oldest (mt_10), then name_asc:
+      BUILD_CXX_TEST_REQUIRE_TOP_AND_POP(pq, aaa_f_1);
     }
 
     SUBCASE("prefer older files, then ascending by resolved name") {
@@ -574,12 +629,53 @@ TEST_CASE("driver::build_request_comparators_chain") {
       auto pq{make_prio_queue(&fake_fs, comps)};
 
       // act (push them in "random" order)
-
-      // TODO ...
+      REQUIRE_NOTHROW(pq.emplace(
+          driver::build_request{zzz_f_2, nullptr, explicitly_needs_update}));
+      REQUIRE_NOTHROW(pq.emplace(
+          driver::build_request{aaa_pt_1, nullptr, explicitly_needs_update}));
+      REQUIRE_NOTHROW(pq.emplace(
+          driver::build_request{zzz_pt_2, nullptr, explicitly_needs_update}));
+      REQUIRE_NOTHROW(pq.emplace(
+          driver::build_request{aaa_pt_2, nullptr, explicitly_needs_update}));
+      REQUIRE_NOTHROW(pq.emplace(
+          driver::build_request{aaa_f_2, nullptr, explicitly_needs_update}));
+      REQUIRE_NOTHROW(pq.emplace(
+          driver::build_request{zzz_pt_1, nullptr, explicitly_needs_update}));
+      REQUIRE_NOTHROW(
+          pq.emplace(driver::build_request{zzz_f_3, nullptr, mt_20}));
+      REQUIRE_NOTHROW(
+          pq.emplace(driver::build_request{aaa_f_1, nullptr, mt_10}));
+      REQUIRE_NOTHROW(
+          pq.emplace(driver::build_request{aaa_f_3, nullptr, mt_20}));
+      REQUIRE_NOTHROW(
+          pq.emplace(driver::build_request{zzz_f_1, nullptr, mt_30}));
 
       // assert
+      REQUIRE_EQ(pq.size(), 10);
 
-      // TODO ...
+      // oldest (mt_10), then name_asc:
+      BUILD_CXX_TEST_REQUIRE_TOP_AND_POP(pq, aaa_f_1);
+
+      // "mid-aged" (mt_20), then name_asc:
+      BUILD_CXX_TEST_REQUIRE_TOP_AND_POP(pq, aaa_f_3);
+
+      BUILD_CXX_TEST_REQUIRE_TOP_AND_POP(pq, zzz_f_3);
+
+      // newest (mt_30), then name_asc:
+      BUILD_CXX_TEST_REQUIRE_TOP_AND_POP(pq, zzz_f_1);
+
+      // newest (to be precise, non-existing), then name_asc:
+      BUILD_CXX_TEST_REQUIRE_TOP_AND_POP(pq, aaa_f_2);
+
+      BUILD_CXX_TEST_REQUIRE_TOP_AND_POP(pq, zzz_f_2);
+
+      BUILD_CXX_TEST_REQUIRE_TOP_AND_POP(pq, aaa_pt_1);
+
+      BUILD_CXX_TEST_REQUIRE_TOP_AND_POP(pq, aaa_pt_2);
+
+      BUILD_CXX_TEST_REQUIRE_TOP_AND_POP(pq, zzz_pt_1);
+
+      BUILD_CXX_TEST_REQUIRE_TOP_AND_POP(pq, zzz_pt_2);
     }
   }
 }
