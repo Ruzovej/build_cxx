@@ -39,7 +39,7 @@ template <bool asc>
   std::string_view const lhs_name{lhs.tgt->resolved_name};
   std::string_view const rhs_name{rhs.tgt->resolved_name};
 
-  return -(asc ? lhs_name.compare(rhs_name) : rhs_name.compare(lhs_name));
+  return asc ? lhs_name.compare(rhs_name) : rhs_name.compare(lhs_name);
 }
 
 template <bool asc = true>
@@ -65,10 +65,10 @@ template <bool asc>
     return 0;
   } else if (lhs_ex) {
     // rhs doesn't exist ... lhs has precedence (when ascending)
-    return asc ? 1 : -1;
+    return asc ? -1 : 1;
   } else if (rhs_ex) {
     // lhs doesn't exist ... rhs has precedence (when ascending)
-    return asc ? -1 : 1;
+    return asc ? 1 : -1;
   } else {
     utility::unreachable(); // without that, there was compiler warning, etc.
   }
@@ -111,10 +111,10 @@ template <bool asc>
   static_cast<void>(fs); // unused
 
   if (lhs.newest_dep_status.needs_update_compared_to(rhs.newest_dep_status)) {
-    return asc ? 1 : -1;
+    return asc ? -1 : 1;
   } else if (rhs.newest_dep_status.needs_update_compared_to(
                  lhs.newest_dep_status)) {
-    return asc ? -1 : 1;
+    return asc ? 1 : -1;
   }
 
   return 0;
@@ -146,10 +146,14 @@ bool build_request_comparators_chain::operator()(
     auto const cmp_res{cmp_fn(lhs, rhs, fs)};
 
     if (cmp_res < 0) {
-      return true;
-    } else if (0 < cmp_res) {
+      // `lhs` < `rhs` -> `rhs` has higher priority (should be processed sooner)
       return false;
-    } else { // cmp_res == 0 -> try the next comparator in the chain
+    } else if (0 < cmp_res) {
+      // `rhs` < `lhs` -> ...
+      return true;
+    } else {
+      // `lhs` ~= `rhs` ... equivalent (or equal?!) -> try the next comparator
+      // in the chain
       continue;
     }
   }
@@ -158,7 +162,7 @@ bool build_request_comparators_chain::operator()(
   // ascending", so it can be slightly inefficient if the last `comps` member is
   // exactly this; but on the other hand, if two filenames "compare equal" ...
   // it's a problem by itself:
-  return fallback_compare(lhs, rhs, fs) < 0;
+  return 0 < fallback_compare(lhs, rhs, fs);
 }
 
 build_request_comparators_chain::comparators_chain
