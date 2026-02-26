@@ -76,7 +76,7 @@ template <bool asc>
 
 [[nodiscard]] std::optional<bool>
 get_target_exists(build_request const &brq, common::fs_proxy *const fs) {
-  auto *const ft{dynamic_cast<common::file_target *>(brq.tgt)};
+  auto *const ft{dynamic_cast<common::file_target const *>(brq.tgt)};
   if (ft != nullptr) {
     auto const &ft_path{ft->get_resolved_path()};
     return fs->file_exists(ft_path);
@@ -146,7 +146,7 @@ bool build_request_comparators_chain::operator()(
     auto const cmp_res{cmp_fn(lhs, rhs, fs)};
 
     if (cmp_res < 0) {
-      // `lhs` < `rhs` -> `rhs` has higher priority (should be processed sooner)
+      // `lhs` < `rhs` -> `lhs` has higher priority (should be processed sooner)
       return false;
     } else if (0 < cmp_res) {
       // `rhs` < `lhs` -> ...
