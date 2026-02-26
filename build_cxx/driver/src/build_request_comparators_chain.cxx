@@ -31,7 +31,6 @@ namespace build_cxx::driver {
 namespace {
 
 template <bool asc>
-// ret = -1 -> lhs < rhs; ret = 0 -> equal; ret = 1 -> rhs < lhs
 [[nodiscard]] int name_compare(build_request const &lhs,
                                build_request const &rhs,
                                common::fs_proxy *const fs) {
@@ -40,7 +39,7 @@ template <bool asc>
   std::string_view const lhs_name{lhs.tgt->resolved_name};
   std::string_view const rhs_name{rhs.tgt->resolved_name};
 
-  return asc ? lhs_name.compare(rhs_name) : rhs_name.compare(lhs_name);
+  return -(asc ? lhs_name.compare(rhs_name) : rhs_name.compare(lhs_name));
 }
 
 template <bool asc = true>
@@ -66,10 +65,10 @@ template <bool asc>
     return 0;
   } else if (lhs_ex) {
     // rhs doesn't exist ... lhs has precedence (when ascending)
-    return asc ? -1 : 1;
+    return asc ? 1 : -1;
   } else if (rhs_ex) {
     // lhs doesn't exist ... rhs has precedence (when ascending)
-    return asc ? 1 : -1;
+    return asc ? -1 : 1;
   } else {
     utility::unreachable(); // without that, there was compiler warning, etc.
   }
@@ -89,7 +88,6 @@ get_target_exists(build_request const &brq, common::fs_proxy *const fs) {
 }
 
 template <bool asc>
-// ret = -1 -> lhs < rhs; ret = 0 -> equal; ret = 1 -> rhs < lhs
 [[nodiscard]] int file_exists_compare(build_request const &lhs,
                                       build_request const &rhs,
                                       common::fs_proxy *const fs) {
@@ -107,17 +105,16 @@ get_file_exists_cmp(bool const asc) {
 }
 
 template <bool asc>
-// ret = -1 -> lhs < rhs; ret = 0 -> equal; ret = 1 -> rhs < lhs
 [[nodiscard]] int mod_time_compare(build_request const &lhs,
                                    build_request const &rhs,
                                    common::fs_proxy *const fs) {
   static_cast<void>(fs); // unused
 
   if (lhs.newest_dep_status.needs_update_compared_to(rhs.newest_dep_status)) {
-    return asc ? -1 : 1;
+    return asc ? 1 : -1;
   } else if (rhs.newest_dep_status.needs_update_compared_to(
                  lhs.newest_dep_status)) {
-    return asc ? 1 : -1;
+    return asc ? -1 : 1;
   }
 
   return 0;
@@ -142,12 +139,11 @@ build_request_comparators_chain::build_request_comparators_chain(
 bool build_request_comparators_chain::operator()(
     build_request const &lhs, build_request const &rhs) const {
   for (std::size_t i{0}; (i < n_comps) && (comps[i] != nullptr); ++i) {
-    auto *const cmp{comps[i]};
+    auto *const cmp_fn{comps[i]};
 
-    // https://en.cppreference.com/w/cpp/container/priority_queue.html ... to
-    // prevent confusion: the lowest value means being processed last by the
-    // priority queue, so we need to invert the order of comparison(s) here:
-    auto const cmp_res{cmp(rhs, lhs, fs)};
+    // https://en.cppreference.com/w/cpp/container/priority_queue.html ... the
+    // lowest value means being processed last by the priority queue
+    auto const cmp_res{cmp_fn(lhs, rhs, fs)};
 
     if (cmp_res < 0) {
       return true;
@@ -159,9 +155,10 @@ bool build_request_comparators_chain::operator()(
   }
 
   // they are equivalent (or equal?!); internally, this is "sort by name,
-  // ascending", so it be slightly inefficient if the last `comps` member is
-  // exactly this
-  return fallback_compare(rhs, lhs, fs) < 0;
+  // ascending", so it can be slightly inefficient if the last `comps` member is
+  // exactly this; but on the other hand, if two filenames "compare equal" ...
+  // it's a problem by itself:
+  return fallback_compare(lhs, rhs, fs) < 0;
 }
 
 build_request_comparators_chain::comparators_chain

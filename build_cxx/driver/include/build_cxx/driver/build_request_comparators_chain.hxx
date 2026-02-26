@@ -46,7 +46,10 @@ static std::string_view constexpr doesnt_exist{"doesnt_exist"};
 
 // TODO ... EXPORT or HIDE?!
 struct BUILD_CXX_DLL_EXPORT build_request_comparators_chain {
-  // ret = -1 -> lhs < rhs; ret = 0 -> equal; ret = 1 -> rhs < lhs
+  // return:
+  // - `1` if `lhs` has higher priority (should be processed sooner) than `rhs`
+  // - `-1` if `rhs` has higher priority than `lhs`
+  // - `0` if they are equivalent (or equal?!)
   using comparator_fn = int(build_request const &lhs, build_request const &rhs,
                             common::fs_proxy *const fs);
 
