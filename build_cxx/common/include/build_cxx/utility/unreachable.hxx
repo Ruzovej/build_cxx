@@ -19,32 +19,21 @@
 
 #pragma once
 
-#include "build_cxx/common/target_status.hxx"
+namespace build_cxx::utility {
 
-namespace build_cxx::test_helpers {
+// intentional UB ... so the optimizer can slice & dice around it
+[[noreturn]] inline void unreachable() {
+#if __has_builtin(__builtin_unreachable)
+  __builtin_unreachable();
+#elif __has_builtin(__assume)
+  __assume(false);
+#else
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wpragmas"
+#pragma GCC diagnostic ignored "-Winvalid-noreturn"
+  return;
+#pragma GCC diagnostic pop
+#endif
+}
 
-struct fake_clock {
-  [[nodiscard]] common::target_status::file_mod_time_t
-  now_ns(bool const frozen = false) {
-    if (!frozen && !time_frozen) {
-      ++time_ns;
-    }
-    return time_ns;
-  }
-
-  void freeze_time(bool const freeze) {
-    // force 2 lines
-    time_frozen = freeze;
-  }
-
-  void reset() {
-    time_ns = 0;
-    time_frozen = false;
-  }
-
-private:
-  common::target_status::file_mod_time_t time_ns{};
-  bool time_frozen{false};
-};
-
-} // namespace build_cxx::test_helpers
+} // namespace build_cxx::utility

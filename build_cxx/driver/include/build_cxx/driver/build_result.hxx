@@ -19,32 +19,17 @@
 
 #pragma once
 
-#include "build_cxx/common/target_status.hxx"
+#include <build_cxx/common/abstract_target.hxx>
+#include <build_cxx/common/macros.h>
+#include <build_cxx/common/target_status.hxx>
 
-namespace build_cxx::test_helpers {
+namespace build_cxx::driver {
 
-struct fake_clock {
-  [[nodiscard]] common::target_status::file_mod_time_t
-  now_ns(bool const frozen = false) {
-    if (!frozen && !time_frozen) {
-      ++time_ns;
-    }
-    return time_ns;
-  }
-
-  void freeze_time(bool const freeze) {
-    // force 2 lines
-    time_frozen = freeze;
-  }
-
-  void reset() {
-    time_ns = 0;
-    time_frozen = false;
-  }
-
-private:
-  common::target_status::file_mod_time_t time_ns{};
-  bool time_frozen{false};
+// TODO ... EXPORT or HIDE?!
+struct BUILD_CXX_DLL_EXPORT build_result {
+  common::abstract_target *tgt{nullptr};
+  common::target_status newest_dep_status{};
+  bool success{false};
 };
 
-} // namespace build_cxx::test_helpers
+} // namespace build_cxx::driver

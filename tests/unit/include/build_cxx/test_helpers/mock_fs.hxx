@@ -28,7 +28,7 @@
 
 namespace build_cxx::test_helpers {
 
-struct mock_fs : common::fs_proxy {
+struct mock_fs final : common::fs_proxy {
   explicit mock_fs(std::mutex *const aMtx = nullptr)
       : common::fs_proxy{}, mtx{aMtx} {
     // force 2 lines
@@ -70,6 +70,19 @@ struct mock_fs : common::fs_proxy {
     if (iter != files.end()) {
       files.erase(iter);
     }
+  }
+
+  [[nodiscard]] bool empty() const {
+    auto const lck{lock()};
+
+    return files.empty();
+  }
+
+  void reset() {
+    auto const lck{lock()};
+
+    clock.reset();
+    files.clear();
   }
 
   fake_clock clock;

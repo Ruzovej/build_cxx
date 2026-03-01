@@ -22,26 +22,9 @@
 #include <algorithm>
 #include <stdexcept>
 
+#include "build_cxx/utility/unreachable.hxx"
+
 namespace build_cxx::common {
-
-namespace {
-
-// intentional UB ... so the optimizer can slice & dice around it
-[[noreturn]] void my_unreachable() {
-#if __has_builtin(__builtin_unreachable)
-  __builtin_unreachable();
-#elif __has_builtin(__assume)
-  __assume(false);
-#else
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wpragmas"
-#pragma GCC diagnostic ignored "-Winvalid-noreturn"
-  return;
-#pragma GCC diagnostic pop
-#endif
-}
-
-} // namespace
 
 void target_status::merge_with(target_status const rhs) {
   rhs.require_initialized();
@@ -67,8 +50,7 @@ void target_status::merge_with(target_status const rhs) {
     return;
   }
   default: {
-    my_unreachable();
-    break;
+    utility::unreachable();
   }
   }
 }
@@ -109,8 +91,7 @@ bool target_status::needs_update_compared_to(target_status const other) const {
                              "'transitively_needs_update' target status"};
   }
   default: {
-    my_unreachable();
-    return true; // to silence compiler warning
+    utility::unreachable();
   }
   }
 }

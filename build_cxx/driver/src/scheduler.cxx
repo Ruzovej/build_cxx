@@ -24,8 +24,12 @@
 
 namespace build_cxx::driver {
 
-scheduler::scheduler(int const n_workers, bool const aVerbose) noexcept
-    : verbose{aVerbose} {
+scheduler::scheduler(
+    common::fs_proxy *const fs,
+    build_request_comparators_chain::comparators_chain &&aComps,
+    int const n_workers, bool const aVerbose) noexcept
+    : verbose{aVerbose}, comps{std::move(aComps)},
+      todo{build_request_comparators_chain{fs, comps}} {
   workers.reserve(std::max(n_workers, 1));
 
   for (int idx{0}; idx < workers.capacity(); ++idx) {
@@ -47,13 +51,14 @@ scheduler::scheduler(int const n_workers, bool const aVerbose) noexcept
               break;
             }
 
-            task = todo.front();
+            task = todo.top();
             todo.pop();
           }
 
           res.tgt = task.tgt;
+          res.newest_dep_status = task.newest_dep_status;
 
-          task.tgt->build(*task.deps);
+          task.tgt->recipe(*task.deps);
 
           res.success = true;
         } catch (std::exception const &e) {
@@ -128,7 +133,7 @@ void scheduler::schedule_builds(std::vector<build_request> const &tgts) {
   }
 }
 
-common::abstract_target const *scheduler::get_built_target() {
+build_result scheduler::get_build_result() {
   if (n_handled_targets == 0) {
     throw std::runtime_error{
         "Workers are idle, without any job to complete nor to hand over"};
@@ -158,14 +163,14 @@ common::abstract_target const *scheduler::get_built_target() {
                              res.tgt->resolved_name + '\''};
   }
 
-  return res.tgt;
+  return res;
 }
 
 void scheduler::discard_all_running_tasks() {
   while (n_handled_targets > 0) {
     try {
       // discard it:
-      static_cast<void>(get_built_target());
+      static_cast<void>(get_build_result());
     } catch (std::exception const &e) {
       if (verbose) {
         std::cerr << e.what() << '\n';

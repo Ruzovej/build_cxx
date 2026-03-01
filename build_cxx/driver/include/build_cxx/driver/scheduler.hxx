@@ -26,7 +26,12 @@
 #include <vector>
 
 #include <build_cxx/common/abstract_target.hxx>
+#include <build_cxx/common/fs_proxy.hxx>
 #include <build_cxx/common/macros.h>
+
+#include "build_cxx/driver/build_request.hxx"
+#include "build_cxx/driver/build_request_priority_queue.hxx"
+#include "build_cxx/driver/build_result.hxx"
 
 namespace build_cxx::driver {
 
@@ -34,23 +39,21 @@ namespace build_cxx::driver {
 // more precise: its public methods aren't thread-safe.
 struct BUILD_CXX_DLL_EXPORT scheduler { // TODO should be BUILD_CXX_DLL_HIDE,
                                         // but then unit tests won't compile ...
-  explicit scheduler(int const n_workers, bool const aVerbose = true) noexcept;
+  explicit scheduler(
+      common::fs_proxy *const fs,
+      build_request_comparators_chain::comparators_chain &&aComps,
+      int const n_workers, bool const aVerbose = true) noexcept;
 
   ~scheduler() noexcept;
 
-  struct build_request {
-    common::abstract_target *tgt{nullptr};
-    std::vector<common::abstract_target const *> const *deps{nullptr};
-  };
-
   void schedule_builds(std::vector<build_request> const &rqs);
 
-  [[nodiscard]] auto num_handled_targets() const {
+  [[nodiscard]] int num_handled_targets() const {
     // force 2 lines
     return n_handled_targets;
   }
 
-  [[nodiscard]] common::abstract_target const *get_built_target();
+  [[nodiscard]] build_result get_build_result();
 
   void discard_all_running_tasks();
 
@@ -62,13 +65,8 @@ private:
 
   std::mutex mtx_todo;
   std::condition_variable cv_todo;
-  // TODO later change this to priority_queue (with customizable ordering, etc.)
-  std::queue<build_request> todo;
-
-  struct build_result {
-    common::abstract_target const *tgt{nullptr};
-    bool success{false};
-  };
+  build_request_comparators_chain::comparators_chain comps;
+  build_request_priority_queue todo;
 
   std::mutex mtx_done;
   std::condition_variable cv_done;

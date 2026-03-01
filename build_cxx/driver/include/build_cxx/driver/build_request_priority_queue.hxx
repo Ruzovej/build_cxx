@@ -19,32 +19,15 @@
 
 #pragma once
 
-#include "build_cxx/common/target_status.hxx"
+#include <queue>
 
-namespace build_cxx::test_helpers {
+#include "build_cxx/driver/build_request.hxx"
+#include "build_cxx/driver/build_request_comparators_chain.hxx"
 
-struct fake_clock {
-  [[nodiscard]] common::target_status::file_mod_time_t
-  now_ns(bool const frozen = false) {
-    if (!frozen && !time_frozen) {
-      ++time_ns;
-    }
-    return time_ns;
-  }
+namespace build_cxx::driver {
 
-  void freeze_time(bool const freeze) {
-    // force 2 lines
-    time_frozen = freeze;
-  }
+using build_request_priority_queue =
+    std::priority_queue<build_request, std::vector<build_request>,
+                        build_request_comparators_chain>;
 
-  void reset() {
-    time_ns = 0;
-    time_frozen = false;
-  }
-
-private:
-  common::target_status::file_mod_time_t time_ns{};
-  bool time_frozen{false};
-};
-
-} // namespace build_cxx::test_helpers
+} // namespace build_cxx::driver

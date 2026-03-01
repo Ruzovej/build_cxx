@@ -71,12 +71,10 @@ struct dflt_impl : fs_proxy {
   }
 };
 
-dflt_impl inst;
-
 } // namespace
 
 fs_proxy *fs_proxy::default_impl() {
-  // force 2 lines
+  static dflt_impl inst;
   return &inst;
 }
 

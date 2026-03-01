@@ -19,6 +19,7 @@
 
 #pragma once
 
+#include <string_view>
 #include <vector>
 
 #include <build_cxx/common/macros.h>
@@ -27,7 +28,8 @@ namespace build_cxx::driver {
 
 // TODO other args, ...
 BUILD_CXX_DLL_EXPORT void
-process_input(int const n_jobs, std::vector<char const *> const &targets,
+process_input(int const n_jobs, std::vector<std::string_view> const &targets,
+              std::vector<std::string_view> const &priority_comparators,
               std::vector<char const *> const &input_files);
 
 } // namespace build_cxx::driver

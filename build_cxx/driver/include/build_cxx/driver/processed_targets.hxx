@@ -29,6 +29,8 @@
 #include <build_cxx/common/macros.h>
 #include <build_cxx/common/project.hxx>
 
+#include "build_cxx/driver/build_request.hxx"
+#include "build_cxx/driver/build_result.hxx"
 #include "build_cxx/driver/scheduler.hxx"
 
 namespace build_cxx::driver {
@@ -112,18 +114,22 @@ private:
   [[nodiscard]] categorized_targets
   get_all_dependencies_of(std::vector<common::abstract_target const *> &&tgts);
 
-  [[nodiscard]] scheduler::build_request
-  get_scheduler_build_request(common::abstract_target const *const tgt);
+  [[nodiscard]] build_request
+  make_build_request(common::abstract_target const *const tgt);
 
-  void schedule_target_build(common::abstract_target const *const tgt);
+  void process_target_build(common::abstract_target const *const tgt);
 
-  void schedule_target_builds(
+  void process_target_builds(
       std::unordered_set<common::abstract_target const *> &tgts);
 
   void scheduler_commit_build_requests();
 
-  [[nodiscard]] bool scheduler_has_pending_jobs() const;
+  [[nodiscard]] bool any_pending_results() const;
 
+  [[nodiscard]] common::abstract_target const *get_built_target();
+
+  // approximately 7 methods above (and few members below) are used only in the
+  // following method; TODO refactor it (e.g. separate class, etc.)
   void build_targets_impl(std::vector<common::abstract_target const *> &&tgts);
 
   // this is for unit-test specific situations -> TODO consider removing it
@@ -149,7 +155,8 @@ private:
 
   long long unresolved{0};
 
-  std::vector<scheduler::build_request> pending_build_requests;
+  std::vector<build_request> pending_build_requests;
+  std::vector<build_result> up_to_date_targets;
   scheduler &sched;
 
 private:

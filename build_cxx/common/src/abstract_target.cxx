@@ -27,28 +27,22 @@ abstract_target::abstract_target(location const *const aLoc,
                                  std::string_view const *const aRaw_deps,
                                  std::size_t const aNum_deps) noexcept
     : loc{aLoc}, include_in_all{aInclude_in_all}, name{aName},
-      raw_deps{aRaw_deps}, num_deps{aNum_deps} {}
+      raw_deps{aRaw_deps}, num_deps{aNum_deps} {
+  // force 2 lines
+}
 
-void abstract_target::build(
-    std::vector<abstract_target const *> const &resolved_deps) {
-  initialize_status();
-
+target_status abstract_target::get_worst_dep_status(
+    std::vector<abstract_target const *> const &built_deps) const {
   auto worst_status{status};
 
-  if (!worst_status.certainly_needs_update()) {
-    for (auto const dep : resolved_deps) {
-      worst_status.merge_with(dep->get_status());
+  long long i{0};
+  auto const n_deps{static_cast<long long>(built_deps.size())};
 
-      if (worst_status.certainly_needs_update()) {
-        break;
-      }
-    }
+  while (!worst_status.certainly_needs_update() && i < n_deps) {
+    worst_status.merge_with(built_deps[i++]->get_status());
   }
 
-  if (status.needs_update_compared_to(worst_status)) {
-    recipe(resolved_deps);
-    update_status(worst_status);
-  }
+  return worst_status;
 }
 
 } // namespace build_cxx::common
