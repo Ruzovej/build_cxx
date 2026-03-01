@@ -680,6 +680,72 @@ TEST_CASE("driver::build_request_comparators_chain") {
 
       BUILD_CXX_TEST_REQUIRE_TOP_AND_POP(pq, zzz_pt_2);
     }
+
+    SUBCASE("prefer non-existing files, then descending by modification time, "
+            "then ascending by resolved name") {
+      // arrange
+      driver::build_request_comparators_chain::comparators_chain comps{
+          make_comparators_chain({driver::sort_by::doesnt_exist,
+                                  driver::sort_by::mod_time_desc,
+                                  driver::sort_by::name_asc})};
+
+      auto pq{make_prio_queue(&fake_fs, comps)};
+
+      // adjust the state of `fs` correspondingly:
+      fake_fs.rm(zzz_f_1->get_resolved_path());
+      fake_fs.rm(zzz_f_3->get_resolved_path());
+      fake_fs.touch(aaa_f_2->get_resolved_path());
+
+      // act (push them in "random" order)
+      REQUIRE_NOTHROW(pq.emplace(
+          driver::build_request{zzz_f_2, nullptr, explicitly_needs_update}));
+      REQUIRE_NOTHROW(pq.emplace(
+          driver::build_request{zzz_f_1, nullptr, explicitly_needs_update}));
+      REQUIRE_NOTHROW(pq.emplace(
+          driver::build_request{zzz_f_3, nullptr, explicitly_needs_update}));
+      REQUIRE_NOTHROW(pq.emplace(
+          driver::build_request{aaa_pt_1, nullptr, explicitly_needs_update}));
+      REQUIRE_NOTHROW(pq.emplace(
+          driver::build_request{zzz_pt_2, nullptr, explicitly_needs_update}));
+      REQUIRE_NOTHROW(pq.emplace(
+          driver::build_request{aaa_pt_2, nullptr, explicitly_needs_update}));
+      REQUIRE_NOTHROW(pq.emplace(
+          driver::build_request{zzz_pt_1, nullptr, explicitly_needs_update}));
+      REQUIRE_NOTHROW(
+          pq.emplace(driver::build_request{aaa_f_1, nullptr, mt_20}));
+      REQUIRE_NOTHROW(
+          pq.emplace(driver::build_request{aaa_f_3, nullptr, mt_10}));
+      REQUIRE_NOTHROW(
+          pq.emplace(driver::build_request{aaa_f_2, nullptr, mt_30}));
+
+      // assert
+      REQUIRE_EQ(pq.size(), 10);
+
+      // non-existing files, then mod_time_desc (doesn't have any effect here),
+      // then name_asc:
+      BUILD_CXX_TEST_REQUIRE_TOP_AND_POP(pq, zzz_f_1);
+
+      BUILD_CXX_TEST_REQUIRE_TOP_AND_POP(pq, zzz_f_2);
+
+      BUILD_CXX_TEST_REQUIRE_TOP_AND_POP(pq, zzz_f_3);
+
+      BUILD_CXX_TEST_REQUIRE_TOP_AND_POP(pq, aaa_pt_1);
+
+      BUILD_CXX_TEST_REQUIRE_TOP_AND_POP(pq, aaa_pt_2);
+
+      BUILD_CXX_TEST_REQUIRE_TOP_AND_POP(pq, zzz_pt_1);
+
+      BUILD_CXX_TEST_REQUIRE_TOP_AND_POP(pq, zzz_pt_2);
+
+      // newest (mt_30), then name_asc:
+      BUILD_CXX_TEST_REQUIRE_TOP_AND_POP(pq, aaa_f_2);
+
+      // "mid-aged" (mt_20), then name_asc:
+      BUILD_CXX_TEST_REQUIRE_TOP_AND_POP(pq, aaa_f_1);
+
+      // oldest (mt_10), then name_asc:
+      BUILD_CXX_TEST_REQUIRE_TOP_AND_POP(pq, aaa_f_3);
+    }
   }
 }
 
