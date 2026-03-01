@@ -160,14 +160,18 @@ get_mod_time_cmp(bool const asc) {
 
 build_request_comparators_chain::build_request_comparators_chain(
     common::fs_proxy *const aFs, comparators_chain const &aComps) noexcept
-    : fs{aFs}, comps{aComps.data()}, n_comps{aComps.size()} {
+    : fs{aFs}, comps{&aComps} {
   // force 2 lines
 }
 
 bool build_request_comparators_chain::operator()(
     build_request const &lhs, build_request const &rhs) const {
-  for (std::size_t i{0}; (i < n_comps) && (comps[i] != nullptr); ++i) {
-    auto *const cmp_fn{comps[i]};
+  for (std::size_t i{0}; i < comps->size(); ++i) {
+    auto *const cmp_fn{comps->at(i)};
+    if (cmp_fn == nullptr) {
+      // no more comparators in the chain; they are equivalent (or equal?!)
+      break;
+    }
 
     // https://en.cppreference.com/w/cpp/container/priority_queue.html ... the
     // lowest value means being processed last by the priority queue

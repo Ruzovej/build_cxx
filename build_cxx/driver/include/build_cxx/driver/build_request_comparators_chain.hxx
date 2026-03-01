@@ -134,9 +134,9 @@ struct BUILD_CXX_DLL_EXPORT build_request_comparators_chain {
   make_comparators_chain(std::vector<std::string_view> const &comparator_names);
 
 private:
-  common::fs_proxy *fs;
-  comparator_fn *const *comps;
-  std::size_t n_comps;
+  // not owning any of those pointers:
+  common::fs_proxy *fs{nullptr};
+  comparators_chain const *comps{nullptr};
 };
 
 } // namespace build_cxx::driver
