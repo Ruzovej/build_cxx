@@ -20,6 +20,8 @@
 #include "build_cxx/driver/build_request_comparators_chain.hxx"
 #include "build_cxx/driver/build_request_priority_queue.hxx"
 
+#include <algorithm>
+
 #include <doctest/doctest.h>
 
 #include "build_cxx/common/abstract_target.hxx"
@@ -65,13 +67,19 @@ TEST_CASE("driver::build_request_comparators_chain") {
     SUBCASE("valid inputs") {
       SUBCASE("empty input") {
         REQUIRE_NOTHROW(comps = make_comparators_chain({}));
-        REQUIRE(comps.empty());
+        REQUIRE_EQ(
+            std::count_if(comps.cbegin(), comps.cend(),
+                          [](auto const &cmp) { return cmp != nullptr; }),
+            0);
       }
 
       SUBCASE("single input") {
         REQUIRE_NOTHROW(
             comps = make_comparators_chain({driver::sort_by::name_asc}));
-        REQUIRE_EQ(comps.size(), 1);
+        REQUIRE_EQ(
+            std::count_if(comps.cbegin(), comps.cend(),
+                          [](auto const &cmp) { return cmp != nullptr; }),
+            1);
       }
 
       SUBCASE("all valid ones") {
@@ -80,7 +88,10 @@ TEST_CASE("driver::build_request_comparators_chain") {
             comps = make_comparators_chain({driver::sort_by::name_asc,
                                             driver::sort_by::doesnt_exist,
                                             driver::sort_by::mod_time_desc}));
-        REQUIRE_EQ(comps.size(), 3);
+        REQUIRE_EQ(
+            std::count_if(comps.cbegin(), comps.cend(),
+                          [](auto const &cmp) { return cmp != nullptr; }),
+            3);
       }
     }
 

@@ -54,7 +54,7 @@ struct BUILD_CXX_DLL_EXPORT build_request_comparators_chain {
                             common::fs_proxy *const fs);
 
   // not owning any pointer:
-  using comparators_chain = std::vector<comparator_fn *>;
+  using comparators_chain = std::array<comparator_fn *, 3>;
 
   explicit build_request_comparators_chain(
       common::fs_proxy *const aFs, comparators_chain const &aComps) noexcept;

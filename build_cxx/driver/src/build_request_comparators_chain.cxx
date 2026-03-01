@@ -196,8 +196,8 @@ bool build_request_comparators_chain::operator()(
 build_request_comparators_chain::comparators_chain
 build_request_comparators_chain::make_comparators_chain(
     std::vector<std::string_view> const &comparator_names) {
-  comparators_chain res;
-  res.reserve(comparator_names.size());
+  comparators_chain res{};
+  int idx{0};
 
   std::unordered_set<std::string_view> used_or_blocked;
 
@@ -209,27 +209,29 @@ build_request_comparators_chain::make_comparators_chain(
     }
 
     if (cmp_name == sort_by::name_asc) {
-      res.push_back(get_name_cmp(true));
+      res[idx] = get_name_cmp(true);
       used_or_blocked.insert({sort_by::name_asc, sort_by::name_desc});
     } else if (cmp_name == sort_by::name_desc) {
-      res.push_back(get_name_cmp(false));
+      res[idx] = get_name_cmp(false);
       used_or_blocked.insert({sort_by::name_asc, sort_by::name_desc});
     } else if (cmp_name == sort_by::exists) {
-      res.push_back(get_file_exists_cmp(true));
+      res[idx] = get_file_exists_cmp(true);
       used_or_blocked.insert({sort_by::exists, sort_by::doesnt_exist});
     } else if (cmp_name == sort_by::doesnt_exist) {
-      res.push_back(get_file_exists_cmp(false));
+      res[idx] = get_file_exists_cmp(false);
       used_or_blocked.insert({sort_by::exists, sort_by::doesnt_exist});
     } else if (cmp_name == sort_by::mod_time_asc) {
-      res.push_back(get_mod_time_cmp(true));
+      res[idx] = get_mod_time_cmp(true);
       used_or_blocked.insert({sort_by::mod_time_asc, sort_by::mod_time_desc});
     } else if (cmp_name == sort_by::mod_time_desc) {
-      res.push_back(get_mod_time_cmp(false));
+      res[idx] = get_mod_time_cmp(false);
       used_or_blocked.insert({sort_by::mod_time_asc, sort_by::mod_time_desc});
     } else {
       throw std::runtime_error{"Unknown (or unimplemented) comparator '" +
                                std::string{cmp_name} + '\''};
     }
+
+    ++idx;
   }
 
   return res;
