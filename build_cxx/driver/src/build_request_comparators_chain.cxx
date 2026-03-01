@@ -75,10 +75,9 @@ template <bool asc>
 
 [[nodiscard]] std::optional<bool>
 get_target_exists(build_request const &brq, common::fs_proxy *const fs) {
-  auto *const ft{dynamic_cast<common::file_target const *>(brq.tgt)};
-  if (ft != nullptr) {
-    auto const &ft_path{ft->get_resolved_path()};
-    return fs->file_exists(ft_path);
+  auto *const file_tgt{dynamic_cast<common::file_target const *>(brq.tgt)};
+  if (file_tgt != nullptr) {
+    return fs->file_exists(file_tgt->get_resolved_path());
   }
 
   // TODO special treatment for alias targets, etc.?
@@ -212,6 +211,15 @@ build_request_comparators_chain::make_comparators_chain(
           "' is already in the chain or blocked by another comparator"};
     }
 
+    if (res.size() <= idx) {
+      // if this happens, good question is why it wasn't "caught"/detected by
+      // the `used_or_blocked` related guardrails & checks above?!
+      throw std::runtime_error{
+          "Too many comparators in the input - maximum is " +
+          std::to_string(res.size())};
+    }
+
+    // error prone ... TODO some better way?
     if (cmp_name == sort_by::name_asc) {
       res[idx] = get_name_cmp(true);
       used_or_blocked.insert({sort_by::name_asc, sort_by::name_desc});

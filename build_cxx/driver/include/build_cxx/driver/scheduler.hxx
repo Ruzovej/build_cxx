@@ -26,6 +26,7 @@
 #include <vector>
 
 #include <build_cxx/common/abstract_target.hxx>
+#include <build_cxx/common/fs_proxy.hxx>
 #include <build_cxx/common/macros.h>
 
 #include "build_cxx/driver/build_request.hxx"
