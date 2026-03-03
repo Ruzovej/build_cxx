@@ -17,16 +17,27 @@
   with build_cxx. If not, see <https://www.gnu.org/licenses/>.
 */
 
-#define DOCTEST_CONFIG_IMPLEMENT
+#pragma once
 
-#include <doctest/doctest.h>
+namespace build_cxx::system_tests {
 
-#include "env.hxx"
+struct env {
+  static env &instance();
 
-int main(int argc, char **argv) {
-  using namespace build_cxx::system_tests;
+  // consume known arguments, leave there the rest
+  void setup(int &argc, char **&argv);
 
-  env::instance().setup(argc, argv);
+private:
+  // TODO
 
-  return doctest::Context(argc, argv).run();
-}
+private:
+  env() = default;
+  ~env() = default;
+
+  env(const env &) = delete;
+  env &operator=(const env &) = delete;
+  env(env &&) = delete;
+  env &operator=(env &&) = delete;
+};
+
+} // namespace build_cxx::system_tests
