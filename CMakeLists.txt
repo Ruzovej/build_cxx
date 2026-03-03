@@ -79,5 +79,5 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(doctest)
 
-#add_subdirectory(tests/system)
+add_subdirectory(tests/system)
 add_subdirectory(tests/unit)
