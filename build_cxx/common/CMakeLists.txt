@@ -26,8 +26,3 @@ target_include_directories(
 #        PRIVATE
 #            exec_path_args
 #)
-#target_compile_definitions(
-#    build_cxx_common
-#        PRIVATE
-#            BUILD_CXX_INTERNAL_IMPLEMENTATION
-#)
