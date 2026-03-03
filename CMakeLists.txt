@@ -26,7 +26,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 # - https://clang.llvm.org/docs/UsersManual.html#command-line-options (or here ...)
 # - https://gcc.gnu.org/onlinedocs/gcc/Instrumentation-Options.html (ditto)
 option(BUILDCXX_ASAN "Enable AddressSanitizer" OFF)
-option(BUILDCXX_MSAN "Enable MemorySanitizer" OFF) # Why this one doesn't work?! Maybe it's only for `clang`?
+option(BUILDCXX_MSAN "Enable MemorySanitizer" OFF) # Why this one doesn't work generally? Maybe it's only for `clang`?
 option(BUILDCXX_TSAN "Enable ThreadSanitizer" OFF)
 option(BUILDCXX_UBSAN "Enable UndefinedBehaviorSanitizer" OFF)
 
@@ -57,6 +57,27 @@ endif()
 
 include(FetchContent)
 
+FetchContent_Declare(
+    exec_path_args
+    GIT_REPOSITORY  https://github.com/Ruzovej/exec_path_args.git
+    GIT_TAG         v0.1.2
+    GIT_SHALLOW     TRUE
+)
+FetchContent_MakeAvailable(exec_path_args)
+
 add_subdirectory(build_cxx)
-add_subdirectory(tests/integration)
+
+add_subdirectory(tests/integration) # TODO eventually remove
+
+#cmake_policy(SET CMP0135 NEW) # file timestamps of extracted data are updated to "now"
+FetchContent_Declare(
+    doctest
+    URL https://github.com/doctest/doctest/archive/refs/tags/v2.4.12.tar.gz
+    #GIT_REPOSITORY  https://github.com/doctest/doctest.git
+    #GIT_TAG         v2.4.12
+    #GIT_SHALLOW     TRUE
+)
+FetchContent_MakeAvailable(doctest)
+
+#add_subdirectory(tests/system)
 add_subdirectory(tests/unit)
