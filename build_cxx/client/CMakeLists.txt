@@ -25,5 +25,5 @@ target_link_libraries(
     build_cxx_client
         PUBLIC
             build_cxx_common
-            exec_path_args
+            exec_path_args::exec_path_args
 )

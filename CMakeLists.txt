@@ -60,7 +60,7 @@ include(FetchContent)
 FetchContent_Declare(
     exec_path_args
     GIT_REPOSITORY  https://github.com/Ruzovej/exec_path_args.git
-    GIT_TAG         v0.1.2
+    GIT_TAG         v0.1.3
     GIT_SHALLOW     TRUE
 )
 FetchContent_MakeAvailable(exec_path_args)

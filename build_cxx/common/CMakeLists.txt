@@ -24,5 +24,5 @@ target_include_directories(
 #target_link_libraries(
 #    build_cxx_common
 #        PRIVATE
-#            exec_path_args
+#            exec_path_args::exec_path_args
 #)

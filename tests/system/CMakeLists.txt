@@ -27,7 +27,7 @@ target_include_directories(
 target_link_libraries(
     build_cxx_system_tests
         PRIVATE
-            exec_path_args
+            exec_path_args::exec_path_args
             doctest::doctest
 )
 target_compile_definitions(
