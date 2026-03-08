@@ -25,10 +25,5 @@ target_link_libraries(
     build_cxx_client
         PUBLIC
             build_cxx_common
-            exec_path_args
+            exec_path_args::exec_path_args
 )
-#target_compile_definitions(
-#    build_cxx_client
-#        PRIVATE
-#            BUILD_CXX_INTERNAL_IMPLEMENTATION
-#)
