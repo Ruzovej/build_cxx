@@ -22,17 +22,17 @@
 namespace build_cxx::system_tests {
 
 struct env {
-  static env &instance();
+  [[nodiscard]] static env &instance() noexcept;
 
   // consume known arguments, leave there the rest
-  void setup(int &argc, char **&argv);
+  [[nodiscard]] int setup(int &argc, char **&argv);
 
 private:
   // TODO
 
 private:
-  env() = default;
-  ~env() = default;
+  env() noexcept;
+  ~env() noexcept;
 
   env(const env &) = delete;
   env &operator=(const env &) = delete;

@@ -19,6 +19,8 @@
 
 #define DOCTEST_CONFIG_IMPLEMENT
 
+#include <cstdlib>
+
 #include <doctest/doctest.h>
 
 #include "env.hxx"
@@ -26,7 +28,7 @@
 int main(int argc, char **argv) {
   using namespace build_cxx::system_tests;
 
-  env::instance().setup(argc, argv);
+  auto const res{env::instance().setup(argc, argv)};
 
-  return doctest::Context(argc, argv).run();
+  return res != EXIT_SUCCESS ? res : doctest::Context(argc, argv).run();
 }

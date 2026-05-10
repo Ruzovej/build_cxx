@@ -58,6 +58,14 @@ endif()
 include(FetchContent)
 
 FetchContent_Declare(
+    cli11_wrapper
+    GIT_REPOSITORY  https://github.com/Ruzovej/cli11_wrapper.git
+    GIT_TAG         v0.1.1
+    GIT_SHALLOW     TRUE
+)
+FetchContent_MakeAvailable(cli11_wrapper)
+
+FetchContent_Declare(
     exec_path_args
     GIT_REPOSITORY  https://github.com/Ruzovej/exec_path_args.git
     GIT_TAG         v0.1.4
