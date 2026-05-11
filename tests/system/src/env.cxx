@@ -52,20 +52,28 @@ env &env::instance() noexcept {
   return e;
 }
 
-int env::setup(int &argc, char **&argv) {
+int env::setup(cli11_wrapper::args &args) {
+  if (initialized) {
+    return EXIT_FAILURE;
+  }
+
   cli11_wrapper::argv_parser parser{"TODO app desc.",
-                                    "TODO app name",
+                                    args.argv()[0],
                                     {
-                                        // TODO config files
+                                        // TODO config files?!
                                     },
-                                    argc,
-                                    argv};
+                                    args.argc(),
+                                    args.argv()};
 
   parser.set_allow_extras(true);
 
+  // TODO ... set up args, etc.
+
   CLI11_WRAPPER_PARSE(parser);
 
-  auto const extras{parser.get_parsed_extras_c_like()};
+  args = std::move(parser.get_parsed_extras_c_like());
+
+  initialized = true;
 
   return EXIT_SUCCESS;
 }

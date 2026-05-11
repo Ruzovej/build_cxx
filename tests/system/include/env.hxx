@@ -19,16 +19,15 @@
 
 #pragma once
 
+#include <cli11_wrapper/args.hxx>
+
 namespace build_cxx::system_tests {
 
 struct env {
   [[nodiscard]] static env &instance() noexcept;
 
   // consume known arguments, leave there the rest
-  [[nodiscard]] int setup(int &argc, char **&argv);
-
-private:
-  // TODO
+  [[nodiscard]] int setup(cli11_wrapper::args &args);
 
 private:
   env() noexcept;
@@ -38,6 +37,10 @@ private:
   env &operator=(const env &) = delete;
   env(env &&) = delete;
   env &operator=(env &&) = delete;
+
+private:
+  bool initialized{false};
+  // TODO
 };
 
 } // namespace build_cxx::system_tests
