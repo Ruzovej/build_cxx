@@ -22,6 +22,7 @@
 #include <cctype>
 #include <cstdlib>
 
+#include <stdexcept>
 #include <string>
 #include <string_view>
 
@@ -54,7 +55,7 @@ env &env::instance() noexcept {
 
 int env::setup(cli11_wrapper::args &args) {
   if (initialized) {
-    return EXIT_FAILURE;
+    throw std::runtime_error{"env::setup() called more than once"};
   }
 
   cli11_wrapper::argv_parser parser{"TODO app desc.",
