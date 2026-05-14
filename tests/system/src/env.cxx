@@ -32,7 +32,7 @@ namespace build_cxx::system_tests {
 
 namespace {
 
-std::string to_env_name(std::string_view const name) {
+[[nodiscard]] std::string to_env_name(std::string_view const name) {
   static std::string_view constexpr prefix{"BUILDCXXSYSTEMTEST_"};
 
   std::string result;
@@ -49,6 +49,14 @@ std::string to_env_name(std::string_view const name) {
 [[nodiscard]] cli11_wrapper::env_var_name
 env_var_name(std::string_view const name) {
   return cli11_wrapper::env_var_name{to_env_name(name)};
+}
+
+[[nodiscard]] std::string opt_name(std::string_view const name) {
+  std::string res;
+  res.reserve(name.size() + 2);
+  res += "--";
+  res += name;
+  return res;
 }
 
 } // namespace
@@ -85,20 +93,24 @@ int env::do_setup(cli11_wrapper::args &args) {
                                     args.argc(),
                                     args.argv()};
 
+  auto const add_option = [&parser](std::string_view const name,
+                                    std::string &target, std::string &&desc,
+                                    bool const required = false) {
+    parser.add_option(env_var_name(name), opt_name(name), target,
+                      std::move(desc), required);
+  };
+
   parser.set_allow_extras(true);
 
-  parser.add_option(
-      env_var_name("driver_exec"), "--driver_exec", build_cxx_driver_path,
-      "path (relative to the repo root) of the executable to be tested", true);
+  add_option("driver_exec", build_cxx_driver_path,
+             "path (relative to the repo root) of the executable to be tested",
+             true);
 
-  parser.add_option(env_var_name("repo_root"), "--repo_root",
-                    build_cxx_repo_root,
-                    "absolute path to the root of the repository", true);
+  add_option("repo_root", build_cxx_repo_root,
+             "absolute path to the root of the repository", true);
 
-  parser.add_option(env_var_name("system_tests_root"), "--system_tests_root",
-                    build_cxx_system_test_cases_root,
-                    "path (relative to the repo root) of the system test cases",
-                    true);
+  add_option("system_tests_root", build_cxx_system_test_cases_root,
+             "path (relative to the repo root) of the system test cases", true);
 
   CLI11_WRAPPER_PARSE(parser);
 
