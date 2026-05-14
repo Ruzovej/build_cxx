@@ -33,7 +33,7 @@ namespace build_cxx::system_tests {
 namespace {
 
 std::string to_env_name(std::string_view const name) {
-  static std::string_view constexpr prefix{"BUILDCXX_"};
+  static std::string_view constexpr prefix{"BUILDCXXSYSTEMTEST_"};
 
   std::string result;
   result.reserve(prefix.size() + name.size());
@@ -44,6 +44,11 @@ std::string to_env_name(std::string_view const name) {
   }
 
   return result;
+}
+
+[[nodiscard]] cli11_wrapper::env_var_name
+env_var_name(std::string_view const name) {
+  return cli11_wrapper::env_var_name{to_env_name(name)};
 }
 
 } // namespace
@@ -68,7 +73,15 @@ int env::setup(cli11_wrapper::args &args) {
 
   parser.set_allow_extras(true);
 
-  // TODO ... set up args, etc.
+  parser.add_option(
+      env_var_name("driver_exec"), "--driver_exec", build_cxx_driver_path,
+      "path (relative to the repo root) to the executable to be tested", true);
+
+  parser.add_option(env_var_name("repo_root"), "--repo_root",
+                    build_cxx_repo_root,
+                    "absolute path to the root of the repository", true);
+
+                    
 
   CLI11_WRAPPER_PARSE(parser);
 

@@ -14,26 +14,33 @@ file(
 )
 
 add_executable(
-    build_cxx_system_tests
+    build_cxx_system_tests_runner
         "${CMAKE_CURRENT_LIST_DIR}/build_cxx_system_tests.cxx"
         ${BUILD_CXX_SYSTEM_TEST_CASES}
         ${BUILD_CXX_SYSTEM_TEST_SOURCES}
 )
 target_include_directories(
-    build_cxx_system_tests
+    build_cxx_system_tests_runner
         PRIVATE
             "${CMAKE_CURRENT_LIST_DIR}/include"
 )
 target_link_libraries(
-    build_cxx_system_tests
+    build_cxx_system_tests_runner
         PRIVATE
             cli11_wrapper::cli11_wrapper
             doctest::doctest
             exec_path_args::exec_path_args
 )
 target_compile_definitions(
-    build_cxx_system_tests
+    build_cxx_system_tests_runner
         PRIVATE
             DOCTEST_CONFIG_SUPER_FAST_ASSERTS
             #DOCTEST_CONFIG_NO_TRY_CATCH_IN_ASSERTS
+)
+
+add_custom_target(
+    build_cxx_system_tests
+        DEPENDS
+            build_cxx_system_tests_runner
+            build_cxx_driver
 )

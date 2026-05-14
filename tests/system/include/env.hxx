@@ -40,6 +40,10 @@ private:
 
 private:
   bool initialized{false};
+
+  std::string build_cxx_driver_path;
+  std::string build_cxx_repo_root;
+
   // TODO
 };
 
