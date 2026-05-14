@@ -61,9 +61,9 @@ env_var_name(std::string_view const name) {
 
 } // namespace
 
-env const &env::inst() noexcept {
+env const *env::inst() noexcept {
   // force 2 lines
-  return inst_priv();
+  return &inst_priv();
 }
 
 int env::setup(cli11_wrapper::args &args) {
@@ -138,6 +138,7 @@ int env::do_setup(cli11_wrapper::args &args) {
 
   CLI11_WRAPPER_PARSE(parser);
 
+  // --help for whatever reason causes it to improperly continue ...
   args = std::move(parser.get_parsed_extras_c_like());
 
   initialized = true;

@@ -21,10 +21,12 @@
 
 #include <cli11_wrapper/args.hxx>
 
+#define TEST_ENV ::build_cxx::system_tests::env::inst()
+
 namespace build_cxx::system_tests {
 
 struct env {
-  [[nodiscard]] static env const &inst() noexcept;
+  [[nodiscard]] static env const *inst() noexcept;
 
   // consume known arguments, leave there the rest
   [[nodiscard]] static int setup(cli11_wrapper::args &args);

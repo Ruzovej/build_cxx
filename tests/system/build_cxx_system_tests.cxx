@@ -27,11 +27,9 @@
 #include "env.hxx"
 
 int main(int argc, char **argv) {
-  using namespace build_cxx::system_tests;
-
   cli11_wrapper::args args{argc, argv};
 
-  auto const res{env::setup(args)};
+  auto const res{build_cxx::system_tests::env::setup(args)};
 
   if (res == EXIT_SUCCESS)
     return doctest::Context{args.argc(), args.argv()}.run();
