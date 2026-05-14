@@ -24,27 +24,32 @@
 namespace build_cxx::system_tests {
 
 struct env {
-  [[nodiscard]] static env &instance() noexcept;
+  [[nodiscard]] static env const &inst() noexcept;
 
   // consume known arguments, leave there the rest
-  [[nodiscard]] int setup(cli11_wrapper::args &args);
+  [[nodiscard]] static int setup(cli11_wrapper::args &args);
+
+  // values:
+  std::string build_cxx_driver_path;
+  std::string build_cxx_repo_root;
+  std::string build_cxx_system_test_cases_root;
+
+  // TODO
 
 private:
   env() noexcept;
   ~env() noexcept;
+
+  [[nodiscard]] static env &inst_priv() noexcept;
+
+  [[nodiscard]] int do_setup(cli11_wrapper::args &args);
 
   env(const env &) = delete;
   env &operator=(const env &) = delete;
   env(env &&) = delete;
   env &operator=(env &&) = delete;
 
-private:
   bool initialized{false};
-
-  std::string build_cxx_driver_path;
-  std::string build_cxx_repo_root;
-
-  // TODO
 };
 
 } // namespace build_cxx::system_tests

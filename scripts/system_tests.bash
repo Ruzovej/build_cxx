@@ -9,10 +9,13 @@ scripts/build.bash \
 
 input=(
     build/tests/system/build_cxx_system_tests_runner
+    # doctest:
     --no-intro=true
     --no-version=true
-    --driver_exec="build/build_cxx/driver/build_cxx_driver"
+    # runner itself:
     --repo_root="${PWD}"
+    --system_tests_root="tests/system/cases"
+    --driver_exec="build/build_cxx/driver/build_cxx_driver"
 )
 
 if [[ "$1" == "--gdb" ]]; then

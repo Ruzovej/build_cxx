@@ -53,12 +53,26 @@ env_var_name(std::string_view const name) {
 
 } // namespace
 
-env &env::instance() noexcept {
+env const &env::inst() noexcept {
+  // force 2 lines
+  return inst_priv();
+}
+
+int env::setup(cli11_wrapper::args &args) {
+  // force 2 lines
+  return inst_priv().do_setup(args);
+}
+
+env::env() noexcept = default;
+
+env::~env() noexcept = default;
+
+env &env::inst_priv() noexcept {
   static env e;
   return e;
 }
 
-int env::setup(cli11_wrapper::args &args) {
+int env::do_setup(cli11_wrapper::args &args) {
   if (initialized) {
     throw std::runtime_error{"env::setup() called more than once"};
   }
@@ -75,13 +89,16 @@ int env::setup(cli11_wrapper::args &args) {
 
   parser.add_option(
       env_var_name("driver_exec"), "--driver_exec", build_cxx_driver_path,
-      "path (relative to the repo root) to the executable to be tested", true);
+      "path (relative to the repo root) of the executable to be tested", true);
 
   parser.add_option(env_var_name("repo_root"), "--repo_root",
                     build_cxx_repo_root,
                     "absolute path to the root of the repository", true);
 
-                    
+  parser.add_option(env_var_name("system_tests_root"), "--system_tests_root",
+                    build_cxx_system_test_cases_root,
+                    "path (relative to the repo root) of the system test cases",
+                    true);
 
   CLI11_WRAPPER_PARSE(parser);
 
@@ -91,9 +108,5 @@ int env::setup(cli11_wrapper::args &args) {
 
   return EXIT_SUCCESS;
 }
-
-env::env() noexcept = default;
-
-env::~env() noexcept = default;
 
 } // namespace build_cxx::system_tests

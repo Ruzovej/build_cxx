@@ -31,8 +31,10 @@ int main(int argc, char **argv) {
 
   cli11_wrapper::args args{argc, argv};
 
-  auto const res{env::instance().setup(args)};
+  auto const res{env::setup(args)};
 
-  return res != EXIT_SUCCESS ? res
-                             : doctest::Context(args.argc(), args.argv()).run();
+  if (res == EXIT_SUCCESS)
+    return doctest::Context{args.argc(), args.argv()}.run();
+
+  return res;
 }
