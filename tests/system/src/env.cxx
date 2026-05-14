@@ -61,26 +61,12 @@ env_var_name(std::string_view const name) {
 
 } // namespace
 
-env const *env::inst() noexcept {
-  // force 2 lines
-  return &inst_priv();
-}
-
-int env::setup(cli11_wrapper::args &args) {
-  // force 2 lines
-  return inst_priv().do_setup(args);
-}
-
-env::env() noexcept = default;
-
-env::~env() noexcept = default;
-
-env &env::inst_priv() noexcept {
+env &env::inst() noexcept {
   static env e;
   return e;
 }
 
-int env::do_setup(cli11_wrapper::args &args) {
+int env::setup(cli11_wrapper::args &args) {
   if (initialized) {
     throw std::runtime_error{"env::setup() called more than once"};
   }
@@ -102,39 +88,39 @@ int env::do_setup(cli11_wrapper::args &args) {
 
   parser.set_allow_extras(true);
 
-  add_option("driver_exec", build_cxx_driver_path,
+  add_option("driver_exec", te.build_cxx_driver_path,
              "path (relative to the repo root) of the executable to be tested",
              true);
 
-  add_option("repo_root", build_cxx_repo_root,
+  add_option("repo_root", te.build_cxx_repo_root,
              "absolute path to the root of the repository", true);
 
-  add_option("system_tests_root", build_cxx_system_test_cases_root,
+  add_option("system_tests_root", te.build_cxx_system_test_cases_root,
              "path (relative to the repo root) of the system test cases", true);
 
-  add_option("cc", cc, "C compiler");
+  add_option("cc", te.cc, "C compiler");
 
-  add_option("c_flags", c_flags, "C compiler flags");
+  add_option("c_flags", te.c_flags, "C compiler flags");
 
-  add_option("cxx", cxx, "C++ compiler");
+  add_option("cxx", te.cxx, "C++ compiler");
 
-  add_option("cxx_flags", cxx_flags, "C++ compiler flags");
+  add_option("cxx_flags", te.cxx_flags, "C++ compiler flags");
 
-  add_option("ld", ld, "linker");
+  add_option("ld", te.ld, "linker");
 
-  add_option("ld_flags", ld_flags, "linker flags");
+  add_option("ld_flags", te.ld_flags, "linker flags");
 
-  add_option("ar", ar, "archiver");
+  add_option("ar", te.ar, "archiver");
 
-  add_option("ar_flags", ar_flags, "archiver flags");
+  add_option("ar_flags", te.ar_flags, "archiver flags");
 
-  add_option("ranlib", ranlib, "ranlib");
+  add_option("ranlib", te.ranlib, "ranlib");
 
-  add_option("ranlib_flags", ranlib_flags, "ranlib flags");
+  add_option("ranlib_flags", te.ranlib_flags, "ranlib flags");
 
-  add_option("strip", strip, "strip");
+  add_option("strip", te.strip, "strip");
 
-  add_option("strip_flags", strip_flags, "strip flags");
+  add_option("strip_flags", te.strip_flags, "strip flags");
 
   CLI11_WRAPPER_PARSE(parser);
 
@@ -145,5 +131,9 @@ int env::do_setup(cli11_wrapper::args &args) {
 
   return EXIT_SUCCESS;
 }
+
+env::env() noexcept = default;
+
+env::~env() noexcept = default;
 
 } // namespace build_cxx::system_tests

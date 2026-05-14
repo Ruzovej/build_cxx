@@ -17,36 +17,19 @@
   with build_cxx. If not, see <https://www.gnu.org/licenses/>.
 */
 
-#pragma once
-
-#include <cli11_wrapper/args.hxx>
-
 #include "build_cxx/system_tests/test_env.hxx"
+
+#include "build_cxx/system_tests/env.hxx"
 
 namespace build_cxx::system_tests {
 
-struct env {
-  [[nodiscard]] static env &inst() noexcept;
+test_env const *test_env::inst() noexcept {
+  // force 2 lines
+  return &env::inst().te;
+}
 
-  // consume known arguments, leave there the rest
-  [[nodiscard]] int setup(cli11_wrapper::args &args);
+test_env::test_env() noexcept = default;
 
-  test_env te;
-
-private:
-  env() noexcept;
-  ~env() noexcept;
-
-  [[nodiscard]] static env &inst_priv() noexcept;
-
-  [[nodiscard]] int do_setup(cli11_wrapper::args &args);
-
-  env(const env &) = delete;
-  env &operator=(const env &) = delete;
-  env(env &&) = delete;
-  env &operator=(env &&) = delete;
-
-  bool initialized{false};
-};
+test_env::~test_env() noexcept = default;
 
 } // namespace build_cxx::system_tests

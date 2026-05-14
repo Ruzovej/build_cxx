@@ -29,7 +29,7 @@
 int main(int argc, char **argv) {
   cli11_wrapper::args args{argc, argv};
 
-  auto const res{build_cxx::system_tests::env::setup(args)};
+  auto const res{build_cxx::system_tests::env::inst().setup(args)};
 
   if (res == EXIT_SUCCESS)
     return doctest::Context{args.argc(), args.argv()}.run();

@@ -19,32 +19,44 @@
 
 #pragma once
 
-#include <cli11_wrapper/args.hxx>
+#include <string>
 
-#include "build_cxx/system_tests/test_env.hxx"
+#define TEST_ENV ::build_cxx::system_tests::test_env::inst()
 
 namespace build_cxx::system_tests {
 
-struct env {
-  [[nodiscard]] static env &inst() noexcept;
+struct test_env {
+  friend struct env;
 
-  // consume known arguments, leave there the rest
-  [[nodiscard]] int setup(cli11_wrapper::args &args);
+  [[nodiscard]] static test_env const *inst() noexcept;
 
-  test_env te;
+  // values:
+  std::string build_cxx_driver_path;
+  std::string build_cxx_repo_root;
+  std::string build_cxx_system_test_cases_root;
+  std::string cc{"gcc"};
+  std::string c_flags;
+  std::string cxx{"g++"};
+  std::string cxx_flags;
+  std::string ld{"ld"};
+  std::string ld_flags;
+  std::string ar{"ar"};
+  std::string ar_flags;
+  std::string ranlib{"ranlib"};
+  std::string ranlib_flags;
+  std::string strip{"strip"};
+  std::string strip_flags;
+
+  // TODO
 
 private:
-  env() noexcept;
-  ~env() noexcept;
+  test_env() noexcept;
+  ~test_env() noexcept;
 
-  [[nodiscard]] static env &inst_priv() noexcept;
-
-  [[nodiscard]] int do_setup(cli11_wrapper::args &args);
-
-  env(const env &) = delete;
-  env &operator=(const env &) = delete;
-  env(env &&) = delete;
-  env &operator=(env &&) = delete;
+  test_env(const test_env &) = delete;
+  test_env &operator=(const test_env &) = delete;
+  test_env(test_env &&) = delete;
+  test_env &operator=(test_env &&) = delete;
 
   bool initialized{false};
 };
