@@ -112,6 +112,30 @@ int env::do_setup(cli11_wrapper::args &args) {
   add_option("system_tests_root", build_cxx_system_test_cases_root,
              "path (relative to the repo root) of the system test cases", true);
 
+  add_option("cc", cc, "C compiler");
+
+  add_option("c_flags", c_flags, "C compiler flags");
+
+  add_option("cxx", cxx, "C++ compiler");
+
+  add_option("cxx_flags", cxx_flags, "C++ compiler flags");
+
+  add_option("ld", ld, "linker");
+
+  add_option("ld_flags", ld_flags, "linker flags");
+
+  add_option("ar", ar, "archiver");
+
+  add_option("ar_flags", ar_flags, "archiver flags");
+
+  add_option("ranlib", ranlib, "ranlib");
+
+  add_option("ranlib_flags", ranlib_flags, "ranlib flags");
+
+  add_option("strip", strip, "strip");
+
+  add_option("strip_flags", strip_flags, "strip flags");
+
   CLI11_WRAPPER_PARSE(parser);
 
   args = std::move(parser.get_parsed_extras_c_like());

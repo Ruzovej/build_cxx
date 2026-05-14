@@ -33,6 +33,18 @@ struct env {
   std::string build_cxx_driver_path;
   std::string build_cxx_repo_root;
   std::string build_cxx_system_test_cases_root;
+  std::string cc{"gcc"};
+  std::string c_flags;
+  std::string cxx{"g++"};
+  std::string cxx_flags;
+  std::string ld{"ld"};
+  std::string ld_flags;
+  std::string ar{"ar"};
+  std::string ar_flags;
+  std::string ranlib{"ranlib"};
+  std::string ranlib_flags;
+  std::string strip{"strip"};
+  std::string strip_flags;
 
   // TODO
 
