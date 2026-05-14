@@ -17,7 +17,7 @@
   with build_cxx. If not, see <https://www.gnu.org/licenses/>.
 */
 
-#include "env.hxx"
+#include "build_cxx/system_tests/env.hxx"
 
 #include <cctype>
 #include <cstdlib>

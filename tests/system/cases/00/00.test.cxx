@@ -17,22 +17,25 @@
   with build_cxx. If not, see <https://www.gnu.org/licenses/>.
 */
 
-#define DOCTEST_CONFIG_IMPLEMENT
+#include <filesystem>
 
-#include <cstdlib>
-
-#include <cli11_wrapper/args.hxx>
 #include <doctest/doctest.h>
 
 #include "build_cxx/system_tests/env.hxx"
 
-int main(int argc, char **argv) {
-  cli11_wrapper::args args{argc, argv};
+namespace {
 
-  auto const res{build_cxx::system_tests::env::setup(args)};
+TEST_CASE("correct folder is set, build_cxx_driver exists & is executable by current user") {
+  REQUIRE_EQ(std::filesystem::current_path(), TEST_ENV->build_cxx_repo_root);
 
-  if (res == EXIT_SUCCESS)
-    return doctest::Context{args.argc(), args.argv()}.run();
+  REQUIRE(std::filesystem::exists(TEST_ENV->build_cxx_driver_path));
 
-  return res;
+  REQUIRE(std::filesystem::is_regular_file(TEST_ENV->build_cxx_driver_path));
+
+  REQUIRE_EQ(
+      std::filesystem::status(TEST_ENV->build_cxx_driver_path).permissions() &
+          std::filesystem::perms::owner_exec,
+      std::filesystem::perms::owner_exec);
 }
+
+} // namespace
