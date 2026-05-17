@@ -23,9 +23,9 @@
 
 namespace build_cxx::system_tests {
 
-test_env const *test_env::inst() noexcept {
+test_env const &test_env::inst() noexcept {
   // force 2 lines
-  return &env::inst().te;
+  return env::inst().te;
 }
 
 test_env::test_env() noexcept = default;

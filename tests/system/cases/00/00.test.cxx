@@ -25,15 +25,16 @@
 
 namespace {
 
-TEST_CASE("correct folder is set, build_cxx_driver exists & is executable by current user") {
-  REQUIRE_EQ(std::filesystem::current_path(), TEST_ENV->build_cxx_repo_root);
+TEST_CASE("correct folder is set, build_cxx_driver exists & is executable by "
+          "current user") {
+  REQUIRE_EQ(std::filesystem::current_path(), TEST_ENV().build_cxx_repo_root);
 
-  REQUIRE(std::filesystem::exists(TEST_ENV->build_cxx_driver_path));
+  REQUIRE(std::filesystem::exists(TEST_ENV().build_cxx_driver_path));
 
-  REQUIRE(std::filesystem::is_regular_file(TEST_ENV->build_cxx_driver_path));
+  REQUIRE(std::filesystem::is_regular_file(TEST_ENV().build_cxx_driver_path));
 
   REQUIRE_EQ(
-      std::filesystem::status(TEST_ENV->build_cxx_driver_path).permissions() &
+      std::filesystem::status(TEST_ENV().build_cxx_driver_path).permissions() &
           std::filesystem::perms::owner_exec,
       std::filesystem::perms::owner_exec);
 }

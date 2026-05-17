@@ -21,14 +21,14 @@
 
 #include <string>
 
-#define TEST_ENV ::build_cxx::system_tests::test_env::inst()
+#define TEST_ENV() ::build_cxx::system_tests::test_env::inst()
 
 namespace build_cxx::system_tests {
 
 struct test_env {
   friend struct env;
 
-  [[nodiscard]] static test_env const *inst() noexcept;
+  [[nodiscard]] static test_env const &inst() noexcept;
 
   // values:
   std::string build_cxx_driver_path;
