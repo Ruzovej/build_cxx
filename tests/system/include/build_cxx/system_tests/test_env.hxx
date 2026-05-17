@@ -57,8 +57,6 @@ private:
   test_env &operator=(const test_env &) = delete;
   test_env(test_env &&) = delete;
   test_env &operator=(test_env &&) = delete;
-
-  bool initialized{false};
 };
 
 } // namespace build_cxx::system_tests

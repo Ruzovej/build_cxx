@@ -68,7 +68,8 @@ env &env::inst() noexcept {
 
 int env::setup(cli11_wrapper::args &args) {
   if (initialized) {
-    throw std::runtime_error{"env::setup() called more than once"};
+    // called more than once:
+    return EXIT_FAILURE;
   }
 
   cli11_wrapper::argv_parser parser{"TODO app desc.",
