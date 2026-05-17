@@ -1,0 +1,49 @@
+/*
+  Copyright 2026 Lukáš Růžička
+
+  This file is part of build_cxx.
+
+  build_cxx is free software: you can redistribute it and/or modify it under the
+  terms of the GNU Lesser General Public License as published by the Free
+  Software Foundation, either version 3 of the License, or (at your option) any
+  later version.
+
+  build_cxx is distributed in the hope that it will be useful, but WITHOUT ANY
+  WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+  A PARTICULAR PURPOSE. See the GNU Lesser General Public License for more
+  details.
+
+  You should have received a copy of the GNU Lesser General Public License along
+  with build_cxx. If not, see <https://www.gnu.org/licenses/>.
+*/
+
+#pragma once
+
+#include <cli11_wrapper/args.hxx>
+
+#include "build_cxx/system_tests/test_env.hxx"
+
+namespace build_cxx::system_tests::impl {
+
+// Not to be used in test cases, it's only purpose is initialization of test_env
+struct env {
+  [[nodiscard]] static env &inst() noexcept;
+
+  // consume known arguments, leave there the rest
+  [[nodiscard]] int setup(cli11_wrapper::args &args);
+
+  test_env te;
+
+private:
+  env() noexcept;
+  ~env() noexcept;
+
+  env(const env &) = delete;
+  env &operator=(const env &) = delete;
+  env(env &&) = delete;
+  env &operator=(env &&) = delete;
+
+  bool initialized{false};
+};
+
+} // namespace build_cxx::system_tests::impl

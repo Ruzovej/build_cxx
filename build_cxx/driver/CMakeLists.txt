@@ -25,7 +25,8 @@ target_link_libraries(
     build_cxx_driver_impl
         PUBLIC
             build_cxx_common
-            exec_path_args
+            cli11_wrapper::cli11_wrapper
+            exec_path_args::exec_path_args
 )
 
 add_executable(
