@@ -25,8 +25,14 @@
 
 namespace build_cxx::system_tests {
 
+namespace impl {
+
+// Not to be used in test cases, it's only purpose is initialization of test_env
+struct env;
+
+} // namespace impl
 struct test_env {
-  friend struct env;
+  friend struct impl::env;
 
   [[nodiscard]] static test_env const &inst() noexcept;
 
