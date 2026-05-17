@@ -21,7 +21,7 @@
 
 #include <doctest/doctest.h>
 
-#include "build_cxx/system_tests/env.hxx"
+#include "build_cxx/system_tests/test_env.hxx"
 
 namespace {
 

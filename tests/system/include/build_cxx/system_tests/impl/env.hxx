@@ -46,4 +46,4 @@ private:
   bool initialized{false};
 };
 
-} // namespace build_cxx::system_tests
+} // namespace build_cxx::system_tests::impl

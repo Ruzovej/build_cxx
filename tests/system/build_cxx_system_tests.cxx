@@ -30,7 +30,7 @@
 #include <cli11_wrapper/argv_parser.hxx>
 #include <doctest/doctest.h>
 
-#include "build_cxx/system_tests/env.hxx"
+#include "build_cxx/system_tests/impl/env.hxx"
 
 namespace build_cxx::system_tests::impl {
 
