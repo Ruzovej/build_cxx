@@ -37,10 +37,6 @@ private:
   env() noexcept;
   ~env() noexcept;
 
-  [[nodiscard]] static env &inst_priv() noexcept;
-
-  [[nodiscard]] int do_setup(cli11_wrapper::args &args);
-
   env(const env &) = delete;
   env &operator=(const env &) = delete;
   env(env &&) = delete;
