@@ -25,7 +25,6 @@ target_link_libraries(
     build_cxx_driver_impl
         PUBLIC
             build_cxx_common
-            cli11_wrapper::cli11_wrapper
             exec_path_args::exec_path_args
 )
 
@@ -37,4 +36,5 @@ target_link_libraries(
     build_cxx_driver
         PRIVATE
             build_cxx_driver_impl
+            cli11_wrapper::cli11_wrapper
 )

@@ -25,6 +25,8 @@
 #include <thread>
 #include <vector>
 
+#include <cli11_wrapper/argv_parser.hxx>
+
 #include "build_cxx/driver/process_input.hxx"
 
 int main(int argc, char *argv[]) {
