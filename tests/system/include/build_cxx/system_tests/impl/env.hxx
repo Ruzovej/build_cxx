@@ -30,7 +30,8 @@ struct env {
   [[nodiscard]] static env &inst() noexcept;
 
   // consume known arguments, leave there the rest
-  [[nodiscard]] int setup(cli11_wrapper::args &args);
+  [[nodiscard]] int setup(cli11_wrapper::args const &in_args,
+                          cli11_wrapper::args &out_args);
 
   test_env te;
 

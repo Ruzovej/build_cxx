@@ -98,7 +98,7 @@ void processed_targets::build_targets(std::vector<std::string_view> const &tgts,
   std::vector<common::abstract_target const *> resolved_tgts;
   resolved_tgts.reserve(tgts.size());
 
-  for (auto const &tgt : tgts) {
+  for (auto const tgt : tgts) {
     auto const iter{targets_by_resolved_name.find(tgt)};
 
     if (iter == targets_by_resolved_name.cend()) {

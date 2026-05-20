@@ -17,12 +17,13 @@
   with build_cxx. If not, see <https://www.gnu.org/licenses/>.
 */
 
-#include "build_cxx/driver/process_input.hxx"
+#include "build_cxx/driver/assignment.hxx"
 
 #include <functional>
 #include <iostream>
 #include <limits>
 #include <string_view>
+#include <thread>
 #include <unordered_map>
 #include <unordered_set>
 
@@ -40,15 +41,20 @@
 
 namespace build_cxx::driver {
 
-void process_input(int const n_jobs,
-                   std::vector<std::string_view> const &targets,
-                   std::vector<std::string_view> const &priority_comparators,
-                   std::vector<char const *> const &input_files) {
+assignment::assignment() noexcept
+    : n_jobs{
+          std::max(1, static_cast<int>(std::thread::hardware_concurrency()))} {
+  // force 2 lines
+}
+
+assignment::~assignment() noexcept = default;
+
+void assignment::process() const {
   std::vector<build_cxx::driver::dlopen_scoped> dl_handles;
   dl_handles.reserve(input_files.size());
 
   for (auto const input_file : input_files) {
-    dl_handles.emplace_back(input_file);
+    dl_handles.emplace_back(input_file.c_str());
   }
 
   // TODO "hide" this & related checks in relevant "processed_targets"s method

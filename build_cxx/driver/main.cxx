@@ -17,68 +17,45 @@
   with build_cxx. If not, see <https://www.gnu.org/licenses/>.
 */
 
-#include <algorithm>
 #include <exception>
 #include <iostream>
-#include <optional>
-#include <string_view>
-#include <thread>
-#include <vector>
 
 #include <cli11_wrapper/argv_parser.hxx>
 
-#include "build_cxx/driver/process_input.hxx"
+#include "build_cxx/driver/assignment.hxx"
 
 int main(int argc, char *argv[]) {
-  auto consume_arg = [&argc, &argv](bool const mandatory,
-                                    std::string_view const err_msg =
-                                        "") -> char const * {
-    if (argc <= 0) {
-      if (mandatory) {
-        throw std::runtime_error("Insufficient arguments: " +
-                                 std::string{err_msg});
-      } else {
-        return nullptr;
-      }
-    } else {
-      char const *const res{argv[0]};
-      --argc;
-      ++argv;
-      return res;
-    }
-  };
-
   try {
-    std::vector<std::string_view> targets;
-    std::vector<std::string_view> priority_comparators;
-    std::optional<int> n_jobs;
-    std::vector<char const *> input_files;
+    build_cxx::driver::assignment assignment{};
 
-    // skip executable name ...
-    static_cast<void>(consume_arg(true, "missing executable filename"));
+    cli11_wrapper::argv_parser parser{"TODO app desc.",
+                                      argv[0],
+                                      {
+                                          // TODO config names
+                                      },
+                                      argc,
+                                      argv};
 
-    while (argc > 0) {
-      auto const next_arg_cstr{consume_arg(true, "argc mismatch")};
-      std::string_view const next_arg{next_arg_cstr};
+    parser.set_allow_extras(true);
 
-      if (next_arg == "--target" || next_arg == "-t") {
-        targets.emplace_back(
-            consume_arg(true, "missing target name after --target/-t"));
-      } else if (next_arg == "--comparator" || next_arg == "-c") {
-        priority_comparators.emplace_back(
-            consume_arg(true, "missing comparator name after --comparator/-c"));
-      } else if (next_arg == "--jobs" || next_arg == "-j") {
-        n_jobs.emplace(std::stoi(
-            std::string{consume_arg(true, "missing number after --jobs/-j")}));
-      } else {
-        input_files.emplace_back(next_arg_cstr);
-      }
-    }
+    parser.add_option(
+        "-j,--jobs", assignment.n_jobs,
+        "number of parallel jobs (defaults to number of CPU cores)");
 
-    build_cxx::driver::process_input(
-        n_jobs.value_or(
-            std::max(1, static_cast<int>(std::thread::hardware_concurrency()))),
-        targets, priority_comparators, input_files);
+    parser.add_option("-c,--comparator", assignment.priority_comparators,
+                      "priority comparator(s) to use (can be specified "
+                      "multiple times to build a chain of comparators)");
+
+    // TODO make those the "remaining" ones, that is `== get_parsed_extras()`,
+    // and accept `input_files` from a flag, or so
+    parser.add_option("-t,--target,--targets", assignment.targets,
+                      "target(s) to build(can be specified multiple times)");
+
+    CLI11_WRAPPER_PARSE(parser);
+
+    assignment.input_files = parser.get_parsed_extras();
+
+    assignment.process();
 
     return EXIT_SUCCESS;
   } catch (std::exception const &e) {

@@ -26,10 +26,22 @@
 
 namespace build_cxx::driver {
 
-// TODO other args, ...
-BUILD_CXX_DLL_EXPORT void
-process_input(int const n_jobs, std::vector<std::string_view> const &targets,
-              std::vector<std::string_view> const &priority_comparators,
-              std::vector<char const *> const &input_files);
+struct BUILD_CXX_DLL_EXPORT assignment {
+  assignment() noexcept;
+  ~assignment() noexcept;
+
+  void process() const;
+
+  int n_jobs{};
+  std::vector<std::string_view> targets;
+  std::vector<std::string_view> priority_comparators;
+  std::vector<std::string> input_files;
+
+private:
+  assignment(assignment const &) = delete;
+  assignment &operator=(assignment const &) = delete;
+  assignment(assignment &&) = delete;
+  assignment &operator=(assignment &&) = delete;
+};
 
 } // namespace build_cxx::driver
