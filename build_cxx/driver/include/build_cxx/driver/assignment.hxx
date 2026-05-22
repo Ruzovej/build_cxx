@@ -20,6 +20,7 @@
 #pragma once
 
 #include <string_view>
+#include <thread>
 #include <vector>
 
 #include <build_cxx/common/macros.h>
@@ -32,9 +33,14 @@ struct BUILD_CXX_DLL_EXPORT assignment {
 
   void process() const;
 
-  int n_jobs{};
+  int n_jobs{
+      std::max(1, static_cast<int>(std::thread::hardware_concurrency()))};
+  std::string_view build_cxx_file{"build.cxx"};
   std::vector<std::string_view> targets;
   std::vector<std::string_view> priority_comparators;
+
+  // TODO ... this is bad, it is here only temporarily, for "proof of concept"
+  // purposes:
   std::vector<std::string> input_files;
 
 private:

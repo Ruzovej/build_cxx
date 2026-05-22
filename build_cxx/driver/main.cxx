@@ -42,18 +42,21 @@ int main(int argc, char *argv[]) {
         "-j,--jobs", assignment.n_jobs,
         "number of parallel jobs (defaults to number of CPU cores)");
 
+    parser.add_option("-B,--Build,--build-cxx-file", assignment.build_cxx_file,
+                      "path to the build.cxx file to use (defaults to "
+                      "build.cxx in the current directory)");
+
     parser.add_option("-c,--comparator", assignment.priority_comparators,
                       "priority comparator(s) to use (can be specified "
                       "multiple times to build a chain of comparators)");
 
-    // TODO make those the "remaining" ones, that is `== get_parsed_extras()`,
-    // and accept `input_files` from a flag, or so
-    parser.add_option("-t,--target,--targets", assignment.targets,
-                      "target(s) to build(can be specified multiple times)");
+    parser.add_option(
+        "-i,--input", assignment.input_files,
+        "input file(s) to process (can be specified multiple times)");
 
     CLI11_WRAPPER_PARSE(parser);
 
-    assignment.input_files = parser.get_parsed_extras();
+    assignment.targets = parser.view_parsed_extras();
 
     assignment.process();
 

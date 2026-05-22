@@ -23,7 +23,6 @@
 #include <iostream>
 #include <limits>
 #include <string_view>
-#include <thread>
 #include <unordered_map>
 #include <unordered_set>
 
@@ -41,11 +40,7 @@
 
 namespace build_cxx::driver {
 
-assignment::assignment() noexcept
-    : n_jobs{
-          std::max(1, static_cast<int>(std::thread::hardware_concurrency()))} {
-  // force 2 lines
-}
+assignment::assignment() noexcept = default;
 
 assignment::~assignment() noexcept = default;
 
