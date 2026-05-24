@@ -48,7 +48,7 @@ void assignment::process() const {
   std::vector<build_cxx::driver::dlopen_scoped> dl_handles;
   dl_handles.reserve(input_files.size());
 
-  for (auto const input_file : input_files) {
+  for (auto const &input_file : input_files) {
     dl_handles.emplace_back(input_file.c_str());
   }
 

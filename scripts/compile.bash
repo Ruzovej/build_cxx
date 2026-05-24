@@ -4,5 +4,5 @@
 
 set -e
 
-scripts/configure.bash
+scripts/configure.bash "$@"
 scripts/build.bash
