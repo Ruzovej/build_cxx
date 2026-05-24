@@ -29,6 +29,7 @@ int main(int argc, char *argv[]) {
     build_cxx::driver::assignment assignment{};
 
     cli11_wrapper::argv_parser parser{"TODO app desc.",
+                                      "TODO app version",
                                       argv[0],
                                       {
                                           // TODO config names

@@ -82,6 +82,7 @@ int env::setup(cli11_wrapper::args const &in_args,
   }
 
   cli11_wrapper::argv_parser parser{"TODO app desc.",
+                                    "TODO app version",
                                     in_args.argv()[0],
                                     {
                                         // TODO config files?!
