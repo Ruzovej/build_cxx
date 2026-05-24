@@ -31,7 +31,7 @@ namespace build_cxx::common {
 struct BUILD_CXX_DLL_EXPORT file_target : abstract_target {
   using abstract_target::abstract_target;
 
-  static std::filesystem::path
+  [[nodiscard]] static std::filesystem::path
   resolve_path(std::string_view const source_filename,
                std::string_view const target_name);
 
@@ -42,7 +42,7 @@ struct BUILD_CXX_DLL_EXPORT file_target : abstract_target {
   void initialize_status() override;
   void update_status(target_status const newest_dep_status) override;
 
-  std::filesystem::path const &get_resolved_path() const {
+  [[nodiscard]] std::filesystem::path const &get_resolved_path() const {
     return resolved_path;
   }
 

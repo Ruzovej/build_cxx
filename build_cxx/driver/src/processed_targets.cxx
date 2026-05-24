@@ -361,6 +361,9 @@ bool processed_targets::resolve_deps_for_impl(
 
     // properly link them together:
     res_deps.deps.emplace_back(depends_on_tgt);
+  }
+
+  for (auto *const depends_on_tgt : res_deps.deps) {
     target_resolved_deps.at(depends_on_tgt).dep_of.emplace(at);
   }
 

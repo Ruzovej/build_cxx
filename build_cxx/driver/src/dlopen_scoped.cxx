@@ -37,17 +37,16 @@ dlopen_scoped::dlopen_scoped(char const *const filename)
 }
 
 build_cxx::common::project *dlopen_scoped::get_project() const {
-  static auto constexpr symbol_name{
-      BUILD_CXX_GET_PROJECT_SYMBOL_NAME_STR};
+  static auto constexpr symbol_name{BUILD_CXX_GET_PROJECT_SYMBOL_NAME_STR};
 
-  auto symbol{dlsym(handle, symbol_name)};
+  auto *const symbol{dlsym(handle, symbol_name)};
   if (symbol == nullptr) { // not mandatory ... TODO later make it so!
     return nullptr;
   }
 
   using get_proj_fn = build_cxx::common::project *();
 
-  auto const fn{reinterpret_cast<get_proj_fn *>(symbol)};
+  auto const fn{reinterpret_cast<get_proj_fn *const>(symbol)};
 
   return fn();
 }
