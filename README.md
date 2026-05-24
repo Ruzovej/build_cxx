@@ -20,7 +20,7 @@
 So far, it can't compile "build source code" itself, but can execute it:
 
 ```bash
-$ scripts/compile.bash --asan
+$ scripts/compile_all.bash --asan
 ...
 # same one 3+ times:
 $ build/build_cxx/driver/build_cxx_driver --input build/tests/integration/lib03.so -- CCC::c1
