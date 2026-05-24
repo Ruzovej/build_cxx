@@ -74,19 +74,21 @@ env::env() noexcept = default;
 
 env::~env() noexcept = default;
 
-int env::setup(cli11_wrapper::args &args) {
+int env::setup(cli11_wrapper::args const &in_args,
+               cli11_wrapper::args &out_args) {
   if (initialized) {
     // called more than once:
     return EXIT_FAILURE;
   }
 
   cli11_wrapper::argv_parser parser{"TODO app desc.",
-                                    args.argv()[0],
+                                    "TODO app version",
+                                    in_args.argv()[0],
                                     {
                                         // TODO config files?!
                                     },
-                                    args.argc(),
-                                    args.argv()};
+                                    in_args.argc(),
+                                    in_args.argv()};
 
   auto const add_option = [&parser](std::string_view const name,
                                     std::string &target, std::string &&desc,
@@ -134,7 +136,7 @@ int env::setup(cli11_wrapper::args &args) {
   CLI11_WRAPPER_PARSE(parser);
 
   // --help for whatever reason causes it to improperly continue ...
-  args = std::move(parser.get_parsed_extras_c_like());
+  out_args = std::move(parser.get_parsed_extras_c_like());
 
   initialized = true;
 
@@ -144,12 +146,15 @@ int env::setup(cli11_wrapper::args &args) {
 } // namespace build_cxx::system_tests::impl
 
 int main(int argc, char **argv) {
-  cli11_wrapper::args args{argc, argv};
+  cli11_wrapper::args all_args{argc, argv};
+  cli11_wrapper::args doctest_args{};
 
-  auto const res{build_cxx::system_tests::impl::env::inst().setup(args)};
+  auto const res{
+      build_cxx::system_tests::impl::env::inst().setup(all_args, doctest_args)};
 
-  if (res == EXIT_SUCCESS)
-    return doctest::Context{args.argc(), args.argv()}.run();
+  if (res == EXIT_SUCCESS) {
+    return doctest::Context{doctest_args.argc(), doctest_args.argv()}.run();
+  }
 
   return res;
 }

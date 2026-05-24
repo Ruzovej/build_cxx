@@ -60,7 +60,7 @@ include(FetchContent)
 FetchContent_Declare(
     cli11_wrapper
     GIT_REPOSITORY  https://github.com/Ruzovej/cli11_wrapper.git
-    GIT_TAG         v0.1.3
+    GIT_TAG         v0.3.1
     GIT_SHALLOW     TRUE
 )
 FetchContent_MakeAvailable(cli11_wrapper)

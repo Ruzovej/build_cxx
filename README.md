@@ -20,16 +20,16 @@
 So far, it can't compile "build source code" itself, but can execute it:
 
 ```bash
-$ scripts/compile.bash
+$ scripts/compile.bash --asan
 ...
 # same one 3+ times:
-$ build/build_cxx/driver/build_cxx_driver build/tests/integration/lib03.so --target CCC::c1
+$ build/build_cxx/driver/build_cxx_driver --input build/tests/integration/lib03.so -- CCC::c1
 ... # it was created, etc.
-$ build/build_cxx/driver/build_cxx_driver build/tests/integration/lib03.so --target CCC::c1
+$ build/build_cxx/driver/build_cxx_driver --input build/tests/integration/lib03.so -- CCC::c1
 ... # no need to update (most probably, but there are some timestamp mismatches so it gets rebuild even when not necessary ...)
-$ build/build_cxx/driver/build_cxx_driver build/tests/integration/lib03.so --target CCC::c1
+$ build/build_cxx/driver/build_cxx_driver --input build/tests/integration/lib03.so -- CCC::c1
 ... # should definitely have everything properly up-to date now
 # another one:
-$ build/build_cxx/driver/build_cxx_driver build/tests/integration/lib01.so build/tests/integration/lib02.so --target BBB::BBB -t AAA::a_phony_1
+$ build/build_cxx/driver/build_cxx_driver --input build/tests/integration/lib01.so build/tests/integration/lib02.so -- BBB::BBB AAA::a_phony_1
 ...
 ```
